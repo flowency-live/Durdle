@@ -18,14 +18,14 @@ export const metadata: Metadata = {
   description: "Reliable, modern transfers across the Dorset coast. From airport runs to business travel - we get you there on time, every time.",
   icons: {
     icon: [
-      { url: "/durdle-logo-transparent.png" },
-      { url: "/durdle-logo-transparent.png", sizes: "32x32", type: "image/png" },
-      { url: "/durdle-logo-transparent.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon.ico" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
     ],
     apple: [
-      { url: "/durdle-logo-transparent.png", sizes: "180x180", type: "image/png" },
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     ],
-    shortcut: "/durdle-logo-transparent.png",
+    shortcut: "/favicon.ico",
   },
   manifest: "/site.webmanifest",
   appleWebApp: {
