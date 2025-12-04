@@ -111,21 +111,19 @@ export default function Home() {
 
           <div className="container relative z-10 px-4 md:px-6 pt-20 mx-auto">
             <div className="max-w-4xl mx-auto text-center">
-              <div className="animate-fade-up inline-flex items-center gap-2 px-4 py-2 rounded-full bg-card/80 backdrop-blur-sm shadow-soft border border-border mb-8">
-                <span className="w-2 h-2 rounded-full bg-sage-dark animate-pulse" />
-                <span className="text-sm font-medium text-muted-foreground">
-                  Dorset&apos;s premier transfer service
+              <div className="animate-fade-up inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm shadow-soft border border-white/20 mb-8">
+                <span className="w-2 h-2 rounded-full bg-sage-light animate-pulse" />
+                <span className="text-sm font-medium text-white/90">
+                  Est. 2025 — Dorset&apos;s Premier Transfer Service
                 </span>
               </div>
 
               <h1 className="animate-fade-up-delay-1 text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white mb-6">
-                Travel Dorset with{" "}
-                <span className="text-white">confidence</span>
+                Travel Dorset with elegance
               </h1>
 
               <p className="animate-fade-up-delay-2 text-lg md:text-xl text-white/90 max-w-2xl mx-auto mb-10">
-                Reliable, modern transfers across the Dorset coast. From airport runs to business
-                travel - we get you there on time, every time.
+                Reliable, comfortable transfers across the stunning Dorset coast. From airport runs to business travel — we get you there on time, every time.
               </p>
 
               <div className="animate-fade-up-delay-3 flex flex-col sm:flex-row gap-4 justify-center">
