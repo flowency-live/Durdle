@@ -19,14 +19,42 @@ const config: Config = {
         "muted-foreground": "hsl(var(--muted-foreground))",
         border: "hsl(var(--border))",
 
-        // Brand Colors - Durdle Palette
-        "ocean-light": "hsl(var(--ocean-light))",
-        "sand-golden": "hsl(var(--sand-golden))",
-        "sky-blue": "hsl(var(--sky-blue))",
-        "cliff-green": "hsl(var(--cliff-green))",
+        // Brand Colors - The Dorset Transfer Company
+        navy: {
+          DEFAULT: '#2b444c',
+          dark: '#1a2428',
+          light: '#3d5a64',
+        },
+        sage: {
+          DEFAULT: '#b7d5b9',
+          dark: '#8fb894',
+          light: '#d4e7d6',
+        },
+        gray: {
+          DEFAULT: '#a6a6a6',
+          dark: '#707070',
+          light: '#e5e5e5',
+        },
+        cream: '#f5f1e8',
+
+        // Functional colors
+        success: '#8fb894',
+        warning: '#d4a574',
+        error: '#c97064',
+        info: '#3d5a64',
+
+        // Legacy Durdle colors (for gradual migration)
+        "ocean-light": "#14b8a6",
+        "sand-golden": "#f59e0b",
+      },
+      fontFamily: {
+        knockout: ['var(--font-knockout)', 'sans-serif'],
       },
       backgroundImage: {
         "gradient-hero-overlay": "linear-gradient(to bottom, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.3))",
+        "gradient-navy-sage": "linear-gradient(135deg, #2b444c 0%, #8fb894 100%)",
+        "gradient-sage-cream": "linear-gradient(135deg, #b7d5b9 0%, #f5f1e8 100%)",
+        "gradient-navy-light": "linear-gradient(to bottom, #2b444c 0%, #3d5a64 100%)",
       },
       boxShadow: {
         "soft": "0 2px 8px rgba(0, 0, 0, 0.08)",
