@@ -48,9 +48,9 @@ export default function Home() {
               <Image
                 src="/dtc-logo-wave.png"
                 alt="The Dorset Transfer Company"
-                width={60}
-                height={60}
-                className="h-10 w-auto"
+                width={120}
+                height={120}
+                className="h-20 w-auto"
               />
             </div>
 
