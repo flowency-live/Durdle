@@ -44,7 +44,7 @@ export default function Home() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div className="container px-4 md:px-6 mx-auto">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0">
               <Image
                 src="/durdle-logo-transparent.png"
                 alt="Durdle"
@@ -52,7 +52,7 @@ export default function Home() {
                 height={64}
                 className="w-16 h-16"
               />
-              <span className="font-bold text-2xl text-foreground -ml-1">urdle</span>
+              <span className="font-bold text-2xl text-foreground -ml-3">urdle</span>
             </div>
 
             <nav className="hidden md:flex items-center gap-8">
@@ -376,7 +376,7 @@ export default function Home() {
       <footer className="py-12 bg-card border-t border-border">
         <div className="container px-4 md:px-6 mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0">
               <Image
                 src="/durdle-logo-transparent.png"
                 alt="Durdle"
@@ -384,7 +384,7 @@ export default function Home() {
                 height={48}
                 className="w-12 h-12"
               />
-              <span className="font-bold text-xl text-foreground -ml-1">urdle</span>
+              <span className="font-bold text-xl text-foreground -ml-2.5">urdle</span>
             </div>
 
             <nav className="flex gap-8">
