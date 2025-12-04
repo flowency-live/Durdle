@@ -1,0 +1,11 @@
+{
+  "pickupLocation": {
+    "address": "Bournemouth Railway Station, UK"
+  },
+  "dropoffLocation": {
+    "address": "Poole Harbour, UK"
+  },
+  "pickupTime": "2025-12-10T14:30:00Z",
+  "passengers": 2,
+  "vehicleType": "standard"
+}

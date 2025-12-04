@@ -34,3 +34,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+durdle-serverless-api/functions/*/node_modules/
+durdle-serverless-api/functions/*/*.zip
