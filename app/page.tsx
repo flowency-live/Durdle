@@ -118,12 +118,12 @@ export default function Home() {
                 </span>
               </div>
 
-              <h1 className="animate-fade-up-delay-1 text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-foreground mb-6">
+              <h1 className="animate-fade-up-delay-1 text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white mb-6">
                 Travel Dorset with{" "}
-                <span className="text-gradient-sand">confidence</span>
+                <span className="text-white">confidence</span>
               </h1>
 
-              <p className="animate-fade-up-delay-2 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
+              <p className="animate-fade-up-delay-2 text-lg md:text-xl text-white/90 max-w-2xl mx-auto mb-10">
                 Reliable, modern transfers across the Dorset coast. From airport runs to business
                 travel - we get you there on time, every time.
               </p>
@@ -139,16 +139,16 @@ export default function Home() {
 
               {/* Key points */}
               <div className="animate-fade-up-delay-3 mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-2xl mx-auto">
-                <div className="flex items-center justify-center gap-3 text-muted-foreground">
-                  <MapPin className="w-5 h-5 text-sage-dark" />
+                <div className="flex items-center justify-center gap-3 text-white/80">
+                  <MapPin className="w-5 h-5 text-white" />
                   <span className="text-sm font-medium">All of Dorset covered</span>
                 </div>
-                <div className="flex items-center justify-center gap-3 text-muted-foreground">
-                  <Clock className="w-5 h-5 text-navy" />
+                <div className="flex items-center justify-center gap-3 text-white/80">
+                  <Clock className="w-5 h-5 text-white" />
                   <span className="text-sm font-medium">24/7 availability</span>
                 </div>
-                <div className="flex items-center justify-center gap-3 text-muted-foreground">
-                  <Shield className="w-5 h-5 text-sage-dark" />
+                <div className="flex items-center justify-center gap-3 text-white/80">
+                  <Shield className="w-5 h-5 text-white" />
                   <span className="text-sm font-medium">Licensed & insured</span>
                 </div>
               </div>
