@@ -114,16 +114,16 @@ export default function Home() {
               <div className="animate-fade-up inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm shadow-soft border border-white/20 mb-8">
                 <span className="w-2 h-2 rounded-full bg-sage-light animate-pulse" />
                 <span className="text-sm font-medium text-white/90">
-                  Est. 2025 — Dorset&apos;s Premier Transfer Service
+                  Est. 2025 - Dorset&apos;s Premier Transfer Service
                 </span>
               </div>
 
-              <h1 className="animate-fade-up-delay-1 text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white mb-6">
-                Travel Dorset with elegance
+              <h1 className="animate-fade-up-delay-1 font-playfair text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-semibold tracking-tight text-white mb-6">
+                Travel Dorset with <span className="text-sage-light">elegance</span>
               </h1>
 
               <p className="animate-fade-up-delay-2 text-lg md:text-xl text-white/90 max-w-2xl mx-auto mb-10">
-                Reliable, comfortable transfers across the stunning Dorset coast. From airport runs to business travel — we get you there on time, every time.
+                Reliable, comfortable transfers across the stunning Dorset coast. From airport runs to business travel - we get you there on time, every time.
               </p>
 
               <div className="animate-fade-up-delay-3 flex flex-col sm:flex-row gap-4 justify-center">
@@ -138,15 +138,15 @@ export default function Home() {
               {/* Key points */}
               <div className="animate-fade-up-delay-3 mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-2xl mx-auto">
                 <div className="flex items-center justify-center gap-3 text-white/80">
-                  <MapPin className="w-5 h-5 text-white" />
+                  <MapPin className="w-5 h-5 text-sage-light" />
                   <span className="text-sm font-medium">All of Dorset covered</span>
                 </div>
                 <div className="flex items-center justify-center gap-3 text-white/80">
-                  <Clock className="w-5 h-5 text-white" />
+                  <Clock className="w-5 h-5 text-sage-light" />
                   <span className="text-sm font-medium">24/7 availability</span>
                 </div>
                 <div className="flex items-center justify-center gap-3 text-white/80">
-                  <Shield className="w-5 h-5 text-white" />
+                  <Shield className="w-5 h-5 text-sage-light" />
                   <span className="text-sm font-medium">Licensed & insured</span>
                 </div>
               </div>
@@ -175,8 +175,8 @@ export default function Home() {
             <div className="max-w-5xl mx-auto">
               {/* Section Header */}
               <div className="text-center mb-16">
-                <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4">
-                  From arrival to <span className="text-gradient-sand">destination</span>
+                <h2 className="font-playfair text-3xl md:text-4xl lg:text-5xl font-semibold text-foreground mb-4">
+                  From arrival to <span className="text-gradient-navy-sage">destination</span>
                 </h2>
                 <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                   Your journey through Dorset starts the moment you arrive
@@ -313,7 +313,7 @@ export default function Home() {
         <section id="services" className="py-24 bg-card">
           <div className="container px-4 md:px-6 mx-auto">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              <h2 className="font-playfair text-3xl md:text-4xl font-semibold text-foreground mb-4">
                 Why choose <span className="text-gradient-sage">us</span>?
               </h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -353,8 +353,8 @@ export default function Home() {
 
           <div className="container px-4 md:px-6 relative z-10 mx-auto">
             <div className="max-w-3xl mx-auto text-center">
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6">
-                Ready to book your <span className="text-gradient-sand">next journey</span>?
+              <h2 className="font-playfair text-3xl md:text-4xl lg:text-5xl font-semibold text-foreground mb-6">
+                Ready to book your <span className="text-gradient-navy-sage">next journey</span>?
               </h2>
               <p className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto">
                 Get an instant quote in seconds. No hidden fees, no surprises - just reliable

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { Playfair_Display } from "next/font/google";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -17,6 +18,13 @@ const knockoutSumo = localFont({
   src: "./fonts/KnockoutHTF54-Sumo.otf",
   variable: "--font-knockout",
   weight: "400",
+  display: "swap",
+});
+
+const playfairDisplay = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair",
+  weight: ["400", "500", "600", "700", "800", "900"],
   display: "swap",
 });
 
@@ -72,7 +80,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${knockoutSumo.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${knockoutSumo.variable} ${playfairDisplay.variable} antialiased`}
       >
         {children}
       </body>

@@ -1,0 +1,14 @@
+{
+  "name": "locations-lookup",
+  "version": "1.0.0",
+  "description": "Durdle locations lookup Lambda function (Google Maps autocomplete proxy)",
+  "main": "index.mjs",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.700.0",
+    "axios": "^1.7.0"
+  }
+}

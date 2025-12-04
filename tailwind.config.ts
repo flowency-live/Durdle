@@ -49,6 +49,7 @@ const config: Config = {
       },
       fontFamily: {
         knockout: ['var(--font-knockout)', 'sans-serif'],
+        playfair: ['var(--font-playfair)', 'serif'],
       },
       backgroundImage: {
         "gradient-hero-overlay": "linear-gradient(to bottom, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.3))",

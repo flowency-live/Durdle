@@ -1,0 +1,84 @@
+[
+  {
+    "PutRequest": {
+      "Item": {
+        "PK": {"S": "VEHICLE#standard"},
+        "SK": {"S": "METADATA"},
+        "vehicleId": {"S": "standard"},
+        "name": {"S": "Standard Sedan"},
+        "description": {"S": "Comfortable sedan for up to 4 passengers and luggage"},
+        "capacity": {"N": "4"},
+        "features": {"L": [
+          {"S": "Air Conditioning"},
+          {"S": "Phone Charger"},
+          {"S": "Luggage Space"}
+        ]},
+        "baseFare": {"N": "500"},
+        "perMile": {"N": "100"},
+        "perMinute": {"N": "10"},
+        "active": {"BOOL": true},
+        "imageKey": {"S": ""},
+        "imageUrl": {"S": ""},
+        "createdAt": {"S": "2025-12-04T15:00:00Z"},
+        "updatedAt": {"S": "2025-12-04T15:00:00Z"},
+        "updatedBy": {"S": "system"}
+      }
+    }
+  },
+  {
+    "PutRequest": {
+      "Item": {
+        "PK": {"S": "VEHICLE#executive"},
+        "SK": {"S": "METADATA"},
+        "vehicleId": {"S": "executive"},
+        "name": {"S": "Executive Sedan"},
+        "description": {"S": "Premium sedan with luxury amenities for up to 4 passengers"},
+        "capacity": {"N": "4"},
+        "features": {"L": [
+          {"S": "Air Conditioning"},
+          {"S": "WiFi"},
+          {"S": "Phone Charger"},
+          {"S": "Premium Amenities"},
+          {"S": "Luggage Space"}
+        ]},
+        "baseFare": {"N": "800"},
+        "perMile": {"N": "150"},
+        "perMinute": {"N": "15"},
+        "active": {"BOOL": true},
+        "imageKey": {"S": ""},
+        "imageUrl": {"S": ""},
+        "createdAt": {"S": "2025-12-04T15:00:00Z"},
+        "updatedAt": {"S": "2025-12-04T15:00:00Z"},
+        "updatedBy": {"S": "system"}
+      }
+    }
+  },
+  {
+    "PutRequest": {
+      "Item": {
+        "PK": {"S": "VEHICLE#minibus"},
+        "SK": {"S": "METADATA"},
+        "vehicleId": {"S": "minibus"},
+        "name": {"S": "Minibus"},
+        "description": {"S": "Spacious minibus for up to 8 passengers with ample luggage space"},
+        "capacity": {"N": "8"},
+        "features": {"L": [
+          {"S": "Air Conditioning"},
+          {"S": "WiFi"},
+          {"S": "Phone Charger"},
+          {"S": "Extra Luggage Space"},
+          {"S": "Child Seat Available"}
+        ]},
+        "baseFare": {"N": "1000"},
+        "perMile": {"N": "120"},
+        "perMinute": {"N": "12"},
+        "active": {"BOOL": true},
+        "imageKey": {"S": ""},
+        "imageUrl": {"S": ""},
+        "createdAt": {"S": "2025-12-04T15:00:00Z"},
+        "updatedAt": {"S": "2025-12-04T15:00:00Z"},
+        "updatedBy": {"S": "system"}
+      }
+    }
+  }
+]
