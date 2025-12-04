@@ -46,11 +46,11 @@ export default function Home() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
               <Image
-                src="/durdle-logo.png"
+                src="/durdle-logo-transparent.png"
                 alt="Durdle Logo"
-                width={40}
-                height={40}
-                className="w-10 h-10"
+                width={56}
+                height={56}
+                className="w-14 h-14"
               />
               <span className="font-bold text-xl text-foreground">Durdle</span>
             </div>
@@ -238,11 +238,11 @@ export default function Home() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-3">
               <Image
-                src="/durdle-logo.png"
+                src="/durdle-logo-transparent.png"
                 alt="Durdle Logo"
-                width={32}
-                height={32}
-                className="w-8 h-8"
+                width={40}
+                height={40}
+                className="w-10 h-10"
               />
               <span className="font-bold text-xl text-foreground">Durdle</span>
             </div>
