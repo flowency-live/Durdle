@@ -5,7 +5,7 @@
 @layer base {
   :root {
     /* Light Mode - The Dorset Transfer Company */
-    --background: 0 0% 100%;              /* White */
+    --background: 38 42% 97%;             /* Cream #FBF7F0 */
     --foreground: 201 29% 24%;            /* Navy #2b444c */
     --card: 0 0% 100%;                    /* White */
     --card-foreground: 201 29% 24%;       /* Navy #2b444c */
