@@ -44,15 +44,15 @@ export default function Home() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div className="container px-4 md:px-6 mx-auto">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
               <Image
                 src="/durdle-logo-transparent.png"
-                alt="Durdle Logo"
-                width={56}
-                height={56}
-                className="w-14 h-14"
+                alt="Durdle"
+                width={64}
+                height={64}
+                className="w-16 h-16"
               />
-              <span className="font-bold text-xl text-foreground">Durdle</span>
+              <span className="font-bold text-2xl text-foreground -ml-1">urdle</span>
             </div>
 
             <nav className="hidden md:flex items-center gap-8">
@@ -172,6 +172,146 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Journey Narrative Section */}
+        <section className="relative bg-background overflow-hidden">
+          <div className="container px-4 md:px-6 mx-auto py-24">
+            <div className="max-w-5xl mx-auto">
+              {/* Section Header */}
+              <div className="text-center mb-16">
+                <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4">
+                  From arrival to <span className="text-gradient-sand">destination</span>
+                </h2>
+                <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                  Your journey through Dorset starts the moment you arrive
+                </p>
+              </div>
+
+              {/* Journey Steps */}
+              <div className="space-y-12">
+                {/* Step 1: Arrival */}
+                <div className="group relative rounded-3xl overflow-hidden h-[400px] md:h-[500px]">
+                  <Image
+                    src="/images/dorset/Old-Harry-2-1600x840.jpg"
+                    alt="Old Harry Rocks"
+                    fill
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
+                  <div className="absolute inset-0 flex flex-col items-center justify-end pb-12 px-6 text-center">
+                    <div className="max-w-2xl">
+                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-ocean-light/20 backdrop-blur-sm border border-ocean-light/30 mb-4">
+                        <span className="w-2 h-2 rounded-full bg-ocean-light" />
+                        <span className="text-sm font-medium text-ocean-light">Step 1</span>
+                      </div>
+                      <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
+                        We pick you up
+                      </h3>
+                      <p className="text-muted-foreground text-lg">
+                        From busy airports to tranquil coastal destinations
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 2: Journey */}
+                <div className="group relative rounded-3xl overflow-hidden h-[400px] md:h-[500px]">
+                  <Image
+                    src="/images/dorset/Lulworth-Cove-Jurassic-Coast-Dorset-1600x840.jpg"
+                    alt="Lulworth Cove"
+                    fill
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
+                  <div className="absolute inset-0 flex flex-col items-center justify-end pb-12 px-6 text-center">
+                    <div className="max-w-2xl">
+                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-sand-golden/20 backdrop-blur-sm border border-sand-golden/30 mb-4">
+                        <span className="w-2 h-2 rounded-full bg-sand-golden" />
+                        <span className="text-sm font-medium text-sand-golden">Step 2</span>
+                      </div>
+                      <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
+                        Relax and enjoy the ride
+                      </h3>
+                      <p className="text-muted-foreground text-lg">
+                        Experience the stunning Jurassic Coast along the way
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 3: Destination */}
+                <div className="group relative rounded-3xl overflow-hidden h-[400px] md:h-[500px]">
+                  <Image
+                    src="/images/dorset/Durdle-Door.jpg"
+                    alt="Durdle Door"
+                    fill
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
+                  <div className="absolute inset-0 flex flex-col items-center justify-end pb-12 px-6 text-center">
+                    <div className="max-w-2xl">
+                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-ocean-light/20 backdrop-blur-sm border border-ocean-light/30 mb-4">
+                        <span className="w-2 h-2 rounded-full bg-ocean-light" />
+                        <span className="text-sm font-medium text-ocean-light">Step 3</span>
+                      </div>
+                      <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
+                        Arrive refreshed
+                      </h3>
+                      <p className="text-muted-foreground text-lg">
+                        Ready to explore Dorset&apos;s iconic landmarks and hidden gems
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Destination Grid */}
+              <div className="mt-16">
+                <h3 className="text-2xl font-bold text-center text-foreground mb-8">
+                  Where we&apos;ll take you
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="group relative rounded-2xl overflow-hidden h-[200px]">
+                    <Image
+                      src="/images/dorset/GettyImages-501549318-84b3e7bf4a3441708b5c555ac01db4ad.webp"
+                      alt="Corfe Castle"
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+                    <div className="absolute bottom-4 left-4 right-4">
+                      <p className="font-semibold text-foreground">Corfe Castle</p>
+                    </div>
+                  </div>
+                  <div className="group relative rounded-2xl overflow-hidden h-[200px]">
+                    <Image
+                      src="/images/dorset/Visit-Shaftesbury.jpg"
+                      alt="Shaftesbury"
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+                    <div className="absolute bottom-4 left-4 right-4">
+                      <p className="font-semibold text-foreground">Shaftesbury</p>
+                    </div>
+                  </div>
+                  <div className="group relative rounded-2xl overflow-hidden h-[200px] col-span-2 md:col-span-1">
+                    <Image
+                      src="/images/dorset/1440.jpg"
+                      alt="Kingston Lacy"
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+                    <div className="absolute bottom-4 left-4 right-4">
+                      <p className="font-semibold text-foreground">Kingston Lacy</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Features Section */}
         <section id="services" className="py-24 bg-card">
           <div className="container px-4 md:px-6 mx-auto">
@@ -236,15 +376,15 @@ export default function Home() {
       <footer className="py-12 bg-card border-t border-border">
         <div className="container px-4 md:px-6 mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
               <Image
                 src="/durdle-logo-transparent.png"
-                alt="Durdle Logo"
-                width={40}
-                height={40}
-                className="w-10 h-10"
+                alt="Durdle"
+                width={48}
+                height={48}
+                className="w-12 h-12"
               />
-              <span className="font-bold text-xl text-foreground">Durdle</span>
+              <span className="font-bold text-xl text-foreground -ml-1">urdle</span>
             </div>
 
             <nav className="flex gap-8">
