@@ -15,7 +15,7 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: "Durdle - Dorset's Premier Transfer Service",
-  description: "Reliable, modern transfers across the Dorset coast. From airport runs to business travel - we get you there on time, every time.",
+  description: "Reliable, modern transfers across Dorset and beyond. From airport runs to business travel - we get you there on time, every time.",
   icons: {
     icon: [
       { url: "/favicon.ico" },
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     url: "https://durdle.co.uk",
     siteName: "Durdle",
     title: "Durdle - Dorset's Premier Transfer Service",
-    description: "Reliable, modern transfers across the Dorset coast. From airport runs to business travel - we get you there on time, every time.",
+    description: "Reliable, modern transfers across Dorset and beyond. From airport runs to business travel - we get you there on time, every time.",
     images: [
       {
         url: "/durdle-logo-transparent.png",
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Durdle - Dorset's Premier Transfer Service",
-    description: "Reliable, modern transfers across the Dorset coast. From airport runs to business travel - we get you there on time, every time.",
+    description: "Reliable, modern transfers across Dorset and beyond. From airport runs to business travel - we get you there on time, every time.",
     images: ["/durdle-logo-transparent.png"],
   },
 };
