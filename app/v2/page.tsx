@@ -40,10 +40,14 @@ export default function V2() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div className="container px-4 md:px-6 mx-auto">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-sand-golden flex items-center justify-center">
-                <span className="text-background font-bold text-lg">D</span>
-              </div>
+            <div className="flex items-center gap-3">
+              <Image
+                src="/durdle-logo.png"
+                alt="Durdle Logo"
+                width={40}
+                height={40}
+                className="w-10 h-10"
+              />
               <span className="font-bold text-xl text-foreground">Durdle</span>
             </div>
 
@@ -105,7 +109,7 @@ export default function V2() {
 
               <p className="animate-fade-up-delay-2 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
                 Reliable, modern transfers across the Dorset coast. From airport runs to
-                business travel — we get you there on time, every time.
+                business travel - we get you there on time, every time.
               </p>
 
               <div className="animate-fade-up-delay-3 flex flex-col sm:flex-row gap-4 justify-center">
@@ -196,7 +200,7 @@ export default function V2() {
                 Ready to book your <span className="text-gradient-sand">next journey</span>?
               </h2>
               <p className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto">
-                Get an instant quote in seconds. No hidden fees, no surprises — just
+                Get an instant quote in seconds. No hidden fees, no surprises - just
                 reliable transport when you need it.
               </p>
               <Button variant="hero-golden" size="xl" className="group">
@@ -212,10 +216,14 @@ export default function V2() {
       <footer className="py-12 bg-card border-t border-border">
         <div className="container px-4 md:px-6 mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-sand-golden flex items-center justify-center">
-                <span className="text-background font-bold text-lg">D</span>
-              </div>
+            <div className="flex items-center gap-3">
+              <Image
+                src="/durdle-logo.png"
+                alt="Durdle Logo"
+                width={32}
+                height={32}
+                className="w-8 h-8"
+              />
               <span className="font-bold text-xl text-foreground">Durdle</span>
             </div>
 

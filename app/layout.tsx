@@ -15,7 +15,7 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: "Durdle - Dorset's Premier Transfer Service",
-  description: "Reliable, modern transfers across the Dorset coast. From airport runs to business travel — we get you there on time, every time.",
+  description: "Reliable, modern transfers across the Dorset coast. From airport runs to business travel - we get you there on time, every time.",
 };
 
 export default function RootLayout({
