@@ -58,12 +58,12 @@
     @apply bg-gradient-to-r from-sage-dark to-sage bg-clip-text text-transparent;
   }
 
-  /* Legacy Gradients */
+  /* Legacy Gradients - Deprecated, use navy-sage instead */
   .text-gradient-ocean {
-    @apply bg-gradient-to-r from-ocean-light to-sky-blue bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-sage to-sage-dark bg-clip-text text-transparent;
   }
 
   .text-gradient-sand {
-    @apply bg-gradient-to-r from-sand-golden to-orange-400 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-navy to-navy-light bg-clip-text text-transparent;
   }
 }

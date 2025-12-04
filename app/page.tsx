@@ -8,32 +8,32 @@ const features = [
     title: "Private Transfers",
     description:
       "Comfortable door-to-door service with professional drivers who know every corner of Dorset.",
-    iconClass: "text-sand-golden",
-    bgClass: "bg-sand-golden/10 group-hover:bg-sand-golden/20",
+    iconClass: "text-sage-dark",
+    bgClass: "bg-sage/10 group-hover:bg-sage/20",
   },
   {
     icon: Plane,
     title: "Airport Connections",
     description:
       "Stress-free airport transfers to Bournemouth, Southampton, and all major London airports.",
-    iconClass: "text-ocean-light",
-    bgClass: "bg-ocean-light/10 group-hover:bg-ocean-light/20",
+    iconClass: "text-navy",
+    bgClass: "bg-navy/10 group-hover:bg-navy/20",
   },
   {
     icon: Briefcase,
     title: "Business Accounts",
     description:
       "Simplified invoicing and dedicated account management for corporate clients.",
-    iconClass: "text-sand-golden",
-    bgClass: "bg-sand-golden/10 group-hover:bg-sand-golden/20",
+    iconClass: "text-sage-dark",
+    bgClass: "bg-sage/10 group-hover:bg-sage/20",
   },
   {
     icon: Users,
     title: "Group Travel",
     description:
       "Spacious vehicles for families, events, and group excursions along the Jurassic Coast.",
-    iconClass: "text-ocean-light",
-    bgClass: "bg-ocean-light/10 group-hover:bg-ocean-light/20",
+    iconClass: "text-navy",
+    bgClass: "bg-navy/10 group-hover:bg-navy/20",
   },
 ];
 
@@ -104,15 +104,15 @@ export default function Home() {
 
           {/* Soft gradient glows */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute -top-1/4 -right-1/4 w-[600px] h-[600px] rounded-full bg-ocean-light/8 blur-3xl" />
-            <div className="absolute -bottom-1/4 -left-1/4 w-[500px] h-[500px] rounded-full bg-sand-golden/10 blur-3xl" />
-            <div className="absolute top-1/4 left-1/4 w-[300px] h-[300px] rounded-full bg-ocean-light/5 blur-3xl" />
+            <div className="absolute -top-1/4 -right-1/4 w-[600px] h-[600px] rounded-full bg-sage/8 blur-3xl" />
+            <div className="absolute -bottom-1/4 -left-1/4 w-[500px] h-[500px] rounded-full bg-navy/10 blur-3xl" />
+            <div className="absolute top-1/4 left-1/4 w-[300px] h-[300px] rounded-full bg-sage/5 blur-3xl" />
           </div>
 
           <div className="container relative z-10 px-4 md:px-6 pt-20 mx-auto">
             <div className="max-w-4xl mx-auto text-center">
               <div className="animate-fade-up inline-flex items-center gap-2 px-4 py-2 rounded-full bg-card/80 backdrop-blur-sm shadow-soft border border-border mb-8">
-                <span className="w-2 h-2 rounded-full bg-ocean-light animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-sage-dark animate-pulse" />
                 <span className="text-sm font-medium text-muted-foreground">
                   Dorset&apos;s premier transfer service
                 </span>
@@ -140,15 +140,15 @@ export default function Home() {
               {/* Key points */}
               <div className="animate-fade-up-delay-3 mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-2xl mx-auto">
                 <div className="flex items-center justify-center gap-3 text-muted-foreground">
-                  <MapPin className="w-5 h-5 text-ocean-light" />
+                  <MapPin className="w-5 h-5 text-sage-dark" />
                   <span className="text-sm font-medium">All of Dorset covered</span>
                 </div>
                 <div className="flex items-center justify-center gap-3 text-muted-foreground">
-                  <Clock className="w-5 h-5 text-sand-golden" />
+                  <Clock className="w-5 h-5 text-navy" />
                   <span className="text-sm font-medium">24/7 availability</span>
                 </div>
                 <div className="flex items-center justify-center gap-3 text-muted-foreground">
-                  <Shield className="w-5 h-5 text-ocean-light" />
+                  <Shield className="w-5 h-5 text-sage-dark" />
                   <span className="text-sm font-medium">Licensed & insured</span>
                 </div>
               </div>
@@ -198,9 +198,9 @@ export default function Home() {
                   <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
                   <div className="absolute inset-0 flex flex-col items-center justify-end pb-12 px-6 text-center">
                     <div className="max-w-2xl">
-                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-ocean-light/20 backdrop-blur-sm border border-ocean-light/30 mb-4">
-                        <span className="w-2 h-2 rounded-full bg-ocean-light" />
-                        <span className="text-sm font-medium text-ocean-light">Step 1</span>
+                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-sage/20 backdrop-blur-sm border border-sage/30 mb-4">
+                        <span className="w-2 h-2 rounded-full bg-sage-dark" />
+                        <span className="text-sm font-medium text-sage-dark">Step 1</span>
                       </div>
                       <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
                         We pick you up
@@ -223,9 +223,9 @@ export default function Home() {
                   <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
                   <div className="absolute inset-0 flex flex-col items-center justify-end pb-12 px-6 text-center">
                     <div className="max-w-2xl">
-                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-sand-golden/20 backdrop-blur-sm border border-sand-golden/30 mb-4">
-                        <span className="w-2 h-2 rounded-full bg-sand-golden" />
-                        <span className="text-sm font-medium text-sand-golden">Step 2</span>
+                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-navy/20 backdrop-blur-sm border border-navy/30 mb-4">
+                        <span className="w-2 h-2 rounded-full bg-navy" />
+                        <span className="text-sm font-medium text-navy">Step 2</span>
                       </div>
                       <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
                         Relax and enjoy the ride
@@ -248,9 +248,9 @@ export default function Home() {
                   <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
                   <div className="absolute inset-0 flex flex-col items-center justify-end pb-12 px-6 text-center">
                     <div className="max-w-2xl">
-                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-ocean-light/20 backdrop-blur-sm border border-ocean-light/30 mb-4">
-                        <span className="w-2 h-2 rounded-full bg-ocean-light" />
-                        <span className="text-sm font-medium text-ocean-light">Step 3</span>
+                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-sage/20 backdrop-blur-sm border border-sage/30 mb-4">
+                        <span className="w-2 h-2 rounded-full bg-sage-dark" />
+                        <span className="text-sm font-medium text-sage-dark">Step 3</span>
                       </div>
                       <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
                         Arrive refreshed
@@ -316,7 +316,7 @@ export default function Home() {
           <div className="container px-4 md:px-6 mx-auto">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-                Why choose <span className="text-gradient-ocean">Durdle</span>?
+                Why choose <span className="text-gradient-sage">us</span>?
               </h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                 We combine local expertise with modern technology to deliver transport that&apos;s
@@ -350,8 +350,8 @@ export default function Home() {
 
         {/* CTA Section */}
         <section className="py-24 bg-background relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-ocean-light/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-80 h-80 bg-sand-golden/5 rounded-full blur-3xl" />
+          <div className="absolute top-0 right-0 w-96 h-96 bg-sage/5 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-80 h-80 bg-navy/5 rounded-full blur-3xl" />
 
           <div className="container px-4 md:px-6 relative z-10 mx-auto">
             <div className="max-w-3xl mx-auto text-center">
@@ -375,15 +375,14 @@ export default function Home() {
       <footer className="py-12 bg-card border-t border-border">
         <div className="container px-4 md:px-6 mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-0">
+            <div className="flex items-center">
               <Image
-                src="/durdle-logo-transparent.png"
-                alt="Durdle"
-                width={48}
-                height={48}
-                className="w-12 h-12"
+                src="/dtc-logo.png"
+                alt="The Dorset Transfer Company"
+                width={180}
+                height={45}
+                className="h-9 w-auto"
               />
-              <span className="font-bold text-xl text-foreground -ml-2.5">urdle</span>
             </div>
 
             <nav className="flex gap-8">
@@ -414,7 +413,7 @@ export default function Home() {
             </nav>
 
             <p className="text-sm text-muted-foreground">
-              &copy; 2024 Durdle. All rights reserved.
+              &copy; 2024 The Dorset Transfer Company. All rights reserved.
             </p>
           </div>
         </div>
