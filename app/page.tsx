@@ -43,14 +43,14 @@ export default function Home() {
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-sage-light/50 shadow-sm">
         <div className="container px-4 md:px-6 mx-auto">
-          <div className="flex items-center justify-between h-20">
+          <div className="flex items-center justify-between h-24">
             <div className="flex items-center">
               <Image
                 src="/dtc-logo-wave.png"
                 alt="The Dorset Transfer Company"
-                width={120}
-                height={120}
-                className="h-20 w-auto"
+                width={160}
+                height={160}
+                className="h-32 w-auto"
               />
             </div>
 
