@@ -46,11 +46,11 @@ export default function Home() {
           <div className="flex items-center justify-between h-20">
             <div className="flex items-center">
               <Image
-                src="/dtc-logo.png"
+                src="/dtc-logo-wave.png"
                 alt="The Dorset Transfer Company"
-                width={240}
+                width={60}
                 height={60}
-                className="h-12 w-auto"
+                className="h-10 w-auto"
               />
             </div>
 
@@ -375,11 +375,11 @@ export default function Home() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center">
               <Image
-                src="/dtc-logo.png"
+                src="/dtc-logo-wave.png"
                 alt="The Dorset Transfer Company"
-                width={180}
+                width={45}
                 height={45}
-                className="h-9 w-auto"
+                className="h-8 w-auto"
               />
             </div>
 
