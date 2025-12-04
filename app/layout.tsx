@@ -13,8 +13,15 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
+const knockoutSumo = localFont({
+  src: "./fonts/KnockoutHTF54-Sumo.otf",
+  variable: "--font-knockout",
+  weight: "400",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "Durdle - Dorset's Premier Transfer Service",
+  title: "The Dorset Transfer Company - Professional Transfer Service",
   description: "Reliable, modern transfers across Dorset and beyond. From airport runs to business travel - we get you there on time, every time.",
   icons: {
     icon: [
@@ -37,8 +44,8 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_GB",
     url: "https://durdle.co.uk",
-    siteName: "Durdle",
-    title: "Durdle - Dorset's Premier Transfer Service",
+    siteName: "The Dorset Transfer Company",
+    title: "The Dorset Transfer Company - Professional Transfer Service",
     description: "Reliable, modern transfers across Dorset and beyond. From airport runs to business travel - we get you there on time, every time.",
     images: [
       {
@@ -51,7 +58,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Durdle - Dorset's Premier Transfer Service",
+    title: "The Dorset Transfer Company - Professional Transfer Service",
     description: "Reliable, modern transfers across Dorset and beyond. From airport runs to business travel - we get you there on time, every time.",
     images: ["/og-image.png"],
   },
@@ -65,7 +72,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${knockoutSumo.variable} antialiased`}
       >
         {children}
       </body>

@@ -47,6 +47,75 @@
 
 ## Implementation Progress
 
+### 2025-12-04 16:15 - Phase 2A Backend Lambda Functions Deployed
+**Completed**:
+- Built 6 new Lambda functions (pricing-manager, fixed-routes-manager, locations-lookup, vehicle-manager, uploads-presigned, admin-auth)
+- Updated quotes-calculator Lambda with fixed route checking and DynamoDB pricing fetch
+- Installed all npm dependencies for Lambda functions
+- Created JWT secret in AWS Secrets Manager (durdle/jwt-secret)
+- Updated IAM Lambda execution policy to include all new DynamoDB tables and S3 bucket
+- Deployed all 6 new Lambda functions to AWS (arm64 architecture)
+- Updated quotes-calculator deployment with new environment variables
+- All Lambda functions ACTIVE and verified in AWS console
+- Lambda Functions ARNs:
+  - pricing-manager-dev: arn:aws:lambda:eu-west-2:771551874768:function:pricing-manager-dev
+  - fixed-routes-manager-dev: arn:aws:lambda:eu-west-2:771551874768:function:fixed-routes-manager-dev
+  - locations-lookup-dev: arn:aws:lambda:eu-west-2:771551874768:function:locations-lookup-dev
+  - vehicle-manager-dev: arn:aws:lambda:eu-west-2:771551874768:function:vehicle-manager-dev
+  - uploads-presigned-dev: arn:aws:lambda:eu-west-2:771551874768:function:uploads-presigned-dev
+  - admin-auth-dev: arn:aws:lambda:eu-west-2:771551874768:function:admin-auth-dev
+
+**Current Status**:
+- Phase 2A: 80% complete (Lambda functions deployed, API Gateway configuration pending)
+- All other phases: Not started
+
+**Next Steps**:
+- Configure API Gateway routes for all new Lambda functions
+- Create /admin resource hierarchy
+- Create /admin/pricing/vehicles endpoints (GET, POST, PUT, DELETE)
+- Create /admin/pricing/fixed-routes endpoints (GET, POST, PUT, DELETE)
+- Create /admin/locations/autocomplete endpoint (GET)
+- Create /admin/uploads/presigned endpoint (POST)
+- Create /admin/auth endpoints (login, logout, session)
+- Create /v1/vehicles public endpoint (GET)
+- Deploy API Gateway to dev stage
+- Test all endpoints end-to-end
+
+**Blockers**: None
+
+**Technical Details**:
+- quotes-calculator now checks fixed routes first via DynamoDB query before falling back to variable pricing
+- All Lambda functions use arm64 architecture for cost optimization
+- Vehicle pricing cached for 5 minutes in Lambda container
+- JWT secret: c9cb85c4392929aea8ef740f7699b6f5d0606e5793a5892079fdfaa9a7c719cb (hex)
+
+---
+
+### 2025-12-04 15:50 - Phase 2A Backend Infrastructure Started
+**Completed**:
+- Created 3 DynamoDB tables (pricing-config, fixed-routes, admin-users)
+- Created S3 bucket for vehicle images with CORS configuration
+- Seeded 3 vehicle types (standard, executive, minibus) with initial pricing
+- Seeded 2 admin users (James Aspin, Finn Murray)
+- All tables ACTIVE and verified
+
+**Current Status**:
+- Phase 2A: 40% complete (infrastructure ready, Lambda functions pending)
+- All other phases: Not started
+
+**Next Steps**:
+- Build pricing-manager Lambda function
+- Build fixed-routes-manager Lambda function
+- Build locations-lookup Lambda function
+- Build vehicle-manager Lambda function
+- Build uploads-presigned Lambda function
+- Build admin-auth Lambda function
+- Update quotes-calculator Lambda for fixed routes
+
+**Blockers**: None
+
+---
+
 ### 2025-12-04 15:30 - Initial Planning
 **Completed**:
 - Phase 2 plan created

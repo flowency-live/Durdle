@@ -4,35 +4,29 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 9%;
-    --card: 0 0% 98%;
-    --card-foreground: 0 0% 9%;
-    --primary: 177 50% 45%;
-    --primary-foreground: 0 0% 100%;
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
-    --border: 0 0% 90%;
+    /* Light Mode - The Dorset Transfer Company */
+    --background: 0 0% 100%;              /* White */
+    --foreground: 201 29% 24%;            /* Navy #2b444c */
+    --card: 0 0% 100%;                    /* White */
+    --card-foreground: 201 29% 24%;       /* Navy #2b444c */
+    --primary: 201 29% 24%;               /* Navy #2b444c */
+    --primary-foreground: 0 0% 100%;      /* White */
+    --muted: 40 25% 96%;                  /* Cream #f5f1e8 */
+    --muted-foreground: 201 25% 31%;      /* Navy Light #3d5a64 */
+    --border: 120 23% 90%;                /* Sage Light #d4e7d6 */
 
-    /* Durdle Brand Colors */
-    --ocean-light: 177 50% 45%;    /* Teal from logo */
-    --sand-golden: 38 85% 58%;     /* Golden from logo */
-    --sky-blue: 200 80% 60%;       /* Sky blue accent */
-    --cliff-green: 150 40% 50%;    /* Cliff green accent */
-  }
+    /* The Dorset Transfer Company Brand Colors */
+    --navy: 201 29% 24%;                  /* #2b444c */
+    --navy-dark: 200 25% 13%;             /* #1a2428 */
+    --navy-light: 201 25% 31%;            /* #3d5a64 */
+    --sage: 128 23% 74%;                  /* #b7d5b9 */
+    --sage-dark: 135 19% 57%;             /* #8fb894 */
+    --sage-light: 120 23% 90%;            /* #d4e7d6 */
+    --cream: 40 25% 96%;                  /* #f5f1e8 */
 
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --background: 0 0% 4%;
-      --foreground: 0 0% 98%;
-      --card: 0 0% 8%;
-      --card-foreground: 0 0% 98%;
-      --primary: 177 50% 45%;
-      --primary-foreground: 0 0% 9%;
-      --muted: 0 0% 15%;
-      --muted-foreground: 0 0% 65%;
-      --border: 0 0% 18%;
-    }
+    /* Legacy colors (for gradual migration) */
+    --ocean-light: 177 50% 45%;
+    --sand-golden: 38 85% 58%;
   }
 }
 
@@ -51,7 +45,20 @@
     text-wrap: balance;
   }
 
-  /* Text Gradients */
+  /* Text Gradients - New Brand */
+  .text-gradient-navy-sage {
+    @apply bg-gradient-navy-sage bg-clip-text text-transparent;
+  }
+
+  .text-gradient-navy {
+    @apply bg-gradient-to-r from-navy to-navy-light bg-clip-text text-transparent;
+  }
+
+  .text-gradient-sage {
+    @apply bg-gradient-to-r from-sage-dark to-sage bg-clip-text text-transparent;
+  }
+
+  /* Legacy Gradients */
   .text-gradient-ocean {
     @apply bg-gradient-to-r from-ocean-light to-sky-blue bg-clip-text text-transparent;
   }

@@ -1,11 +1,11 @@
 {
-  "name": "Durdle - Dorset Transfer Service",
-  "short_name": "Durdle",
-  "description": "Reliable, modern transfers across the Dorset coast",
+  "name": "The Dorset Transfer Company",
+  "short_name": "TDTC",
+  "description": "Reliable, modern transfers across Dorset and beyond",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#14b8a6",
+  "theme_color": "#2b444c",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",

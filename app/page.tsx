@@ -41,18 +41,17 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-sage-light/50 shadow-sm">
         <div className="container px-4 md:px-6 mx-auto">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-0">
+          <div className="flex items-center justify-between h-20">
+            <div className="flex items-center">
               <Image
-                src="/durdle-logo-transparent.png"
-                alt="Durdle"
-                width={64}
-                height={64}
-                className="w-16 h-16"
+                src="/dtc-logo.png"
+                alt="The Dorset Transfer Company"
+                width={240}
+                height={60}
+                className="h-12 w-auto"
               />
-              <span className="font-bold text-2xl text-foreground -ml-3">urdle</span>
             </div>
 
             <nav className="hidden md:flex items-center gap-8">
