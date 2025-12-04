@@ -42,7 +42,7 @@ export const metadata: Metadata = {
     description: "Reliable, modern transfers across Dorset and beyond. From airport runs to business travel - we get you there on time, every time.",
     images: [
       {
-        url: "/durdle-logo-transparent.png",
+        url: "/og-image.png",
         width: 1200,
         height: 630,
         alt: "Durdle - Dorset Transfer Service",
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Durdle - Dorset's Premier Transfer Service",
     description: "Reliable, modern transfers across Dorset and beyond. From airport runs to business travel - we get you there on time, every time.",
-    images: ["/durdle-logo-transparent.png"],
+    images: ["/og-image.png"],
   },
 };
 
