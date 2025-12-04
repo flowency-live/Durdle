@@ -33,6 +33,28 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "Durdle",
   },
+  openGraph: {
+    type: "website",
+    locale: "en_GB",
+    url: "https://durdle.co.uk",
+    siteName: "Durdle",
+    title: "Durdle - Dorset's Premier Transfer Service",
+    description: "Reliable, modern transfers across the Dorset coast. From airport runs to business travel - we get you there on time, every time.",
+    images: [
+      {
+        url: "/durdle-logo-transparent.png",
+        width: 1200,
+        height: 630,
+        alt: "Durdle - Dorset Transfer Service",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Durdle - Dorset's Premier Transfer Service",
+    description: "Reliable, modern transfers across the Dorset coast. From airport runs to business travel - we get you there on time, every time.",
+    images: ["/durdle-logo-transparent.png"],
+  },
 };
 
 export default function RootLayout({
