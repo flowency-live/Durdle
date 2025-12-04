@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(npx create-next-app:*)",
+      "Bash(robocopy durdle-temp . /E /MOVE)",
+      "Bash(powershell -Command:*)",
+      "Bash($null)",
+      "Bash(rmdir:*)",
+      "Bash(cp:*)",
+      "Bash(rm:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(git remote add:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

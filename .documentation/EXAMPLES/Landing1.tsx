@@ -1,6 +1,6 @@
 import { MapPin, Clock, Shield, Car, Users, Briefcase, Plane, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Image from "next/image";
+import heroBg from "@/assets/hero-bg.jpg";
 
 const features = [
   {
@@ -8,6 +8,7 @@ const features = [
     title: "Private Transfers",
     description:
       "Comfortable door-to-door service with professional drivers who know every corner of Dorset.",
+    // warm golden accent
     iconClass: "text-sand-golden",
     bgClass: "bg-sand-golden/10 group-hover:bg-sand-golden/20",
   },
@@ -16,6 +17,7 @@ const features = [
     title: "Airport Connections",
     description:
       "Stress-free airport transfers to Bournemouth, Southampton, and all major London airports.",
+    // teal / ocean accent
     iconClass: "text-ocean-light",
     bgClass: "bg-ocean-light/10 group-hover:bg-ocean-light/20",
   },
@@ -24,6 +26,7 @@ const features = [
     title: "Business Accounts",
     description:
       "Simplified invoicing and dedicated account management for corporate clients.",
+    // golden again to keep a tight two-colour system
     iconClass: "text-sand-golden",
     bgClass: "bg-sand-golden/10 group-hover:bg-sand-golden/20",
   },
@@ -32,19 +35,21 @@ const features = [
     title: "Group Travel",
     description:
       "Spacious vehicles for families, events, and group excursions along the Jurassic Coast.",
+    // teal accent to mirror the logo gradient
     iconClass: "text-ocean-light",
     bgClass: "bg-ocean-light/10 group-hover:bg-ocean-light/20",
   },
 ];
 
-export default function Home() {
+const Index = () => {
   return (
     <div className="min-h-screen">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
-        <div className="container px-4 md:px-6 mx-auto">
+        <div className="container px-4 md:px-6">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-2">
+              {/* Logo pill – keep golden to echo the left side of the D logo */}
               <div className="w-8 h-8 rounded-lg bg-sand-golden flex items-center justify-center">
                 <span className="text-background font-bold text-lg">D</span>
               </div>
@@ -53,25 +58,25 @@ export default function Home() {
 
             <nav className="hidden md:flex items-center gap-8">
               <a
-                href="#services"
+                href="#"
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 Services
               </a>
               <a
-                href="#pricing"
+                href="#"
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 Pricing
               </a>
               <a
-                href="#about"
+                href="#"
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 About
               </a>
               <a
-                href="#contact"
+                href="#"
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 Contact
@@ -88,27 +93,23 @@ export default function Home() {
       <main>
         {/* Hero Section */}
         <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-          <div className="absolute inset-0">
-            <Image
-              src="/images/hero-bg.svg"
-              alt="Dorset Coast"
-              fill
-              className="object-cover"
-              priority
-            />
-          </div>
+          <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: `url(${heroBg})` }}
+          />
           <div className="absolute inset-0 bg-gradient-hero-overlay" />
 
-          {/* Soft gradient glows */}
+          {/* Soft gradient glows updated to logo palette: teal + golden */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <div className="absolute -top-1/4 -right-1/4 w-[600px] h-[600px] rounded-full bg-ocean-light/8 blur-3xl" />
             <div className="absolute -bottom-1/4 -left-1/4 w-[500px] h-[500px] rounded-full bg-sand-golden/10 blur-3xl" />
             <div className="absolute top-1/4 left-1/4 w-[300px] h-[300px] rounded-full bg-ocean-light/5 blur-3xl" />
           </div>
 
-          <div className="container relative z-10 px-4 md:px-6 pt-20 mx-auto">
+          <div className="container relative z-10 px-4 md:px-6 pt-20">
             <div className="max-w-4xl mx-auto text-center">
               <div className="animate-fade-up inline-flex items-center gap-2 px-4 py-2 rounded-full bg-card/80 backdrop-blur-sm shadow-soft border border-border mb-8">
+                {/* badge dot – switch to teal to mirror logo centre */}
                 <span className="w-2 h-2 rounded-full bg-ocean-light animate-pulse" />
                 <span className="text-sm font-medium text-muted-foreground">
                   Dorset&apos;s premier transfer service
@@ -134,7 +135,7 @@ export default function Home() {
                 </Button>
               </div>
 
-              {/* Key points */}
+              {/* Key points – only teal + gold accents now */}
               <div className="animate-fade-up-delay-3 mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-2xl mx-auto">
                 <div className="flex items-center justify-center gap-3 text-muted-foreground">
                   <MapPin className="w-5 h-5 text-ocean-light" />
@@ -169,8 +170,8 @@ export default function Home() {
         </section>
 
         {/* Features Section */}
-        <section id="services" className="py-24 bg-card">
-          <div className="container px-4 md:px-6 mx-auto">
+        <section className="py-24 bg-card">
+          <div className="container px-4 md:px-6">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
                 Why choose <span className="text-gradient-ocean">Durdle</span>?
@@ -210,7 +211,7 @@ export default function Home() {
           <div className="absolute top-0 right-0 w-96 h-96 bg-ocean-light/5 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 w-80 h-80 bg-sand-golden/5 rounded-full blur-3xl" />
 
-          <div className="container px-4 md:px-6 relative z-10 mx-auto">
+          <div className="container px-4 md:px-6 relative z-10">
             <div className="max-w-3xl mx-auto text-center">
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6">
                 Ready to book your <span className="text-gradient-sand">next journey</span>?
@@ -230,7 +231,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="py-12 bg-card border-t border-border">
-        <div className="container px-4 md:px-6 mx-auto">
+        <div className="container px-4 md:px-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-sand-golden flex items-center justify-center">
@@ -241,25 +242,25 @@ export default function Home() {
 
             <nav className="flex gap-8">
               <a
-                href="#about"
+                href="#"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 About
               </a>
               <a
-                href="#services"
+                href="#"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Services
               </a>
               <a
-                href="#contact"
+                href="#"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Contact
               </a>
               <a
-                href="#privacy"
+                href="#"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Privacy
@@ -267,11 +268,13 @@ export default function Home() {
             </nav>
 
             <p className="text-sm text-muted-foreground">
-              &copy; 2024 Durdle. All rights reserved.
+              © 2024 Durdle. All rights reserved.
             </p>
           </div>
         </div>
       </footer>
     </div>
   );
-}
+};
+
+export default Index;

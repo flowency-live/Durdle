@@ -1,0 +1,13 @@
+<svg width="1920" height="1080" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="heroGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:rgb(59, 130, 246);stop-opacity:1" />
+      <stop offset="50%" style="stop-color:rgb(16, 185, 129);stop-opacity:1" />
+      <stop offset="100%" style="stop-color:rgb(245, 158, 11);stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#heroGradient)" />
+  <!-- Dorset coastline silhouette effect -->
+  <path d="M0,800 Q200,750 400,780 T800,800 Q1000,820 1200,780 T1600,800 L1920,800 L1920,1080 L0,1080 Z" fill="rgba(0,0,0,0.3)" />
+  <path d="M0,850 Q300,820 600,860 T1200,850 Q1500,870 1920,840 L1920,1080 L0,1080 Z" fill="rgba(0,0,0,0.2)" />
+</svg>
