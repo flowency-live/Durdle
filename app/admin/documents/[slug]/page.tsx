@@ -28,7 +28,7 @@ export default function DocumentViewerPage() {
   const params = useParams();
   const slug = params.slug as string;
 
-  const [document, setDocument] = useState<DocumentData | null>(null);
+  const [docData, setDocData] = useState<DocumentData | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +50,7 @@ export default function DocumentViewerPage() {
       }
 
       const data = await response.json();
-      setDocument(data);
+      setDocData(data);
       setEditedContent(data.content);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load document');
@@ -86,7 +86,7 @@ export default function DocumentViewerPage() {
   }, [slug, fetchDocument, fetchComments]);
 
   const handleSave = async () => {
-    if (!document) return;
+    if (!docData) return;
 
     try {
       setSaving(true);
@@ -103,7 +103,7 @@ export default function DocumentViewerPage() {
       }
 
       const updated = await response.json();
-      setDocument(updated);
+      setDocData(updated);
       setEditMode(false);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to save document');
@@ -113,7 +113,7 @@ export default function DocumentViewerPage() {
   };
 
   const handleCancelEdit = () => {
-    setEditedContent(document?.content || '');
+    setEditedContent(docData?.content || '');
     setEditMode(false);
   };
 
@@ -195,11 +195,11 @@ export default function DocumentViewerPage() {
   };
 
   const handleExport = () => {
-    if (!document) return;
+    if (!docData) return;
 
-    const exportContent = `# ${document.filename}
+    const exportContent = `# ${docData.filename}
 
-${document.content}
+${docData.content}
 
 ---
 
@@ -241,7 +241,7 @@ Generated: ${new Date().toLocaleString()}
     );
   }
 
-  if (error || !document) {
+  if (error || !docData) {
     return (
       <div>
         <Link
@@ -275,9 +275,9 @@ Generated: ${new Date().toLocaleString()}
 
         <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{document.filename}</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{docData.filename}</h1>
             <p className="text-sm text-gray-500 mt-1">
-              Last modified: {new Date(document.lastModified).toLocaleString()}
+              Last modified: {new Date(docData.lastModified).toLocaleString()}
             </p>
             <p className="text-sm text-gray-600 mt-1">
               {activeComments.length} active comment{activeComments.length !== 1 ? 's' : ''}, {resolvedComments.length} resolved
@@ -350,7 +350,7 @@ Generated: ${new Date().toLocaleString()}
               remarkPlugins={[remarkGfm]}
               rehypePlugins={[rehypeHighlight]}
             >
-              {document.content}
+              {docData.content}
             </ReactMarkdown>
           </div>
         )}
