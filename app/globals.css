@@ -160,7 +160,7 @@
 
   .react-datepicker__day-name,
   .react-datepicker__day {
-    @apply w-12 leading-12 text-base;
+    @apply w-12 h-12 leading-[3rem] text-base;
   }
 
   .react-datepicker__time-list-item {
