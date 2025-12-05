@@ -3,7 +3,7 @@
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, FileText } from 'lucide-react';
 import FeedbackButton from '../components/FeedbackButton';
 
 interface User {
@@ -250,6 +250,23 @@ export default function AdminLayout({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                   </svg>
                   Feedback
+                </div>
+              </Link>
+            </li>
+
+            <li>
+              <Link
+                href="/admin/documents"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`block px-4 py-3 rounded-lg transition-colors ${
+                  pathname === '/admin/documents' || pathname?.startsWith('/admin/documents/')
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-300 hover:bg-gray-800'
+                }`}
+              >
+                <div className="flex items-center">
+                  <FileText className="w-5 h-5 mr-3" />
+                  Documents
                 </div>
               </Link>
             </li>
