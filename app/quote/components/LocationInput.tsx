@@ -9,6 +9,7 @@ interface LocationInputProps {
   onSelect: (address: string, placeId: string) => void;
   placeholder?: string;
   error?: string;
+  autoFocus?: boolean;
 }
 
 interface Prediction {
@@ -21,7 +22,8 @@ export default function LocationInput({
   value,
   onSelect,
   placeholder,
-  error
+  error,
+  autoFocus = false
 }: LocationInputProps) {
   const [input, setInput] = useState(value);
   const [suggestions, setSuggestions] = useState<Prediction[]>([]);
@@ -111,6 +113,7 @@ export default function LocationInput({
           onChange={handleInputChange}
           onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
           placeholder={placeholder}
+          autoFocus={autoFocus}
           className={`w-full pl-12 pr-12 py-3 rounded-xl border ${
             error ? 'border-error' : 'border-border'
           } focus:outline-none focus:ring-2 focus:ring-sage-dark bg-background`}

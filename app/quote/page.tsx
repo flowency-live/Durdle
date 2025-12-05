@@ -206,6 +206,7 @@ export default function QuotePage() {
                   value={pickupLocation.address}
                   onSelect={(address, placeId) => setPickupLocation({ address, placeId })}
                   placeholder="e.g., Bournemouth Railway Station"
+                  autoFocus
                 />
 
                 <LocationInput
