@@ -3,15 +3,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeHighlight from 'rehype-highlight';
+import dynamic from 'next/dynamic';
 import { ArrowLeft, Edit, Save, X, Loader2, MessageSquare, Check, Download } from 'lucide-react';
+import { getDocument, updateDocument, isGitHubError } from '@/lib/services/github-service';
+
+const MDEditor = dynamic(
+  () => import('@uiw/react-md-editor').then((mod) => mod.default),
+  { ssr: false }
+);
 
 interface DocumentData {
-  filename: string;
   content: string;
-  lastModified: string;
+  sha: string;
+  name: string;
 }
 
 interface Comment {
@@ -43,15 +47,18 @@ export default function DocumentViewerPage() {
   const fetchDocument = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/admin/documents/${slug}`);
+      const result = await getDocument(slug);
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch document');
+      if (isGitHubError(result)) {
+        throw new Error(result.message);
       }
 
-      const data = await response.json();
-      setDocData(data);
-      setEditedContent(data.content);
+      setDocData({
+        content: result.content,
+        sha: result.sha,
+        name: result.name
+      });
+      setEditedContent(result.content);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load document');
     } finally {
@@ -90,20 +97,22 @@ export default function DocumentViewerPage() {
 
     try {
       setSaving(true);
-      const response = await fetch(`/api/admin/documents/${slug}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ content: editedContent }),
-      });
+      const result = await updateDocument(
+        slug,
+        editedContent,
+        docData.sha,
+        `Update ${slug} via admin panel`
+      );
 
-      if (!response.ok) {
-        throw new Error('Failed to save document');
+      if (isGitHubError(result)) {
+        throw new Error(result.message);
       }
 
-      const updated = await response.json();
-      setDocData(updated);
+      setDocData({
+        content: result.content,
+        sha: result.sha,
+        name: result.name
+      });
       setEditMode(false);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to save document');
@@ -197,7 +206,7 @@ export default function DocumentViewerPage() {
   const handleExport = () => {
     if (!docData) return;
 
-    const exportContent = `# ${docData.filename}
+    const exportContent = `# ${docData.name}
 
 ${docData.content}
 
@@ -275,12 +284,12 @@ Generated: ${new Date().toLocaleString()}
 
         <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{docData.filename}</h1>
-            <p className="text-sm text-gray-500 mt-1">
-              Last modified: {new Date(docData.lastModified).toLocaleString()}
-            </p>
+            <h1 className="text-2xl font-bold text-gray-900">{docData.name}</h1>
             <p className="text-sm text-gray-600 mt-1">
               {activeComments.length} active comment{activeComments.length !== 1 ? 's' : ''}, {resolvedComments.length} resolved
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Stored in GitHub with version control
             </p>
           </div>
 
@@ -334,24 +343,25 @@ Generated: ${new Date().toLocaleString()}
       </div>
 
       {/* Content */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         {editMode ? (
-          <div className="p-6">
-            <textarea
+          <div className="p-6" data-color-mode="dark">
+            <MDEditor
               value={editedContent}
-              onChange={(e) => setEditedContent(e.target.value)}
-              className="w-full h-[600px] font-mono text-sm border border-gray-300 rounded-lg p-4 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Enter markdown content..."
+              onChange={(val) => setEditedContent(val || '')}
+              height={600}
+              preview="live"
+              hideToolbar={false}
+              enableScroll={true}
+              visibleDragbar={false}
             />
           </div>
         ) : (
-          <div className="prose prose-sm sm:prose lg:prose-lg max-w-none p-6">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeHighlight]}
-            >
-              {docData.content}
-            </ReactMarkdown>
+          <div className="p-6" data-color-mode="dark">
+            <MDEditor.Markdown
+              source={docData.content}
+              style={{ backgroundColor: 'transparent', color: 'inherit' }}
+            />
           </div>
         )}
       </div>

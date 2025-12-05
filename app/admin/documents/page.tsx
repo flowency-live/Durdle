@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FileText, Loader2 } from 'lucide-react';
+import { listDocuments, isGitHubError } from '@/lib/services/github-service';
 
 interface Document {
-  filename: string;
+  name: string;
   slug: string;
-  lastModified: string;
+  path: string;
 }
 
 export default function DocumentsPage() {
@@ -22,14 +23,13 @@ export default function DocumentsPage() {
   const fetchDocuments = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/documents');
+      const result = await listDocuments();
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch documents');
+      if (isGitHubError(result)) {
+        throw new Error(result.message);
       }
 
-      const data = await response.json();
-      setDocuments(data.documents);
+      setDocuments(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load documents');
     } finally {
@@ -83,10 +83,10 @@ export default function DocumentsPage() {
                     <FileText className="w-5 h-5 text-blue-600 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <h3 className="text-base font-medium text-gray-900 truncate">
-                        {doc.filename}
+                        {doc.name}
                       </h3>
                       <p className="text-sm text-gray-500 mt-1">
-                        Last modified: {new Date(doc.lastModified).toLocaleString()}
+                        From GitHub repository
                       </p>
                     </div>
                   </div>
