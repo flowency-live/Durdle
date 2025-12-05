@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 
 interface Vehicle {
   vehicleId: string;
@@ -214,12 +215,13 @@ export default function VehicleTypesManagement() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* Image Section */}
                   <div>
-                    <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden mb-3">
+                    <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden mb-3 relative">
                       {vehicle.imageUrl ? (
-                        <img
+                        <Image
                           src={vehicle.imageUrl}
                           alt={vehicle.name}
-                          className="w-full h-full object-cover"
+                          fill
+                          className="object-cover"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-400">

@@ -22,6 +22,11 @@ interface FixedRoute {
   createdAt: string;
 }
 
+interface GooglePlacesPrediction {
+  place_id: string;
+  description: string;
+}
+
 export default function FixedRoutesManagement() {
   const [routes, setRoutes] = useState<FixedRoute[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,7 +112,7 @@ export default function FixedRoutesManagement() {
       if (!response.ok) return;
 
       const data = await response.json();
-      const suggestions = data.predictions.map((p: any) => ({
+      const suggestions = data.predictions.map((p: GooglePlacesPrediction) => ({
         placeId: p.place_id,
         description: p.description,
       }));
