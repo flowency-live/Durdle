@@ -2,6 +2,7 @@
 
 import { X } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { usePathname } from 'next/navigation';
 
 interface FeedbackModalProps {
@@ -17,6 +18,11 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!isOpen) {
@@ -26,7 +32,7 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +68,7 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
     }
   };
 
-  return (
+  return createPortal(
     <>
       {/* Overlay */}
       <div
@@ -171,6 +177,7 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
           </form>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }
