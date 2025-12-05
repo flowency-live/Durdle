@@ -226,6 +226,37 @@ async function calculatePricing(distanceMiles, durationMinutes, vehicleType = 's
   };
 }
 
+async function generateFriendlyQuoteId() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const datePrefix = `${month}${day}`;
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+
+  try {
+    // Query quotes created today to get the next sequence number
+    const command = new QueryCommand({
+      TableName: TABLE_NAME,
+      IndexName: 'GSI1',
+      KeyConditionExpression: 'GSI1PK = :status AND GSI1SK >= :todayStart',
+      ExpressionAttributeValues: {
+        ':status': 'STATUS#valid',
+        ':todayStart': `CREATED#${todayStart}`
+      }
+    });
+
+    const result = await docClient.send(command);
+    const todayCount = result.Items ? result.Items.length : 0;
+    const sequenceNumber = String(todayCount + 1).padStart(3, '0');
+
+    return `DTS${datePrefix}_${sequenceNumber}`;
+  } catch (error) {
+    console.error('Failed to generate friendly quote ID, using fallback:', error);
+    // Fallback to UUID-based ID if query fails
+    return `DTS${datePrefix}_${randomUUID().slice(0, 3).toUpperCase()}`;
+  }
+}
+
 async function storeQuote(quote) {
   const ttl = Math.floor(Date.now() / 1000) + (15 * 60);
 
@@ -381,7 +412,7 @@ export const handler = async (event) => {
       );
     }
 
-    const quoteId = `quote_${randomUUID().replace(/-/g, '')}`;
+    const quoteId = await generateFriendlyQuoteId();
     const now = new Date().toISOString();
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
@@ -402,6 +433,7 @@ export const handler = async (event) => {
       dropoffLocation: body.dropoffLocation,
       pickupTime: body.pickupTime,
       passengers: body.passengers,
+      luggage: body.luggage || 0,
       returnJourney: body.returnJourney || false,
       createdAt: now,
     };

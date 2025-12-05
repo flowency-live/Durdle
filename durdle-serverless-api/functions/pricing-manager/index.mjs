@@ -7,15 +7,30 @@ const ddbDocClient = DynamoDBDocumentClient.from(client);
 
 const PRICING_TABLE_NAME = process.env.PRICING_TABLE_NAME || 'durdle-pricing-config-dev';
 
-const headers = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-  'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+const getAllowedOrigins = () => [
+  'http://localhost:3000',
+  'https://durdle.flowency.build',
+  'https://durdle.co.uk'
+];
+
+const getHeaders = (origin) => {
+  const allowedOrigins = getAllowedOrigins();
+  const allowedOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+
+  return {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+    'Access-Control-Allow-Credentials': 'true'
+  };
 };
 
 export const handler = async (event) => {
   console.log('Event:', JSON.stringify(event, null, 2));
+
+  const origin = event.headers?.origin || event.headers?.Origin || '';
+  const headers = getHeaders(origin);
 
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -28,35 +43,35 @@ export const handler = async (event) => {
     switch (httpMethod) {
       case 'GET':
         if (vehicleId) {
-          return await getVehicle(vehicleId);
+          return await getVehicle(vehicleId, headers);
         }
-        return await listVehicles();
+        return await listVehicles(headers);
 
       case 'POST':
-        return await createVehicle(requestBody);
+        return await createVehicle(requestBody, headers);
 
       case 'PUT':
         if (!vehicleId) {
-          return errorResponse(400, 'vehicleId is required');
+          return errorResponse(400, 'vehicleId is required', null, headers);
         }
-        return await updateVehicle(vehicleId, requestBody);
+        return await updateVehicle(vehicleId, requestBody, headers);
 
       case 'DELETE':
         if (!vehicleId) {
-          return errorResponse(400, 'vehicleId is required');
+          return errorResponse(400, 'vehicleId is required', null, headers);
         }
-        return await deleteVehicle(vehicleId);
+        return await deleteVehicle(vehicleId, headers);
 
       default:
-        return errorResponse(405, 'Method not allowed');
+        return errorResponse(405, 'Method not allowed', null, headers);
     }
   } catch (error) {
     console.error('Error:', error);
-    return errorResponse(500, 'Internal server error', error.message);
+    return errorResponse(500, 'Internal server error', error.message, headers);
   }
 };
 
-async function listVehicles() {
+async function listVehicles(headers) {
   const command = new ScanCommand({
     TableName: PRICING_TABLE_NAME,
     FilterExpression: 'begins_with(PK, :pkPrefix) AND SK = :sk',
@@ -95,7 +110,7 @@ async function listVehicles() {
   };
 }
 
-async function getVehicle(vehicleId) {
+async function getVehicle(vehicleId, headers) {
   const command = new GetCommand({
     TableName: PRICING_TABLE_NAME,
     Key: {
@@ -107,7 +122,7 @@ async function getVehicle(vehicleId) {
   const result = await ddbDocClient.send(command);
 
   if (!result.Item) {
-    return errorResponse(404, 'Vehicle not found');
+    return errorResponse(404, 'Vehicle not found', null, headers);
   }
 
   const vehicle = {
@@ -134,23 +149,23 @@ async function getVehicle(vehicleId) {
   };
 }
 
-async function createVehicle(requestBody) {
+async function createVehicle(requestBody, headers) {
   const data = JSON.parse(requestBody);
 
   // Validate required fields
   const requiredFields = ['name', 'description', 'capacity', 'baseFare', 'perMile', 'perMinute'];
   for (const field of requiredFields) {
     if (data[field] === undefined || data[field] === null) {
-      return errorResponse(400, `Missing required field: ${field}`);
+      return errorResponse(400, `Missing required field: ${field}`, null, headers);
     }
   }
 
   // Validate numeric fields
   if (data.capacity < 1) {
-    return errorResponse(400, 'Capacity must be at least 1');
+    return errorResponse(400, 'Capacity must be at least 1', null, headers);
   }
   if (data.baseFare < 0 || data.perMile < 0 || data.perMinute < 0) {
-    return errorResponse(400, 'Pricing values cannot be negative');
+    return errorResponse(400, 'Pricing values cannot be negative', null, headers);
   }
 
   const vehicleId = data.vehicleId || randomUUID();
@@ -210,13 +225,13 @@ async function createVehicle(requestBody) {
     };
   } catch (error) {
     if (error.name === 'ConditionalCheckFailedException') {
-      return errorResponse(409, 'Vehicle already exists');
+      return errorResponse(409, 'Vehicle already exists', null, headers);
     }
     throw error;
   }
 }
 
-async function updateVehicle(vehicleId, requestBody) {
+async function updateVehicle(vehicleId, requestBody, headers) {
   const data = JSON.parse(requestBody);
 
   // Check if vehicle exists
@@ -230,7 +245,7 @@ async function updateVehicle(vehicleId, requestBody) {
 
   const existingItem = await ddbDocClient.send(getCommand);
   if (!existingItem.Item) {
-    return errorResponse(404, 'Vehicle not found');
+    return errorResponse(404, 'Vehicle not found', null, headers);
   }
 
   // Build update expression
@@ -251,9 +266,10 @@ async function updateVehicle(vehicleId, requestBody) {
 
   if (data.capacity !== undefined) {
     if (data.capacity < 1) {
-      return errorResponse(400, 'Capacity must be at least 1');
+      return errorResponse(400, 'Capacity must be at least 1', null, headers);
     }
-    updates.push('capacity = :capacity');
+    updates.push('#capacity = :capacity');
+    expressionAttributeNames['#capacity'] = 'capacity';
     expressionAttributeValues[':capacity'] = parseInt(data.capacity);
   }
 
@@ -264,7 +280,7 @@ async function updateVehicle(vehicleId, requestBody) {
 
   if (data.baseFare !== undefined) {
     if (data.baseFare < 0) {
-      return errorResponse(400, 'Base fare cannot be negative');
+      return errorResponse(400, 'Base fare cannot be negative', null, headers);
     }
     updates.push('baseFare = :baseFare');
     expressionAttributeValues[':baseFare'] = parseInt(data.baseFare);
@@ -272,7 +288,7 @@ async function updateVehicle(vehicleId, requestBody) {
 
   if (data.perMile !== undefined) {
     if (data.perMile < 0) {
-      return errorResponse(400, 'Per mile rate cannot be negative');
+      return errorResponse(400, 'Per mile rate cannot be negative', null, headers);
     }
     updates.push('perMile = :perMile');
     expressionAttributeValues[':perMile'] = parseInt(data.perMile);
@@ -280,7 +296,7 @@ async function updateVehicle(vehicleId, requestBody) {
 
   if (data.perMinute !== undefined) {
     if (data.perMinute < 0) {
-      return errorResponse(400, 'Per minute rate cannot be negative');
+      return errorResponse(400, 'Per minute rate cannot be negative', null, headers);
     }
     updates.push('perMinute = :perMinute');
     expressionAttributeValues[':perMinute'] = parseInt(data.perMinute);
@@ -302,7 +318,7 @@ async function updateVehicle(vehicleId, requestBody) {
   }
 
   if (updates.length === 0) {
-    return errorResponse(400, 'No fields to update');
+    return errorResponse(400, 'No fields to update', null, headers);
   }
 
   updates.push('updatedAt = :updatedAt');
@@ -349,7 +365,7 @@ async function updateVehicle(vehicleId, requestBody) {
   };
 }
 
-async function deleteVehicle(vehicleId) {
+async function deleteVehicle(vehicleId, headers) {
   // Soft delete by setting active = false
   const updateCommand = new UpdateCommand({
     TableName: PRICING_TABLE_NAME,
@@ -379,13 +395,13 @@ async function deleteVehicle(vehicleId) {
     };
   } catch (error) {
     if (error.name === 'ConditionalCheckFailedException') {
-      return errorResponse(404, 'Vehicle not found');
+      return errorResponse(404, 'Vehicle not found', null, headers);
     }
     throw error;
   }
 }
 
-function errorResponse(statusCode, message, details = null) {
+function errorResponse(statusCode, message, details = null, headers) {
   const body = { error: message };
   if (details) {
     body.details = details;

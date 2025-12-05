@@ -7,15 +7,44 @@ const GOOGLE_MAPS_SECRET_NAME = process.env.GOOGLE_MAPS_SECRET_NAME || 'durdle/g
 
 let cachedApiKey = null;
 
-const headers = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Session-Token',
-  'Access-Control-Allow-Methods': 'GET,OPTIONS'
+const getAllowedOrigins = () => [
+  'http://localhost:3000',
+  'https://durdle.flowency.build',
+  'https://durdle.co.uk'
+];
+
+const getHeaders = (path, origin) => {
+  // Public endpoint uses wildcard, admin endpoint uses dynamic origin for credentials
+  const isAdminPath = path && path.includes('/admin/');
+
+  if (isAdminPath) {
+    const allowedOrigins = getAllowedOrigins();
+    const allowedOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+
+    return {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': allowedOrigin,
+      'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Session-Token',
+      'Access-Control-Allow-Methods': 'GET,OPTIONS',
+      'Access-Control-Allow-Credentials': 'true'
+    };
+  }
+
+  // Public endpoint - wildcard is fine, no credentials
+  return {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Session-Token',
+    'Access-Control-Allow-Methods': 'GET,OPTIONS'
+  };
 };
 
 export const handler = async (event) => {
   console.log('Event:', JSON.stringify(event, null, 2));
+
+  const origin = event.headers?.origin || event.headers?.Origin || '';
+  const path = event.path || event.requestContext?.resourcePath || '';
+  const headers = getHeaders(path, origin);
 
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -25,13 +54,13 @@ export const handler = async (event) => {
     const { queryStringParameters } = event;
 
     if (!queryStringParameters || !queryStringParameters.input) {
-      return errorResponse(400, 'Missing required query parameter: input');
+      return errorResponse(400, 'Missing required query parameter: input', null, headers);
     }
 
     const { input, sessionToken } = queryStringParameters;
 
     if (input.length < 3) {
-      return errorResponse(400, 'Input must be at least 3 characters');
+      return errorResponse(400, 'Input must be at least 3 characters', null, headers);
     }
 
     const predictions = await fetchAutocomplete(input, sessionToken);
@@ -46,7 +75,7 @@ export const handler = async (event) => {
     };
   } catch (error) {
     console.error('Error:', error);
-    return errorResponse(500, 'Internal server error', error.message);
+    return errorResponse(500, 'Internal server error', error.message, headers);
   }
 };
 
@@ -123,7 +152,7 @@ function getIconForTypes(types) {
   return '🔍';
 }
 
-function errorResponse(statusCode, message, details = null) {
+function errorResponse(statusCode, message, details = null, headers) {
   const body = { error: message };
   if (details) {
     body.details = details;

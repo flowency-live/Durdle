@@ -101,6 +101,7 @@ function QuotePageContent() {
         dropoffLocation,
         pickupTime: pickupDate.toISOString(),
         passengers,
+        luggage,
         vehicleType: vehicleType as 'standard' | 'executive' | 'minibus',
       };
 

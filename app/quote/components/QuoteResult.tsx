@@ -1,6 +1,6 @@
 'use client';
 
-import { MapPin, Clock, Calendar, Users, Car } from 'lucide-react';
+import { MapPin, Clock, Calendar, Users, Car, Luggage } from 'lucide-react';
 import { QuoteResponse } from '../lib/types';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
@@ -141,6 +141,17 @@ export default function QuoteResult({ quote, onNewQuote }: QuoteResultProps) {
                   </p>
                 </div>
               </div>
+              {quote.luggage !== undefined && quote.luggage > 0 && (
+                <div className="flex items-center gap-3">
+                  <Luggage className="w-5 h-5 text-sage-dark" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Luggage</p>
+                    <p className="text-sm font-medium text-foreground">
+                      {quote.luggage} {quote.luggage === 1 ? 'bag' : 'bags'}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Pricing Breakdown */}

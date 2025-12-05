@@ -28,6 +28,7 @@ export interface QuoteRequest {
   waypoints?: Location[];
   pickupTime: string; // ISO 8601 format
   passengers: number; // 1-8
+  luggage?: number; // Number of bags
   vehicleType: 'standard' | 'executive' | 'minibus';
   returnJourney?: boolean;
   contactDetails?: {
@@ -74,6 +75,7 @@ export interface QuoteResponse {
   dropoffLocation: Location;
   pickupTime: string;
   passengers: number;
+  luggage?: number;
   returnJourney: boolean;
   createdAt: string;
 }
