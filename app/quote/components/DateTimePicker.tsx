@@ -49,23 +49,6 @@ export default function DateTimePicker({ selectedDate, onChange, error }: DateTi
           calendarClassName="shadow-2xl"
           withPortal
           portalId="date-picker-portal"
-          popperClassName="!z-50"
-          popperModifiers={[
-            {
-              name: 'offset',
-              options: {
-                offset: [0, 8],
-              },
-            },
-            {
-              name: 'preventOverflow',
-              options: {
-                rootBoundary: 'viewport',
-                tether: false,
-                altAxis: true,
-              },
-            },
-          ]}
         />
       </div>
       {error && (
