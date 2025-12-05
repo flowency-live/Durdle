@@ -1,20 +1,21 @@
-# NOTS Platform - Technical Architecture Document
+# Durdle Transport Platform - Technical Architecture Document
 
-**Version:** 1.0
-**Last Updated:** 2025-12-04
-**Status:** Draft
+**Version:** 2.0
+**Last Updated:** 2025-12-05
+**Status:** Phase 2 Complete
+**Platform:** The Dorset Transfer Company (Durdle)
 
 ---
 
 ## 1. Executive Summary
 
-The NOTS (Dorset Transfer Company) platform is a serverless, cloud-native transport management system built entirely on AWS infrastructure. The architecture prioritizes scalability, cost-effectiveness, and operational simplicity through managed services.
+Durdle is a serverless transport booking platform built entirely on AWS infrastructure. The platform prioritizes scalability, cost-effectiveness, and operational simplicity through managed services.
 
 **Core Principles:**
 - 100% Serverless (no EC2 instances)
-- Event-driven architecture
 - API-first design
-- Separation of concerns (customer, admin, driver domains)
+- Database-driven pricing (no hardcoded values)
+- Admin-configurable pricing and routes
 - Infrastructure as Code
 
 ---
@@ -26,356 +27,633 @@ The NOTS (Dorset Transfer Company) platform is a serverless, cloud-native transp
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                      Client Layer                            │
-├─────────────────┬─────────────────┬────────────────────────┤
-│  NOTS Website   │  NOTS Dashboard │  NOTS Driver Portal    │
-│   (Next.js)     │   (React+Vite)  │   (PWA/React)          │
-│  CloudFront+S3  │  CloudFront+S3  │  CloudFront+S3         │
-└────────┬────────┴────────┬────────┴────────┬───────────────┘
-         │                 │                 │
-         └─────────────────┼─────────────────┘
-                           │
-                    ┌──────▼──────┐
-                    │  CloudFront │
-                    │   (Global)  │
-                    └──────┬──────┘
-                           │
-         ┌─────────────────┼─────────────────┐
-         │                                    │
-    ┌────▼─────┐                    ┌────────▼────────┐
-    │   API    │                    │   WebSocket     │
-    │  Gateway │                    │   API Gateway   │
-    │  (REST)  │                    │  (Real-time)    │
-    └────┬─────┘                    └────────┬────────┘
-         │                                    │
-    ┌────▼────────────────────────────────────▼────┐
-    │           AWS Lambda Functions               │
-    │  (Bookings, Quotes, Payments, Dispatch, etc) │
-    └────┬─────────────────────────────────────┬───┘
-         │                                      │
-    ┌────▼──────────┐                  ┌───────▼────────┐
-    │   DynamoDB    │                  │  EventBridge   │
-    │ (Primary DB)  │                  │ (Event Router) │
-    └───────────────┘                  └───────┬────────┘
-                                               │
-         ┌─────────────────────────────────────┼──────────┐
-         │                 │                    │          │
-    ┌────▼────┐      ┌────▼────┐         ┌────▼────┐ ┌──▼───┐
-    │   SQS   │      │   SNS   │         │   SES   │ │  S3  │
-    │ (Queue) │      │ (Notify)│         │ (Email) │ │(Docs)│
-    └─────────┘      └─────────┘         └─────────┘ └──────┘
+├─────────────────┬───────────────────────────────────────────┤
+│  Durdle Website │  Durdle Admin Portal                      │
+│   (Next.js 14)  │  (Next.js 14 - /admin routes)            │
+│  Amplify Hosting│  Amplify Hosting                          │
+└────────┬────────┴────────┬──────────────────────────────────┘
+         │                 │
+         └─────────────────┼─────────────────┐
+                           │                 │
+                    ┌──────▼──────┐   ┌──────▼──────┐
+                    │  Public API │   │  Admin API  │
+                    │   Gateway   │   │   Gateway   │
+                    │ /v1/*       │   │ /admin/*    │
+                    └──────┬──────┘   └──────┬──────┘
+                           │                 │
+    ┌──────────────────────┴─────────────────┴────────────────┐
+    │           AWS Lambda Functions (Node.js 20.x)            │
+    │  quotes-calculator | pricing-manager | fixed-routes     │
+    │  vehicle-manager | locations-lookup | uploads-presigned │
+    │  admin-auth                                              │
+    └────┬─────────────────────────────────┬─────────────┬───┘
+         │                                  │             │
+    ┌────▼──────────┐              ┌───────▼────────┐   │
+    │   DynamoDB    │              │  Secrets Mgr   │   │
+    │  (4 tables)   │              │  (API keys)    │   │
+    └───────────────┘              └────────────────┘   │
+                                                         │
+                                                    ┌────▼────┐
+                                                    │   S3    │
+                                                    │ (Images)│
+                                                    └─────────┘
 ```
 
 ### 2.2 Technology Stack
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| **Frontend** | Next.js 14+ (App Router) | Customer website, SEO-optimized |
-| **Admin** | React 18 + Vite | Internal dashboard |
-| **Driver** | React PWA | Mobile-first driver portal |
-| **API** | AWS Lambda (Node.js 20.x) | Business logic |
+| **Frontend** | Next.js 14+ (App Router) | Customer website + Admin portal |
+| **Hosting** | AWS Amplify | Next.js SSR hosting with CI/CD |
+| **API** | AWS API Gateway (REST) | HTTP endpoints |
+| **Compute** | AWS Lambda (Node.js 20.x) | Business logic |
 | **Database** | DynamoDB | Primary data store |
-| **Cache** | ElastiCache Redis (Phase 2) | Session/state caching |
-| **Auth** | AWS Cognito | User authentication |
-| **Storage** | S3 | Document storage |
-| **CDN** | CloudFront | Global content delivery |
-| **Monitoring** | CloudWatch + X-Ray | Observability |
+| **Auth** | JWT (bcryptjs) | Admin authentication (Phase 2) |
+| **Storage** | S3 | Vehicle images |
+| **Secrets** | AWS Secrets Manager | API keys (Google Maps, JWT secret) |
+| **Region** | eu-west-2 (London) | Primary region |
 
 ---
 
-## 3. Core Services Architecture
+## 3. Backend Infrastructure (Phase 2 - Complete)
 
-### 3.1 Authentication & Authorization
+### 3.1 DynamoDB Tables
 
-**Service:** AWS Cognito User Pools
+#### Table 1: `durdle-pricing-config-dev`
+**Purpose:** Variable pricing configuration for vehicle types
 
-**User Types:**
-- **Customers:** Email/password, social login (Phase 2)
-- **Admins:** Email/password with MFA required
-- **Drivers:** Email/password, mobile-verified
-
-**Token Flow:**
+**Structure:**
 ```
-Client → Cognito → JWT Token → API Gateway (Authorizer) → Lambda
-```
+PK: VEHICLE#{vehicle_id}
+SK: METADATA
 
-**Authorization Levels:**
-- `customer`: Read own bookings, create bookings, make payments
-- `driver`: Read assigned jobs, update job status
-- `dispatcher`: Assign jobs, view all bookings
-- `admin`: Full platform access
-- `owner`: Full access + pricing/compliance management
-
-### 3.2 API Layer
-
-**Service:** AWS API Gateway (REST + WebSocket)
-
-**Base URLs:**
-- REST API: `https://api.nots.co.uk/v1/*`
-- WebSocket: `wss://ws.nots.co.uk/` (Phase 2)
-
-**API Structure:**
-```
-/v1/
-├── /quotes          (POST, GET)
-├── /bookings        (POST, GET, PATCH, DELETE)
-├── /payments        (POST, GET)
-├── /drivers         (GET, PATCH) [admin only]
-├── /vehicles        (GET, POST, PATCH)
-├── /compliance      (POST, GET) [admin only]
-├── /analytics       (GET) [admin only]
-└── /dispatch        (POST, PATCH) [dispatcher only]
+Attributes:
+- vehicleId: string (e.g., "standard")
+- name: string (e.g., "Standard Sedan")
+- description: string
+- capacity: number (1-8 passengers)
+- features: list<string> (e.g., ["WiFi", "Phone Charger"])
+- baseFare: number (pence)
+- perMile: number (pence per mile)
+- perMinute: number (pence per minute)
+- active: boolean
+- imageUrl: string (S3 public URL)
+- createdAt: string (ISO 8601)
+- updatedAt: string (ISO 8601)
+- updatedBy: string (admin username)
 ```
 
-### 3.3 Data Layer
-
-**Primary Database:** DynamoDB
-
-**Table Strategy:** Single-table design with GSIs
-
-**Table: `nots-main-table`**
-
-See [DatabaseSchema.md](DatabaseSchema.md) for detailed schema design.
-
-**File Storage:** S3 Bucket `nots-documents-{env}`
-- Driver compliance documents
-- Incident reports
-- Customer uploaded files (Phase 2)
+**Current Data:** 3 vehicle types (standard, executive, minibus) seeded
 
 ---
 
-## 4. Lambda Functions (MVP)
+#### Table 2: `durdle-fixed-routes-dev`
+**Purpose:** Fixed pricing for specific origin-destination pairs
 
-| Function Name | Trigger | Purpose | Timeout |
-|--------------|---------|---------|---------|
-| `quotes-calculator` | API Gateway | Calculate quote using Google Maps | 10s |
-| `quotes-retrieve` | API Gateway | Retrieve saved quote | 3s |
-| `bookings-create` | API Gateway | Create new booking | 10s |
-| `bookings-get` | API Gateway | Get booking details | 3s |
-| `bookings-list` | API Gateway | List bookings (paginated) | 5s |
-| `bookings-update` | API Gateway | Update booking | 5s |
-| `payments-process` | API Gateway | Process Stripe payment | 15s |
-| `payments-webhook` | API Gateway | Handle Stripe webhooks | 10s |
-| `dispatch-assign` | API Gateway | Assign job to driver | 5s |
-| `drivers-list` | API Gateway | List drivers | 3s |
-| `drivers-update` | API Gateway | Update driver info | 5s |
-| `notifications-send` | SQS | Send email/SMS notifications | 10s |
-| `compliance-upload` | API Gateway | Upload driver documents to S3 | 15s |
+**Structure:**
+```
+PK: ROUTE#{origin_place_id}
+SK: DEST#{destination_place_id}#{vehicle_id}
 
-**Lambda Configuration Standards:**
-- **Memory:** 512MB (adjust per function)
+GSI1:
+- GSI1PK: VEHICLE#{vehicle_id}
+- GSI1SK: ROUTE#{routeId}
+
+Attributes:
+- routeId: string (UUID)
+- originPlaceId: string (Google Maps place_id)
+- originName: string (human-readable)
+- destinationPlaceId: string
+- destinationName: string
+- vehicleId: string
+- vehicleName: string
+- price: number (pence - total fixed price)
+- distance: number (miles from Google Maps)
+- estimatedDuration: number (minutes from Google Maps)
+- active: boolean
+- createdAt: string (ISO 8601)
+- updatedAt: string (ISO 8601)
+- updatedBy: string (admin username)
+```
+
+**Current Data:** Admin-populated as needed
+
+---
+
+#### Table 3: `durdle-admin-users-dev`
+**Purpose:** Admin user authentication
+
+**Structure:**
+```
+PK: USER#{username}
+SK: METADATA
+
+Attributes:
+- username: string (lowercase)
+- passwordHash: string (bcryptjs hash, 10 rounds)
+- role: string (admin/superadmin)
+- email: string
+- fullName: string
+- active: boolean
+- lastLogin: string (ISO 8601)
+- createdAt: string (ISO 8601)
+```
+
+**Security:**
+- Passwords hashed with bcryptjs
+- JWT tokens with 8-hour expiry
+- httpOnly cookies for session storage
+
+**Current Data:** 2 admin users (james.aspin, finn.murray)
+
+---
+
+#### Table 4: `durdle-main-table-dev`
+**Purpose:** General application data (quotes, bookings - Phase 1)
+
+**Structure:**
+```
+PK: QUOTE#{quote_id}
+SK: METADATA
+
+Attributes:
+- quoteId: string (UUID)
+- origin: object
+- destination: object
+- vehicleId: string
+- distance: number (miles)
+- duration: number (minutes)
+- price: number (pence)
+- breakdown: object (baseFare, distanceCharge, timeCharge)
+- isFixedRoute: boolean
+- routeId: string (if fixed route)
+- createdAt: string (ISO 8601)
+- expiresAt: string (ISO 8601)
+```
+
+**Current Data:** Populated from Phase 1 quote functionality
+
+---
+
+### 3.2 Lambda Functions
+
+| Function Name | Purpose | Timeout | Memory | Tables Accessed |
+|--------------|---------|---------|--------|-----------------|
+| `quotes-calculator-dev` | Generate quote (checks fixed routes first, then variable pricing) | 10s | 512MB | durdle-fixed-routes-dev<br>durdle-pricing-config-dev<br>durdle-main-table-dev |
+| `pricing-manager-dev` | Admin CRUD for vehicle pricing | 10s | 256MB | durdle-pricing-config-dev |
+| `fixed-routes-manager-dev` | Admin CRUD for fixed routes | 15s | 512MB | durdle-fixed-routes-dev |
+| `locations-lookup-dev` | Google Maps Places Autocomplete proxy | 10s | 256MB | None |
+| `vehicle-manager-dev` | Vehicle metadata management | 10s | 256MB | durdle-pricing-config-dev |
+| `uploads-presigned-dev` | Generate S3 presigned URLs for image uploads | 5s | 128MB | None |
+| `admin-auth-dev` | Admin authentication (login/session/logout) | 5s | 256MB | durdle-admin-users-dev |
+
+**Configuration Standards:**
 - **Runtime:** Node.js 20.x
-- **Architecture:** arm64 (Graviton for cost savings)
-- **Environment Variables:** See [DeploymentRunbook.md](DeploymentRunbook.md)
+- **Architecture:** arm64 (Graviton2 for cost savings)
+- **IAM Role:** `durdle-lambda-execution-role-dev`
+- **Environment Variables:** Set per function via AWS CLI
 
 ---
 
-## 5. External Integrations
+### 3.3 S3 Buckets
 
-### 5.1 Google Maps API
+#### Bucket: `durdle-vehicle-images-dev`
+**Purpose:** Store vehicle type images
 
+**Configuration:**
+- **Region:** eu-west-2
+- **Versioning:** Enabled
+- **Public Access:** Blocked (use presigned URLs for uploads, public URLs for display)
+- **CORS:** Enabled for localhost:3000 and durdle.co.uk
+- **Encryption:** AES-256 (SSE-S3)
+
+**Folder Structure:**
+```
+/vehicles/
+  - standard-sedan.jpg
+  - executive-sedan.jpg
+  - minibus.jpg
+```
+
+**Access Pattern:**
+- Uploads: Admin gets presigned URL from `uploads-presigned-dev` Lambda
+- Display: Public URLs stored in DynamoDB `imageUrl` field
+
+---
+
+### 3.4 API Gateway Routes
+
+**API ID:** `qcfd5p4514`
+**Base URL:** `https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev`
+
+#### Public Endpoints (Customer-facing)
+
+| Method | Path | Lambda Function | Purpose |
+|--------|------|-----------------|---------|
+| POST | `/v1/quotes` | quotes-calculator-dev | Generate quote |
+| GET | `/v1/vehicles` | pricing-manager-dev | List active vehicles with images |
+
+#### Admin Endpoints (Auth required)
+
+| Method | Path | Lambda Function | Purpose |
+|--------|------|-----------------|---------|
+| POST | `/admin/auth/login` | admin-auth-dev | Admin login |
+| POST | `/admin/auth/logout` | admin-auth-dev | Admin logout |
+| GET | `/admin/auth/session` | admin-auth-dev | Verify session |
+| GET | `/admin/pricing/vehicles` | pricing-manager-dev | List all vehicle pricing |
+| PUT | `/admin/pricing/vehicles/{vehicleId}` | pricing-manager-dev | Update vehicle pricing |
+| GET | `/admin/pricing/fixed-routes` | fixed-routes-manager-dev | List fixed routes |
+| POST | `/admin/pricing/fixed-routes` | fixed-routes-manager-dev | Create fixed route |
+| PUT | `/admin/pricing/fixed-routes/{routeId}` | fixed-routes-manager-dev | Update fixed route |
+| DELETE | `/admin/pricing/fixed-routes/{routeId}` | fixed-routes-manager-dev | Delete fixed route |
+| GET | `/admin/locations/autocomplete` | locations-lookup-dev | Google Maps autocomplete |
+| POST | `/admin/uploads/presigned` | uploads-presigned-dev | Generate S3 presigned URL |
+
+**CORS Configuration:**
+- Allowed Origins: `http://localhost:3000`, `https://durdle.co.uk`
+- Allowed Methods: `GET, POST, PUT, DELETE, OPTIONS`
+- Allowed Headers: `Content-Type, Authorization`
+
+---
+
+### 3.5 External Integrations
+
+#### Google Maps API
 **APIs Used:**
-- Distance Matrix API (quote calculations)
-- Geocoding API (address validation)
-- Places API (address autocomplete - Phase 2)
+- Distance Matrix API (quote calculations - distance and duration)
+- Places Autocomplete API (location search for admin)
 
-**Caching:** Quote results cached in DynamoDB for 15 minutes
+**API Key Storage:** AWS Secrets Manager (`durdle/google-maps-api-key`)
 
-### 5.2 Stripe
+**Caching:**
+- Vehicle pricing: 5-minute cache in Lambda container
+- Fixed routes: No cache (query DynamoDB each time)
 
-**Products:**
-- Stripe Checkout (immediate payments)
-- Stripe Payment Intents (Phase 2)
-- Stripe Webhooks (payment confirmation)
-
-**Webhook Endpoint:** `https://api.nots.co.uk/v1/webhooks/stripe`
-
-### 5.3 Notifications
-
-**Email:** AWS SES (verified domain: nots.co.uk)
-**SMS:** AWS SNS + Pinpoint (UK SMS)
-**WhatsApp:** Phase 3 - Twilio WhatsApp Business API
+**Cost Optimization:**
+- Session tokens used for autocomplete (billed per session, not per keystroke)
+- Distance/duration stored in DynamoDB for fixed routes (no repeated API calls)
 
 ---
 
-## 6. Security Architecture
-
-### 6.1 Network Security
-
-- **API Gateway:** AWS WAF enabled (rate limiting, SQL injection protection)
-- **Lambda:** VPC deployment NOT required (DynamoDB uses VPC endpoints if needed)
-- **S3:** Bucket policies enforce HTTPS only
-- **CloudFront:** TLS 1.2+ only
-
-### 6.2 Secrets Management
+### 3.6 Secrets Management
 
 **Service:** AWS Secrets Manager
 
-**Secrets:**
-- `nots/stripe/secret-key`
-- `nots/google/maps-api-key`
-- `nots/twilio/auth-token` (Phase 3)
+| Secret Name | Purpose | Rotation |
+|------------|---------|----------|
+| `durdle/google-maps-api-key` | Google Maps API key | Manual |
+| `durdle/jwt-secret` | JWT signing secret (256-bit hex) | Manual |
 
-**Rotation:** Automatic 90-day rotation where supported
-
-### 6.3 Data Protection
-
-- **Encryption at Rest:** All DynamoDB tables, S3 buckets
-- **Encryption in Transit:** TLS 1.2+ for all API calls
-- **PII Handling:** Customer data encrypted, limited retention
-- **GDPR Compliance:** Data deletion workflows, audit logs
+**Access Pattern:**
+- Lambda functions fetch secrets on cold start
+- Secrets cached in Lambda container memory for reuse
 
 ---
 
-## 7. Monitoring & Observability
+## 4. Quote Calculation Logic (Customer-facing)
 
-### 7.1 CloudWatch Dashboards
+### 4.1 Quote Flow
 
-**Dashboard: `NOTS-Operations`**
-- API Gateway requests/errors (5xx, 4xx)
-- Lambda invocations, duration, errors
-- DynamoDB consumed capacity, throttles
-- SQS queue depth
+```
+Customer Request (origin, destination, vehicleId)
+        ↓
+POST /v1/quotes → quotes-calculator Lambda
+        ↓
+1. Resolve origin/destination to place_ids (if not provided)
+        ↓
+2. Check durdle-fixed-routes-dev for matching route
+        ├─ Found? → Return fixed price immediately
+        └─ Not found? → Continue to variable pricing
+        ↓
+3. Fetch vehicle pricing from durdle-pricing-config-dev
+        ↓
+4. Call Google Maps Distance Matrix API
+        ↓
+5. Calculate: baseFare + (distance × perMile) + (duration × perMinute)
+        ↓
+6. Store quote in durdle-main-table-dev (15-min expiry)
+        ↓
+7. Return quote to customer
+```
 
-### 7.2 Alarms
+### 4.2 Quote Response Format
 
-| Metric | Threshold | Action |
-|--------|----------|--------|
-| API 5xx errors | > 10 in 5 min | SNS alert to ops team |
-| Lambda errors | > 5% error rate | SNS alert |
-| DynamoDB throttles | > 0 | SNS alert |
-| SQS DLQ messages | > 0 | SNS alert |
-
-### 7.3 X-Ray Tracing
-
-- Enabled on all Lambda functions
-- Trace API calls through entire request lifecycle
-- Identify bottlenecks in Google Maps/Stripe integrations
+```json
+{
+  "quoteId": "uuid-123",
+  "origin": {
+    "name": "London Heathrow Airport",
+    "placeId": "ChIJ..."
+  },
+  "destination": {
+    "name": "Bournemouth, UK",
+    "placeId": "ChIJ..."
+  },
+  "vehicle": {
+    "vehicleId": "standard",
+    "name": "Standard Sedan",
+    "capacity": 4,
+    "features": ["WiFi", "Phone Charger"],
+    "imageUrl": "https://durdle-vehicle-images-dev.s3.eu-west-2.amazonaws.com/vehicles/standard-sedan.jpg"
+  },
+  "distance": 98.5,
+  "duration": 115,
+  "price": 12000,
+  "breakdown": {
+    "baseFare": 500,
+    "distanceCharge": 9850,
+    "timeCharge": 1150
+  },
+  "isFixedRoute": false,
+  "createdAt": "2025-12-05T10:00:00Z",
+  "expiresAt": "2025-12-05T10:15:00Z"
+}
+```
 
 ---
 
-## 8. Scalability & Performance
+## 5. Admin Portal (Phase 2 - Complete)
 
-### 8.1 Auto-Scaling
+### 5.1 Admin Pages
 
-**DynamoDB:**
-- On-Demand billing mode (auto-scales)
-- Switch to Provisioned if predictable traffic
+| Route | Purpose | Features |
+|-------|---------|----------|
+| `/admin/login` | Admin login | Username/password with JWT tokens |
+| `/admin` | Dashboard | Quick stats, navigation to management pages |
+| `/admin/pricing` | Variable Pricing | Inline editing of vehicle rates, pricing calculator |
+| `/admin/fixed-routes` | Fixed Routes | Create/edit/delete routes with Google Maps autocomplete |
+| `/admin/vehicles` | Vehicle Types | Upload images, edit metadata (name, capacity, description, features) |
+
+### 5.2 Admin Authentication
+
+**Authentication Method:** JWT with bcryptjs password hashing
+
+**Flow:**
+1. Admin enters username/password
+2. POST /admin/auth/login → Verifies credentials, generates JWT
+3. JWT stored in httpOnly cookie + localStorage
+4. All admin routes verify JWT via GET /admin/auth/session
+5. JWT expires after 8 hours
+
+**Protected Routes:** All `/admin/*` routes except `/admin/login` require valid JWT
+
+---
+
+## 6. Infrastructure Readiness for "Get Quote" Feature
+
+### ✅ **READY - All Backend Infrastructure Complete**
+
+**What's Available:**
+
+1. **Vehicle Data with Images**
+   - GET /v1/vehicles - Lists all active vehicles with name, description, capacity, features, imageUrl
+   - Vehicle images stored in S3, public URLs in database
+   - Frontend can display vehicle cards with images
+
+2. **Quote Generation**
+   - POST /v1/quotes - Generates quote based on origin, destination, vehicleId
+   - Checks fixed routes first for guaranteed pricing
+   - Falls back to variable pricing (distance × perMile + duration × perMinute + baseFare)
+   - Returns detailed quote with breakdown
+
+3. **Location Autocomplete**
+   - GET /admin/locations/autocomplete - Google Maps Places Autocomplete
+   - Currently admin-only, but can be:
+     - Made public by removing auth requirement, OR
+     - Proxied via Next.js API route to keep it protected
+
+4. **Quote Storage**
+   - Quotes stored in durdle-main-table-dev with 15-minute expiry
+   - Can be retrieved by quoteId (if retrieval endpoint exists)
+
+**What's Needed for Frontend:**
+
+1. **Location Autocomplete Component**
+   - Debounced search input (min 3 chars)
+   - Dropdown with suggestions
+   - Stores place_id for accurate geocoding
+
+2. **Date/Time Picker Component**
+   - Calendar for date selection
+   - Time dropdown (15-minute intervals)
+   - Validation for min booking time (e.g., +2 hours)
+
+3. **Vehicle Selector Component**
+   - Cards displaying vehicle options
+   - Shows name, capacity, features, image
+   - Radio button or click-to-select
+
+4. **Quote Results Component**
+   - Displays price breakdown
+   - Shows vehicle details
+   - "Book Now" button (Phase 3)
+
+**API Integration Pattern (Next.js):**
+```typescript
+// app/api/quotes/route.ts
+export async function POST(request: Request) {
+  const body = await request.json();
+  const response = await fetch(
+    'https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev/v1/quotes',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }
+  );
+  return Response.json(await response.json());
+}
+```
+
+---
+
+## 7. Performance & Scalability
+
+### 7.1 Performance Targets
+
+| Metric | Target | Actual |
+|--------|--------|--------|
+| API Response Time (p95) | < 500ms | TBD (Phase 2G testing) |
+| Quote Calculation | < 3s | TBD (Phase 2G testing) |
+| Admin Page Load | < 2s | TBD (Phase 2G testing) |
+
+### 7.2 Auto-Scaling
+
+**DynamoDB:** On-Demand billing mode (auto-scales with traffic)
 
 **Lambda:**
-- Reserved Concurrency: NOT set (allows full account concurrency)
-- Provisioned Concurrency: Phase 2 for latency-sensitive functions
+- No reserved concurrency (uses account-level concurrency)
+- Cold start mitigation: Small function sizes, minimal dependencies
 
-### 8.2 Performance Targets
-
-| Metric | Target | Measurement |
-|--------|--------|-------------|
-| API Response Time (p95) | < 500ms | CloudWatch |
-| Quote Calculation | < 2s | Custom metric |
-| Booking Creation | < 3s | Custom metric |
-| Payment Processing | < 5s | Custom metric |
+**Amplify Hosting:**
+- Auto-scales with traffic
+- Global CDN via CloudFront
 
 ---
 
-## 9. Disaster Recovery
+## 8. Cost Optimization
 
-### 9.1 Backup Strategy
-
-**DynamoDB:**
-- Point-in-time recovery: ENABLED
-- Backup retention: 35 days
-- Cross-region replication: Phase 3 (DR region: eu-west-1)
-
-**S3:**
-- Versioning: ENABLED
-- Cross-region replication: Phase 3
-
-### 9.2 RTO/RPO
-
-**Recovery Time Objective (RTO):** 4 hours
-**Recovery Point Objective (RPO):** 1 hour
-
----
-
-## 10. Cost Optimization
-
-### 10.1 Estimated Monthly Costs (MVP - 1000 bookings/month)
+### 8.1 Estimated Monthly Costs (Phase 2 - 500 quotes/month)
 
 | Service | Cost |
 |---------|------|
-| Lambda | ~£10 |
-| DynamoDB | ~£15 |
-| API Gateway | ~£5 |
-| CloudFront + S3 | ~£10 |
-| Cognito | ~£5 |
-| SES/SNS | ~£5 |
-| **Total** | **~£50/month** |
+| Lambda (7 functions) | ~£5 |
+| DynamoDB (4 tables, on-demand) | ~£8 |
+| API Gateway (REST) | ~£3 |
+| S3 (vehicle images) | ~£1 |
+| Secrets Manager (2 secrets) | ~£1 |
+| Amplify Hosting | ~£0 (free tier) |
+| Google Maps API | ~£10 (500 quotes × £0.02) |
+| **Total** | **~£28/month** |
 
 **Scaling:** Costs scale linearly with usage (serverless pricing model)
 
 ---
 
-## 11. Development Workflow
+## 9. Security Architecture
 
-### 11.1 Environments
+### 9.1 API Security
 
-| Environment | Purpose | AWS Account | Domain |
-|------------|---------|-------------|--------|
-| `dev` | Local development | Shared dev account | localhost:3000 |
-| `staging` | Pre-production testing | Shared dev account | staging.nots.co.uk |
-| `production` | Live system | Production account | nots.co.uk |
+- **CORS:** Restricted to durdle.co.uk and localhost:3000
+- **Rate Limiting:** Not yet implemented (Phase 2.5)
+- **Input Validation:** Lambda functions validate all inputs
+- **SQL Injection:** Not applicable (DynamoDB NoSQL)
 
-### 11.2 Infrastructure as Code
+### 9.2 Data Protection
 
-**Tool:** AWS SAM (Serverless Application Model)
+- **Encryption at Rest:** All DynamoDB tables use AWS-managed keys
+- **Encryption in Transit:** TLS 1.2+ for all API calls
+- **Password Security:** bcryptjs hashing with 10 rounds
+- **JWT Security:** 8-hour expiry, httpOnly cookies
 
-**Repo Structure:**
-```
-nots-serverless-api/
-├── template.yaml           (SAM template)
-├── functions/
-│   ├── quotes-calculator/
-│   ├── bookings-create/
-│   └── ...
-└── layers/
-    └── shared-libs/
-```
+### 9.3 Admin Authentication
 
-**Deployment:**
-```bash
-sam build
-sam deploy --config-env production
-```
+- **No Cognito (Phase 2):** Simple username/password with JWT
+- **Future (Phase 3):** Migrate to AWS Cognito for MFA, SSO, better UX
 
 ---
 
-## 12. Phase 2 Enhancements
+## 10. Deployment Architecture
 
-**Additions:**
-- Real-time tracking (WebSocket API + DynamoDB Streams)
-- ElastiCache Redis (session caching, rate limiting)
-- Aurora Serverless (complex analytics queries)
-- Step Functions (complex booking workflows)
+### 10.1 Environments
+
+| Environment | Purpose | URL | Status |
+|------------|---------|-----|--------|
+| `dev` | Development + Staging | https://main.d3v9k8h9k8h9k8.amplifyapp.com | Active |
+| `production` | Live system | https://durdle.co.uk | Phase 3 |
+
+### 10.2 CI/CD Pipeline
+
+**Frontend (Next.js):**
+- GitHub → AWS Amplify (auto-deploy on push to main)
+- Build triggers on commit
+- Environment variables set in Amplify console
+
+**Backend (Lambda):**
+- Manual deployment via AWS CLI (Phase 2)
+- SAM template exists but not used during active development
+- Deployment: zip → aws lambda update-function-code
+
+**Future (Phase 3):** GitHub Actions for automated Lambda deployments
 
 ---
 
-## 13. Open Questions
+## 11. Monitoring & Observability
 
-- [ ] Use API Gateway HTTP API (cheaper) vs REST API (more features)?
-- [ ] Single AWS account or multi-account strategy?
-- [ ] CI/CD tool: GitHub Actions or AWS CodePipeline?
-- [ ] Custom domain SSL certificates via ACM?
+### 11.1 CloudWatch Logs
+
+- All Lambda functions log to CloudWatch
+- Log Groups: `/aws/lambda/{function-name}`
+- Retention: 7 days (dev environment)
+
+### 11.2 Metrics (Phase 2G - To Be Configured)
+
+- Lambda invocations, duration, errors
+- API Gateway requests, latency, 4xx/5xx errors
+- DynamoDB consumed capacity, throttles
+
+### 11.3 Alarms (Phase 3)
+
+- API 5xx errors > 10 in 5 minutes
+- Lambda error rate > 5%
+- DynamoDB throttles > 0
+
+---
+
+## 12. Known Limitations & Future Enhancements
+
+### 12.1 Phase 2 Limitations
+
+- Admin authentication is basic (no MFA, no SSO)
+- Location autocomplete is admin-only endpoint
+- No quote retrieval by ID (customer can't reload quote)
+- No surge pricing support
+- No booking functionality (Phase 3)
+
+### 12.2 Phase 2.5 Enhancements (Fast Followers)
+
+- Surge pricing (date/time-based multipliers)
+- Public location autocomplete endpoint
+- Quote retrieval by ID
+- Rate limiting on API Gateway
+- CloudWatch alarms
+
+### 12.3 Phase 3 Features
+
+- Customer authentication (Cognito)
+- Booking creation and management
+- Payment processing (Stripe)
+- Email notifications (SES)
+- SMS notifications (Pinpoint)
+- Driver portal
+
+---
+
+## 13. Architecture Diagrams
+
+### 13.1 Quote Generation Flow
+
+```
+Customer → Next.js → API Gateway → quotes-calculator Lambda
+                                         ↓
+                                   1. Check fixed routes (DynamoDB)
+                                         ↓
+                                   2. If not found, fetch vehicle pricing (DynamoDB)
+                                         ↓
+                                   3. Call Google Maps API
+                                         ↓
+                                   4. Calculate price
+                                         ↓
+                                   5. Store quote (DynamoDB)
+                                         ↓
+                                   6. Return quote to customer
+```
+
+### 13.2 Admin Pricing Update Flow
+
+```
+Admin → Next.js (/admin/pricing) → API Gateway → pricing-manager Lambda
+                                                       ↓
+                                                 Update DynamoDB
+                                                       ↓
+                                                 Clear pricing cache
+                                                       ↓
+                                                 Return success
+                                                       ↓
+                                    Next customer quote uses new pricing
+```
 
 ---
 
 ## 14. References
 
-- [InitialPRD.md](InitialPRD.md) - Product requirements
-- [DatabaseSchema.md](DatabaseSchema.md) - Detailed data model
-- [APISpecification.md](APISpecification.md) - API contracts
-- [DeploymentRunbook.md](DeploymentRunbook.md) - Deployment procedures
-- [SecurityCompliance.md](SecurityCompliance.md) - Security checklist
+- [PHASE2_PRICING_AND_ADMIN.md](FeatureDev/PHASE2_PRICING_AND_ADMIN.md) - Phase 2 implementation plan
+- AWS Lambda Functions: `durdle-serverless-api/functions/`
+- Admin Portal: `app/admin/`
+- Next.js Config: `next.config.mjs`
 
 ---
 
-**Document Owner:** Tech Lead
-**Review Cycle:** Monthly or after major architecture changes
+**Document Owner:** Claude Code
+**Review Cycle:** After each phase completion
+**Last Review:** 2025-12-05 (Phase 2 Complete)
