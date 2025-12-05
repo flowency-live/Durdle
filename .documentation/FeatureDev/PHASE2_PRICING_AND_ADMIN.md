@@ -47,6 +47,211 @@
 
 ## Implementation Progress
 
+### 2025-12-05 09:35 - Phase 2D, 2E, 2F Complete - All Admin Management Pages Built
+**Completed**:
+
+**Phase 2D - Variable Pricing Management** ([/app/admin/pricing/page.tsx](../../../app/admin/pricing/page.tsx)):
+- Pricing table displaying all vehicle types with current rates
+- Inline editing for base fare, per-mile, and per-minute rates
+- Edit/Save/Cancel functionality per vehicle
+- Real-time pricing calculator
+  - Select vehicle type
+  - Enter distance (miles) and duration (minutes)
+  - Shows breakdown: base fare, distance charge, time charge, total
+  - Updates live as calculator inputs change
+- Fetches pricing from GET /admin/pricing/vehicles
+- Updates pricing via PUT /admin/pricing/vehicles/{vehicleId}
+- Error handling and loading states
+- Prices displayed and edited in pounds (converted to/from pence internally)
+
+**Phase 2E - Fixed Routes Management** ([/app/admin/fixed-routes/page.tsx](../../../app/admin/fixed-routes/page.tsx)):
+- Routes list table showing all configured fixed routes
+  - Origin → Destination
+  - Vehicle type
+  - Distance, duration, price
+  - Active/Inactive status
+- Create new route form with Google Maps autocomplete
+  - Origin autocomplete (min 3 chars, debounced)
+  - Destination autocomplete (min 3 chars, debounced)
+  - Dropdown suggestions with place IDs
+  - Vehicle type selection
+  - Fixed price input
+  - Distance/duration auto-fetched from Google Maps on creation
+- Toggle route active/inactive
+- Delete route with confirmation
+- Collapsible create form (toggle with + New Route button)
+- Empty state when no routes configured
+- Fetches routes from GET /admin/pricing/fixed-routes
+- Creates routes via POST /admin/pricing/fixed-routes
+- Updates via PUT /admin/pricing/fixed-routes/{routeId}
+- Deletes via DELETE /admin/pricing/fixed-routes/{routeId}
+- Location search via GET /admin/locations/autocomplete
+
+**Phase 2F - Vehicle Types Management** ([/app/admin/vehicles/page.tsx](../../../app/admin/vehicles/page.tsx)):
+- Card-based layout for each vehicle type
+- Image display with placeholder icon if no image
+- Image upload functionality
+  - File input for image selection
+  - Gets S3 presigned URL from POST /admin/uploads/presigned
+  - Uploads directly to S3
+  - Updates vehicle with publicUrl
+  - Shows uploading state
+- Editable vehicle details:
+  - Vehicle name
+  - Passenger capacity
+  - Description (textarea)
+  - Features (dynamic list)
+    - Add feature button
+    - Remove feature button per item
+    - Inline editing of feature names
+- Non-editable pricing display (shows current rates, edit via Pricing page)
+- Edit/Save/Cancel per vehicle
+- Visual indication of editing state (blue border, ring)
+- Fetches vehicles from GET /admin/pricing/vehicles
+- Updates via PUT /admin/pricing/vehicles/{vehicleId}
+
+**Landing Page Enhancement**:
+- Added key icon in header ([/app/page.tsx](../../../app/page.tsx))
+- Links to /admin/login
+- Hover state with sage background
+- Positioned next to "Book Now" button
+
+**Current Status**:
+- Phase 2A: 100% COMPLETE (Backend APIs deployed and tested)
+- Phase 2B: 100% COMPLETE (Authentication UI and testing)
+- Phase 2C: 100% COMPLETE (Admin layout and navigation)
+- Phase 2D: 100% COMPLETE (Variable pricing management)
+- Phase 2E: 100% COMPLETE (Fixed routes management)
+- Phase 2F: 100% COMPLETE (Vehicle types management)
+- **Phase 2: 100% COMPLETE - ALL FEATURES BUILT**
+
+**Next Steps**:
+- Phase 2G: End-to-end testing of all admin workflows
+- Phase 2H: Production deployment preparation
+
+**Ready for Testing**:
+- Complete admin portal with all management features
+- Variable pricing editing with calculator
+- Fixed routes creation with Google Maps
+- Vehicle types management with image uploads
+- Full authentication flow
+- All CRUD operations functional
+
+**Blockers**: None
+
+---
+
+### 2025-12-04 18:15 - Phase 2C Admin Layout Complete - Navigation Ready
+**Completed**:
+- Created admin layout component at [/app/admin/layout.tsx](../../../app/admin/layout.tsx)
+  - Reusable layout wrapper for all admin pages
+  - Fixed sidebar navigation with 4 main sections
+  - Session verification integrated into layout (runs once per page load)
+  - Automatic redirect to login if session invalid
+  - User info display at bottom of sidebar (fullName, email, role)
+  - Logout button in sidebar
+  - Loading state during session verification
+  - Login page bypasses layout (no sidebar shown)
+
+- Navigation sidebar features:
+  - Dashboard - Overview and quick stats
+  - Variable Pricing - Configure base fares and rates
+  - Fixed Routes - Manage popular routes
+  - Vehicle Types - Manage vehicle categories and images
+  - Active page highlighting with blue background
+  - Hover states on all navigation items
+  - SVG icons for each section
+
+- Simplified admin dashboard at [/app/admin/page.tsx](../../../app/admin/page.tsx)
+  - Removed duplicate authentication logic (now handled by layout)
+  - Removed duplicate header and logout button (now in sidebar)
+  - Clean content-only component
+  - Quick stats cards (3 metrics)
+  - Management section with clickable cards linking to each page
+  - Recent activity placeholder
+
+- Created placeholder pages for management sections:
+  - [/app/admin/pricing/page.tsx](../../../app/admin/pricing/page.tsx) - Variable Pricing (Phase 2D)
+  - [/app/admin/fixed-routes/page.tsx](../../../app/admin/fixed-routes/page.tsx) - Fixed Routes (Phase 2E)
+  - [/app/admin/vehicles/page.tsx](../../../app/admin/vehicles/page.tsx) - Vehicle Types (Phase 2F)
+  - Each shows current data and "Coming Soon" notice
+  - All navigation links functional
+
+**Architecture Improvements**:
+- DRY principle: Authentication logic centralized in layout.tsx
+- Single source of truth for session management
+- Consistent UI across all admin pages
+- Protected routes via layout wrapper
+- Better code organization and maintainability
+
+**Current Status**:
+- Phase 2A: 100% COMPLETE (Backend APIs deployed and tested)
+- Phase 2B: 100% COMPLETE (Authentication UI and testing)
+- Phase 2C: 100% COMPLETE (Admin layout and navigation)
+- Phase 2D: 0% (Variable pricing management - next phase)
+
+**Next Steps**:
+- Phase 2D: Build variable pricing management page with inline editing
+- Phase 2E: Build fixed routes management page with Google Maps autocomplete
+- Phase 2F: Build vehicle types management page with image upload
+
+**Ready for Testing**:
+- Full admin navigation flow
+- All routes accessible and protected
+- Session management working across pages
+- UI consistent and responsive
+
+**Blockers**: None
+
+---
+
+### 2025-12-04 18:00 - Phase 2B Testing Complete - Authentication Flow Working
+**Completed**:
+- Fixed bcrypt compatibility issue for Lambda ARM64 architecture
+  - Switched from `bcrypt` (native binaries) to `bcryptjs` (pure JavaScript)
+  - Regenerated password hashes using bcryptjs for compatibility
+  - Updated admin-auth Lambda function with new dependencies
+  - Deployed updated Lambda successfully
+
+- Tested authentication flow end-to-end via API:
+  - ✅ POST /admin/auth/login - Successfully authenticates with credentials (james.aspin/N1ner0ps)
+    - Returns HTTP 200 with JWT token
+    - Sets httpOnly cookie with 8-hour expiry
+    - Returns user details (username, role, email, fullName)
+  - ✅ GET /admin/auth/session - Successfully verifies JWT token
+    - Returns HTTP 200 with user details
+    - Validates active user status from DynamoDB
+  - ✅ POST /admin/auth/logout - Successfully clears session
+    - Returns HTTP 200
+    - Clears httpOnly cookie (Max-Age=0)
+
+**Testing Results**:
+- All authentication endpoints working correctly
+- JWT generation and validation working
+- DynamoDB user lookups working
+- Password hashing with bcryptjs working
+- CORS headers correctly configured for localhost:3000
+
+**Next.js Dev Server**:
+- Running at http://localhost:3000
+- Admin login page accessible at http://localhost:3000/admin/login
+- Admin dashboard accessible at http://localhost:3000/admin (requires authentication)
+
+**Current Status**:
+- Phase 2A: 100% COMPLETE (All backend APIs deployed and tested)
+- Phase 2B: 100% COMPLETE (UI created and authentication tested)
+- Phase 2C: 0% (Admin layout with navigation - next phase)
+
+**Next Steps**:
+- Phase 2C: Build admin layout component with navigation sidebar
+- Phase 2D: Build variable pricing management page
+- Phase 2E: Build fixed routes management page
+- Phase 2F: Build vehicle types management page with image upload
+
+**Blockers**: None
+
+---
+
 ### 2025-12-04 16:45 - Phase 2B Admin Authentication UI Created
 **Completed**:
 - Created admin login page at [/app/admin/login/page.tsx](../../../app/admin/login/page.tsx)
