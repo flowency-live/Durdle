@@ -44,7 +44,28 @@ export default function DateTimePicker({ selectedDate, onChange, error }: DateTi
           placeholderText="Select pickup date and time"
           className={`w-full pl-12 pr-4 py-3 rounded-xl border ${
             error ? 'border-error' : 'border-border'
-          } focus:outline-none focus:ring-2 focus:ring-sage-dark bg-background`}
+          } focus:outline-none focus:ring-2 focus:ring-sage-dark bg-background text-foreground`}
+          wrapperClassName="w-full"
+          calendarClassName="shadow-2xl"
+          withPortal
+          portalId="date-picker-portal"
+          popperClassName="!z-50"
+          popperModifiers={[
+            {
+              name: 'offset',
+              options: {
+                offset: [0, 8],
+              },
+            },
+            {
+              name: 'preventOverflow',
+              options: {
+                rootBoundary: 'viewport',
+                tether: false,
+                altAxis: true,
+              },
+            },
+          ]}
         />
       </div>
       {error && (
