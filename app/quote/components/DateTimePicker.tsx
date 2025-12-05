@@ -17,6 +17,12 @@ export default function DateTimePicker({ selectedDate, onChange, error }: DateTi
   const maxDate = new Date();
   maxDate.setMonth(maxDate.getMonth() + 6); // Maximum 6 months in advance
 
+  const handleChange = (date: Date | null) => {
+    if (date) {
+      onChange(date);
+    }
+  };
+
   return (
     <div className="space-y-2">
       <label className="block text-sm font-medium text-foreground">
@@ -28,7 +34,7 @@ export default function DateTimePicker({ selectedDate, onChange, error }: DateTi
         </div>
         <DatePicker
           selected={selectedDate}
-          onChange={onChange}
+          onChange={handleChange}
           showTimeSelect
           timeIntervals={30}
           timeCaption="Time"
