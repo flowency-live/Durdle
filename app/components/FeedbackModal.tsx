@@ -34,7 +34,7 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
     setSubmitStatus('idle');
 
     try {
-      const response = await fetch('/api/v1/feedback', {
+      const response = await fetch('https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev/v1/feedback', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -66,12 +66,12 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
     <>
       {/* Overlay */}
       <div
-        className="fixed inset-0 bg-black bg-opacity-50 z-50 transition-opacity"
+        className="fixed inset-0 bg-black bg-opacity-50 z-[9999] transition-opacity"
         onClick={onClose}
       />
 
       {/* Modal */}
-      <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl z-50 transform transition-transform">
+      <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl z-[9999] transform transition-transform">
         <div className="h-full flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b">
@@ -133,7 +133,7 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
                   onChange={(e) => setDescription(e.target.value)}
                   required
                   rows={8}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-gray-900"
                   placeholder="Describe the issue or feature request..."
                 />
               </div>

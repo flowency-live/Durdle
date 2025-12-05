@@ -26,7 +26,7 @@ export default function FeedbackPage() {
     try {
       const token = localStorage.getItem('durdle_admin_token');
 
-      const response = await fetch('/api/admin/feedback', {
+      const response = await fetch('https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev/admin/feedback', {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -59,7 +59,7 @@ export default function FeedbackPage() {
     try {
       const token = localStorage.getItem('durdle_admin_token');
 
-      const response = await fetch(`/api/admin/feedback/${feedbackId}`, {
+      const response = await fetch(`https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev/admin/feedback/${feedbackId}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -92,7 +92,7 @@ export default function FeedbackPage() {
     try {
       const token = localStorage.getItem('durdle_admin_token');
 
-      const response = await fetch(`/api/admin/feedback/${feedbackId}`, {
+      const response = await fetch(`https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev/admin/feedback/${feedbackId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
