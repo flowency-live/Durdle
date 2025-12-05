@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { ArrowLeft, MapPin, Clock, ArrowRight } from 'lucide-react';
 import { getFixedRoutes } from '../quote/lib/api';
 import { FixedRoute } from '../quote/lib/types';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import FeedbackButton from '../components/FeedbackButton';
 
 export default function PricingPage() {
@@ -20,7 +20,7 @@ export default function PricingPage() {
         const data = await getFixedRoutes();
         setRoutes(data.filter(r => r.active));
         setLoading(false);
-      } catch (err) {
+      } catch {
         setError('Failed to load pricing information');
         setLoading(false);
       }
@@ -208,7 +208,7 @@ export default function PricingPage() {
           {!loading && !error && routes.length > 0 && (
             <div className="mt-12 bg-gradient-to-br from-navy to-navy-dark rounded-3xl p-8 md:p-12 text-center text-white">
               <h2 className="font-playfair text-3xl md:text-4xl font-bold mb-4">
-                Don't see your route?
+                Don&apos;t see your route?
               </h2>
               <p className="text-lg text-cream mb-8 max-w-2xl mx-auto">
                 We cover all of Dorset and beyond. Get a custom quote for any journey.
