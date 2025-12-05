@@ -1,6 +1,7 @@
 import { MapPin, Clock, Shield, Car, Users, Briefcase, Plane, ArrowRight, KeyRound } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import Image from "next/image";
+import FeedbackButton from "@/app/components/FeedbackButton";
 
 const features = [
   {
@@ -82,6 +83,7 @@ export default function Home() {
             </nav>
 
             <div className="flex items-center gap-3">
+              <FeedbackButton />
               <a
                 href="/admin/login"
                 className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-sage/10 transition-colors"
@@ -370,7 +372,7 @@ export default function Home() {
                 transport when you need it.
               </p>
               <a href="/quote" className={buttonVariants({ variant: "hero-golden", size: "xl", className: "group" })}>
-                Get Your Free Quote
+                Get Your Quote
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </a>
             </div>
