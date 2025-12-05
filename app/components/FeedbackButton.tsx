@@ -1,6 +1,6 @@
 'use client';
 
-import { MessageSquare } from 'lucide-react';
+import { Bug } from 'lucide-react';
 import { useState } from 'react';
 import FeedbackModal from './FeedbackModal';
 
@@ -11,10 +11,10 @@ export default function FeedbackButton() {
     <>
       <button
         onClick={() => setIsModalOpen(true)}
-        className="text-gray-600 hover:text-gray-900 transition-colors"
-        title="Send Feedback"
+        className="relative p-2 rounded-full bg-gradient-to-br from-orange-500 to-purple-600 hover:from-orange-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110"
+        title="Report Bug / Request Feature"
       >
-        <MessageSquare className="w-5 h-5" />
+        <Bug className="w-5 h-5" />
       </button>
 
       <FeedbackModal
