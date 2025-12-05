@@ -1,7 +1,7 @@
 // Quote Wizard API Client
 // Based on QUOTE_WIZARD_IMPLEMENTATION_SPEC.md
 
-import { QuoteRequest, QuoteResponse, Vehicle, ApiError } from './types';
+import { QuoteRequest, QuoteResponse, Vehicle, ApiError, FixedRoute, FixedRoutesResponse } from './types';
 
 const API_BASE_URL = 'https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev';
 
@@ -46,4 +46,25 @@ export async function getVehicles(): Promise<Vehicle[]> {
 
   const data = await response.json();
   return data.vehicles;
+}
+
+/**
+ * Get list of fixed route pricing
+ * @returns Array of active fixed routes with pricing
+ */
+export async function getFixedRoutes(): Promise<FixedRoute[]> {
+  const response = await fetch(`${API_BASE_URL}/v1/fixed-routes`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error: ApiError = await response.json();
+    throw new Error(error.error?.message || 'Failed to fetch fixed routes');
+  }
+
+  const data: FixedRoutesResponse = await response.json();
+  return data.routes;
 }

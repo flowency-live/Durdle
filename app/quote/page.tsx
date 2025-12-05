@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -19,6 +20,8 @@ import FeedbackButton from '../components/FeedbackButton';
 type Step = 1 | 2 | 3;
 
 export default function QuotePage() {
+  const searchParams = useSearchParams();
+
   // Form state
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [pickupLocation, setPickupLocation] = useState<Location>({ address: '', placeId: '' });
@@ -32,6 +35,19 @@ export default function QuotePage() {
   const [quote, setQuote] = useState<QuoteResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Pre-fill locations from URL parameters (from fixed route pricing)
+  useEffect(() => {
+    const from = searchParams.get('from');
+    const to = searchParams.get('to');
+
+    if (from) {
+      setPickupLocation({ address: from, placeId: '' });
+    }
+    if (to) {
+      setDropoffLocation({ address: to, placeId: '' });
+    }
+  }, [searchParams]);
 
   // Validation
   const canProceedFromStep1 = () => {

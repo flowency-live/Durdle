@@ -63,7 +63,7 @@ export default function Home() {
                 Services
               </a>
               <a
-                href="#pricing"
+                href="/pricing"
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 Pricing

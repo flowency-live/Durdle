@@ -3,6 +3,7 @@
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Menu, X } from 'lucide-react';
 import FeedbackButton from '../components/FeedbackButton';
 
 interface User {
@@ -21,6 +22,7 @@ export default function AdminLayout({
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     // Skip auth check for login page
@@ -114,9 +116,38 @@ export default function AdminLayout({
   // Render admin layout with sidebar
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <aside className="fixed top-0 left-0 w-64 h-full bg-gray-900 text-white">
-        <div className="p-6 border-b border-gray-800">
+      {/* Mobile Header */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 bg-gray-900 text-white z-40 border-b border-gray-800">
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+            <div>
+              <h1 className="text-lg font-bold text-blue-400">Durdle Admin</h1>
+              <p className="text-xs text-gray-400">Transport Management</p>
+            </div>
+          </div>
+          <FeedbackButton />
+        </div>
+      </div>
+
+      {/* Mobile Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40 mt-[73px]"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar - Desktop fixed, Mobile drawer */}
+      <aside className={`fixed top-0 left-0 w-64 h-full bg-gray-900 text-white z-50 transition-transform duration-300 ${
+        mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+      } lg:translate-x-0`}>
+        <div className="p-6 border-b border-gray-800 hidden lg:block">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-blue-400">Durdle Admin</h1>
@@ -126,11 +157,12 @@ export default function AdminLayout({
           </div>
         </div>
 
-        <nav className="p-4">
+        <nav className="p-4 mt-[73px] lg:mt-0">
           <ul className="space-y-2">
             <li>
               <Link
                 href="/admin"
+                onClick={() => setMobileMenuOpen(false)}
                 className={`block px-4 py-3 rounded-lg transition-colors ${
                   pathname === '/admin'
                     ? 'bg-blue-600 text-white'
@@ -149,6 +181,7 @@ export default function AdminLayout({
             <li>
               <Link
                 href="/admin/pricing"
+                onClick={() => setMobileMenuOpen(false)}
                 className={`block px-4 py-3 rounded-lg transition-colors ${
                   pathname === '/admin/pricing'
                     ? 'bg-blue-600 text-white'
@@ -167,6 +200,7 @@ export default function AdminLayout({
             <li>
               <Link
                 href="/admin/fixed-routes"
+                onClick={() => setMobileMenuOpen(false)}
                 className={`block px-4 py-3 rounded-lg transition-colors ${
                   pathname === '/admin/fixed-routes'
                     ? 'bg-blue-600 text-white'
@@ -185,6 +219,7 @@ export default function AdminLayout({
             <li>
               <Link
                 href="/admin/vehicles"
+                onClick={() => setMobileMenuOpen(false)}
                 className={`block px-4 py-3 rounded-lg transition-colors ${
                   pathname === '/admin/vehicles'
                     ? 'bg-blue-600 text-white'
@@ -203,6 +238,7 @@ export default function AdminLayout({
             <li>
               <Link
                 href="/admin/feedback"
+                onClick={() => setMobileMenuOpen(false)}
                 className={`block px-4 py-3 rounded-lg transition-colors ${
                   pathname === '/admin/feedback'
                     ? 'bg-blue-600 text-white'
@@ -239,7 +275,7 @@ export default function AdminLayout({
       </aside>
 
       {/* Main content */}
-      <main className="ml-64 p-8">
+      <main className="ml-0 lg:ml-64 p-4 pt-20 lg:pt-8 lg:p-8">
         {children}
       </main>
     </div>

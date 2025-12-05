@@ -102,3 +102,22 @@ export interface ApiError {
     code?: string;
   };
 }
+
+// Fixed Route Types
+export interface FixedRoute {
+  id: string;
+  fromLocation: string;
+  toLocation: string;
+  distance: number;
+  durationMinutes: number;
+  basePrice: number;
+  vehicleType: string;
+  active: boolean;
+  created: string;
+  updated: string;
+}
+
+export interface FixedRoutesResponse {
+  routes: FixedRoute[];
+  count: number;
+}
