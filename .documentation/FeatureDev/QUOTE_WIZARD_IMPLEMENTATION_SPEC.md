@@ -1,11 +1,81 @@
 # QUOTE WIZARD - FRONTEND IMPLEMENTATION SPEC
 
 **Feature**: Customer Quote Request & Booking Flow
-**Version**: 1.0
-**Date**: December 4, 2025
-**Status**: Ready for Implementation
+**Version**: 1.3
+**Date**: December 5, 2025
+**Status**: ✅ COMPLETE - Production-ready mobile wizard with Google Places
 **Developer**: Frontend Frank
 **Estimated Duration**: 6-8 hours
+**Actual Duration**: ~4 hours
+**Updated**: Production-ready implementation with Google Places autocomplete and mobile-first step wizard
+
+---
+
+## Implementation Summary (December 5, 2025)
+
+### ✅ What Was Completed
+
+**Phase 1: Setup & Structure**
+- ✅ Created `/app/quote` directory structure (components/, lib/, hooks/)
+- ✅ Installed dependencies: react-hook-form, zod, @hookform/resolvers, react-datepicker
+- ✅ Set up TypeScript types in `lib/types.ts`
+- ✅ Created Zod validation schema in `lib/validation.ts`
+- ✅ Set up API client functions in `lib/api.ts` (calculateQuote, getVehicles)
+- ✅ Integrated backend public endpoint `/v1/locations/autocomplete` for Google Places autocomplete
+
+**Phase 2: Components**
+- ✅ **LocationInput** - Google Places autocomplete with debounced search, dropdown suggestions, UK-biased
+- ✅ **VehicleSelector** - Fetches vehicles from GET /v1/vehicles, displays with images
+- ✅ **DateTimePicker** - react-datepicker with 24-hour minimum validation
+- ✅ **PassengerCounter** - Stepper UI (1-8 passengers)
+- ✅ **LoadingState** - Full-screen loading overlay with animation
+- ✅ **QuoteResult** - Displays quote with pricing breakdown, journey details, countdown timer
+
+**Phase 3: Mobile-First Step Wizard**
+- ✅ **Step 1: Journey Details** - Pickup, dropoff (with autocomplete), date/time
+- ✅ **Step 2: Passengers & Vehicle** - Passenger count, vehicle selection
+- ✅ Progress indicator with checkmarks
+- ✅ Mobile-optimized navigation (Next/Back buttons)
+- ✅ Per-step validation
+- ✅ Integrated API calls (calculateQuote via POST /v1/quotes)
+- ✅ Loading, error, and success state handling
+- ✅ Form reset functionality
+- ✅ Updated landing page CTAs to link to `/quote`
+
+### 🏗️ Architecture Decisions
+
+**Google Places Autocomplete: Backend Public Endpoint**
+- Uses backend public endpoint: `https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev/v1/locations/autocomplete`
+- Backend Lambda proxies requests to Google Maps Places API
+- API key secured in AWS Secrets Manager (server-side only)
+- Wildcard CORS enabled for public access
+- No credentials required for autocomplete endpoint
+- Production-ready and secure
+
+**Mobile-First Step Wizard**
+- 2-step wizard (Journey → Vehicle) instead of single long form
+- Progress indicator shows current step
+- Responsive design: full step labels on desktop, abbreviated on mobile
+- Disabled state on buttons until validation passes
+- Back navigation preserves all entered data
+
+### 🚀 How to Test
+
+**Setup:**
+- No additional setup required (backend handles Google Maps API key)
+
+**Test Flow:**
+1. Visit `http://localhost:3000/quote`
+2. **Step 1**: Start typing in pickup location (e.g., "Bournemouth")
+   - Autocomplete suggestions should appear after 3 characters
+   - Select a suggestion from dropdown
+3. Repeat for dropoff location
+4. Select date/time (must be 24+ hours from now)
+5. Click "Next" to proceed to Step 2
+6. **Step 2**: Adjust passenger count (default: 2)
+7. Choose vehicle type (Standard, Executive, or MPV)
+8. Click "Get Quote"
+9. View quote result with pricing breakdown and journey details
 
 ---
 
@@ -162,9 +232,9 @@ app/
 
 ### Visual Style
 
-Match existing landing page:
-- **Colors**: Ocean teal (#14b8a6), Sand golden (#f59e0b)
-- **Typography**: Poppins for headings, system fonts for body
+Match existing landing page (The Dorset Transfer Company rebrand):
+- **Colors**: Navy (#2b444c), Sage (#8fb894), Sage Light (#d4e7d6), Cream (#FBF7F0)
+- **Typography**: Playfair Display (serif) for headings, Geist Sans for body
 - **Spacing**: Generous padding (24px+), avoid cramped layouts
 - **Shadows**: Subtle depth (shadow-lg), glassmorphism overlays
 - **Animations**: Smooth transitions (300ms), loading spinners
@@ -216,6 +286,10 @@ Match existing landing page:
 - UK bias (componentRestrictions: {country: 'uk'})
 - Show place icon + formatted address
 - Store place_id for backend validation
+- **Note**: Backend has `/admin/locations/autocomplete` endpoint but it's currently admin-only. Options:
+  1. Make endpoint public by removing auth requirement
+  2. Use Google Places API directly from browser (requires public API key)
+  3. Create public proxy endpoint in Next.js API routes
 
 **Vehicle Selection**:
 - 3 large cards with radio button behavior
@@ -362,8 +436,8 @@ export default function LocationInput({
           placeholder={placeholder}
           defaultValue={value}
           className={`w-full pl-12 pr-4 py-3 rounded-xl border ${
-            error ? 'border-red-500' : 'border-border'
-          } focus:outline-none focus:ring-2 focus:ring-ocean-light`}
+            error ? 'border-error' : 'border-border'
+          } focus:outline-none focus:ring-2 focus:ring-sage-dark`}
         />
       </div>
       {error && (
@@ -388,6 +462,8 @@ interface VehicleSelectorProps {
   onChange: (type: 'standard' | 'executive' | 'minibus') => void;
 }
 
+// NOTE: Vehicle data should be fetched from GET /v1/vehicles API
+// This is example structure only
 const vehicles = [
   {
     id: 'standard' as const,
@@ -395,7 +471,7 @@ const vehicles = [
     icon: Car,
     capacity: '1-4 passengers',
     features: ['Comfortable sedan', 'Air conditioning', 'Free WiFi'],
-    priceIndicator: '£',
+    imageUrl: 'https://durdle-vehicle-images-dev.s3.eu-west-2.amazonaws.com/vehicles/standard-sedan.jpg',
   },
   {
     id: 'executive' as const,
@@ -403,7 +479,7 @@ const vehicles = [
     icon: Star,
     capacity: '1-4 passengers',
     features: ['Luxury vehicle', 'Premium comfort', 'Complimentary water'],
-    priceIndicator: '££',
+    imageUrl: 'https://durdle-vehicle-images-dev.s3.eu-west-2.amazonaws.com/vehicles/executive-sedan.jpg',
   },
   {
     id: 'minibus' as const,
@@ -411,7 +487,7 @@ const vehicles = [
     icon: Users,
     capacity: '5-8 passengers',
     features: ['Spacious MPV', 'Extra luggage', 'Group travel'],
-    priceIndicator: '££',
+    imageUrl: 'https://durdle-vehicle-images-dev.s3.eu-west-2.amazonaws.com/vehicles/minibus.jpg',
   },
 ];
 
@@ -433,14 +509,14 @@ export default function VehicleSelector({ selected, onChange }: VehicleSelectorP
               onClick={() => onChange(vehicle.id)}
               className={`relative p-6 rounded-2xl border-2 transition-all ${
                 isSelected
-                  ? 'border-ocean-light bg-ocean-light/10'
-                  : 'border-border hover:border-ocean-light/50'
+                  ? 'border-sage-dark bg-sage-dark/10'
+                  : 'border-border hover:border-sage-dark/50'
               }`}
             >
               {/* Radio indicator */}
               <div className="absolute top-4 right-4">
                 <div className={`w-5 h-5 rounded-full border-2 ${
-                  isSelected ? 'border-ocean-light bg-ocean-light' : 'border-border'
+                  isSelected ? 'border-sage-dark bg-sage-dark' : 'border-border'
                 }`}>
                   {isSelected && (
                     <div className="w-2 h-2 bg-white rounded-full m-auto mt-[5px]" />
@@ -450,7 +526,7 @@ export default function VehicleSelector({ selected, onChange }: VehicleSelectorP
 
               {/* Icon */}
               <Icon className={`w-10 h-10 mb-4 ${
-                isSelected ? 'text-ocean-light' : 'text-muted-foreground'
+                isSelected ? 'text-sage-dark' : 'text-muted-foreground'
               }`} />
 
               {/* Details */}
@@ -463,14 +539,14 @@ export default function VehicleSelector({ selected, onChange }: VehicleSelectorP
               <ul className="mt-4 space-y-2">
                 {vehicle.features.map((feature, idx) => (
                   <li key={idx} className="text-xs text-muted-foreground flex items-center gap-2">
-                    <span className="w-1 h-1 bg-ocean-light rounded-full" />
+                    <span className="w-1 h-1 bg-sage-dark rounded-full" />
                     {feature}
                   </li>
                 ))}
               </ul>
-              <p className="mt-4 text-sm font-medium text-ocean-light">
-                {vehicle.priceIndicator}
-              </p>
+              {vehicle.imageUrl && (
+                <img src={vehicle.imageUrl} alt={vehicle.name} className="mt-4 w-full h-32 object-cover rounded-lg" />
+              )}
             </button>
           );
         })}
@@ -520,15 +596,15 @@ export default function QuoteResult({ quote }: QuoteResultProps) {
         {/* Quote Card */}
         <div className="bg-card rounded-3xl shadow-xl overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-ocean-light to-sand-golden p-6 text-white">
-            <h2 className="text-2xl md:text-3xl font-bold">Your Quote</h2>
+          <div className="bg-gradient-navy-sage p-6 text-white">
+            <h2 className="text-2xl md:text-3xl font-bold font-playfair">Your Quote</h2>
             <p className="mt-2 opacity-90">Quote ID: {quote.quoteId}</p>
           </div>
 
           {/* Route Summary */}
           <div className="p-6 space-y-4">
             <div className="flex items-start gap-4">
-              <MapPin className="w-6 h-6 text-ocean-light flex-shrink-0 mt-1" />
+              <MapPin className="w-6 h-6 text-sage-dark flex-shrink-0 mt-1" />
               <div>
                 <p className="font-medium text-foreground">{quote.pickupLocation.address}</p>
                 <p className="text-sm text-muted-foreground mt-1">Pickup location</p>
@@ -543,7 +619,7 @@ export default function QuoteResult({ quote }: QuoteResultProps) {
             </div>
 
             <div className="flex items-start gap-4">
-              <MapPin className="w-6 h-6 text-sand-golden flex-shrink-0 mt-1" />
+              <MapPin className="w-6 h-6 text-navy-dark flex-shrink-0 mt-1" />
               <div>
                 <p className="font-medium text-foreground">{quote.dropoffLocation.address}</p>
                 <p className="text-sm text-muted-foreground mt-1">Dropoff location</p>
@@ -575,7 +651,7 @@ export default function QuoteResult({ quote }: QuoteResultProps) {
               </div>
               <div className="border-t border-border pt-3 flex justify-between">
                 <span className="text-lg font-bold text-foreground">Total</span>
-                <span className="text-2xl font-bold text-ocean-light">{quote.pricing.displayTotal}</span>
+                <span className="text-2xl font-bold text-sage-dark">{quote.pricing.displayTotal}</span>
               </div>
             </div>
           </div>
@@ -584,7 +660,7 @@ export default function QuoteResult({ quote }: QuoteResultProps) {
           <div className="p-6 bg-muted/50">
             <button
               type="button"
-              className="w-full py-4 bg-ocean-light text-white rounded-xl font-semibold text-lg hover:bg-ocean-light/90 transition-colors"
+              className="w-full py-4 bg-sage-light text-navy-dark rounded-xl font-semibold text-lg hover:bg-sage-light/90 shadow-lg hover:shadow-xl transition-all"
             >
               Confirm Booking (Coming Soon)
             </button>
@@ -626,7 +702,7 @@ export default function RouteMap({ origin, destination, waypoints = [] }: RouteM
       `color:red|label:B|${encodeURIComponent(destination)}`,
     ];
 
-    let path = `path=color:0x14b8a6|weight:4|${encodeURIComponent(origin)}`;
+    let path = `path=color:0x8fb894|weight:4|${encodeURIComponent(origin)}`;
     waypoints.forEach((wp) => {
       path += `|${encodeURIComponent(wp)}`;
     });
@@ -654,13 +730,38 @@ export default function RouteMap({ origin, destination, waypoints = [] }: RouteM
 
 ## API Integration
 
-### Backend Endpoint
+### Backend Endpoints
 
+#### 1. Generate Quote
 **URL**: `https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev/v1/quotes`
 **Method**: POST
-**Status**: Deployed and working (Phase 1 complete)
+**Status**: Deployed and working (Phase 2 complete)
 
-### Request Format
+#### 2. Get Available Vehicles
+**URL**: `https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev/v1/vehicles`
+**Method**: GET
+**Status**: Deployed and working (Phase 2 complete)
+**Returns**: List of active vehicles with name, description, capacity, features, imageUrl
+
+**Response Example**:
+```json
+[
+  {
+    "vehicleId": "standard",
+    "name": "Standard Sedan",
+    "description": "Comfortable sedan for 1-4 passengers",
+    "capacity": 4,
+    "features": ["WiFi", "Phone Charger", "Air Conditioning"],
+    "imageUrl": "https://durdle-vehicle-images-dev.s3.eu-west-2.amazonaws.com/vehicles/standard-sedan.jpg",
+    "baseFare": 500,
+    "perMile": 100,
+    "perMinute": 10,
+    "active": true
+  }
+]
+```
+
+### Request Format (POST /v1/quotes)
 
 ```typescript
 interface QuoteRequest {
@@ -931,30 +1032,35 @@ const errorMessages = {
 
 ### Phase 1: Setup & Structure (1 hour)
 
-- [ ] Create `/app/quote` directory structure
-- [ ] Install dependencies: `react-hook-form`, `zod`, `@hookform/resolvers`, `react-datepicker`
-- [ ] Set up TypeScript types in `lib/types.ts`
-- [ ] Create Zod validation schema in `lib/validation.ts`
-- [ ] Set up API client function in `lib/api.ts`
-- [ ] Add Google Maps API key to `.env.local` (`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`)
+- [x] Create `/app/quote` directory structure
+- [x] Install dependencies: `react-hook-form`, `zod`, `@hookform/resolvers`, `react-datepicker`
+- [x] Set up TypeScript types in `lib/types.ts`
+- [x] Create Zod validation schema in `lib/validation.ts`
+- [x] Set up API client function in `lib/api.ts`
+- [x] Integrate backend public endpoint `/v1/locations/autocomplete` for Google Places autocomplete
 
 ### Phase 2: Components (3 hours)
 
-- [ ] Build `LocationInput.tsx` with Places Autocomplete
-- [ ] Build `DateTimePicker.tsx` with validation
-- [ ] Build `VehicleSelector.tsx` with radio card behavior
-- [ ] Build `WaypointManager.tsx` with add/remove functionality
-- [ ] Build `PassengerCounter.tsx` with stepper UI
-- [ ] Build `LoadingState.tsx` with animation
-- [ ] Build `QuoteResult.tsx` with pricing breakdown
+- [x] Build `LocationInput.tsx` with Google Places Autocomplete via backend public endpoint
+- [x] Build `DateTimePicker.tsx` with validation
+- [x] Build `VehicleSelector.tsx` - fetches from GET /v1/vehicles, displays with images
+- [ ] Build `WaypointManager.tsx` with add/remove functionality - **DEFERRED: Optional for future**
+- [x] Build `PassengerCounter.tsx` with stepper UI
+- [x] Build `LoadingState.tsx` with animation
+- [x] Build `QuoteResult.tsx` with pricing breakdown and brand colors
 
-### Phase 3: Main Page Integration (2 hours)
+### Phase 3: Mobile-First Step Wizard (2 hours)
 
-- [ ] Build main `page.tsx` with form state management
-- [ ] Integrate React Hook Form with Zod validation
-- [ ] Wire up API call on form submit
-- [ ] Handle loading, error, and success states
-- [ ] Add form reset functionality
+- [x] Build main `page.tsx` as 2-step mobile wizard
+- [x] Step 1: Journey details (pickup, dropoff with autocomplete, date/time)
+- [x] Step 2: Passengers & vehicle selection
+- [x] Progress indicator with step navigation
+- [x] Per-step validation with disabled button states
+- [x] Back button navigation (preserves form data)
+- [x] Wire up API call on final step
+- [x] Handle loading, error, and success states
+- [x] Add form reset functionality
+- [x] Mobile-responsive design (375px+)
 
 ### Phase 4: Route Map (1 hour)
 
@@ -997,12 +1103,29 @@ After quote wizard is complete:
 
 ## Notes & Decisions
 
+### Backend Infrastructure (Phase 2 Complete)
+
+**What's Ready:**
+- POST /v1/quotes - Generates quotes (checks fixed routes first, then variable pricing)
+- GET /v1/vehicles - Returns active vehicles with images from S3
+- Quote calculation logic deployed and tested
+- Vehicle images stored in S3 with public URLs
+- 15-minute quote expiry with DynamoDB TTL
+
+**Location Autocomplete Solution:**
+- Backend team created public endpoint `/v1/locations/autocomplete`
+- URL: `https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev/v1/locations/autocomplete`
+- Wildcard CORS enabled for public frontend access
+- API key secured in AWS Secrets Manager
+- Production-ready implementation
+
 ### Design Decisions
 
 - **Single-page form**: Easier on mobile, better conversion than multi-step
 - **Static map**: Avoid 300KB+ Google Maps JS bundle
 - **Inline validation**: Better UX than submit-time errors
 - **No quote saving**: 15-minute expiry, no local storage needed for MVP
+- **Brand Colors**: Navy/Sage/Cream palette (updated from legacy Ocean/Sand)
 
 ### Technical Debt (to address later)
 

@@ -89,8 +89,8 @@ export default function Home() {
               >
                 <KeyRound className="w-5 h-5" />
               </a>
-              <Button variant="hero-golden" size="default">
-                Book Now
+              <Button variant="hero-golden" size="default" asChild>
+                <a href="/quote">Get Quote</a>
               </Button>
             </div>
           </div>
@@ -136,11 +136,11 @@ export default function Home() {
               </p>
 
               <div className="animate-fade-up-delay-3 flex flex-col sm:flex-row gap-4 justify-center">
-                <Button variant="hero-golden" size="xl">
-                  Get a Quote
+                <Button variant="hero-golden" size="xl" asChild>
+                  <a href="/quote">Get a Quote</a>
                 </Button>
-                <Button variant="hero-outline" size="xl">
-                  Learn More
+                <Button variant="hero-outline" size="xl" asChild>
+                  <a href="#services">Learn More</a>
                 </Button>
               </div>
 
@@ -369,9 +369,11 @@ export default function Home() {
                 Get an instant quote in seconds. No hidden fees, no surprises - just reliable
                 transport when you need it.
               </p>
-              <Button variant="hero-golden" size="xl" className="group">
-                Get Your Free Quote
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              <Button variant="hero-golden" size="xl" className="group" asChild>
+                <a href="/quote">
+                  Get Your Free Quote
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </a>
               </Button>
             </div>
           </div>
