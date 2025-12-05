@@ -29,9 +29,16 @@ export default function LocationInput({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout>();
   const containerRef = useRef<HTMLDivElement>(null);
+  const isSelectingRef = useRef(false);
 
   // Debounced fetch suggestions
   useEffect(() => {
+    // Skip API call if user just selected a suggestion
+    if (isSelectingRef.current) {
+      isSelectingRef.current = false;
+      return;
+    }
+
     if (input.length < 3) {
       setSuggestions([]);
       return;
@@ -82,6 +89,7 @@ export default function LocationInput({
   };
 
   const handleSelectSuggestion = (prediction: Prediction) => {
+    isSelectingRef.current = true;
     setInput(prediction.description);
     onSelect(prediction.description, prediction.place_id);
     setShowSuggestions(false);

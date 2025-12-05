@@ -44,5 +44,6 @@ export async function getVehicles(): Promise<Vehicle[]> {
     throw new Error(error.error?.message || 'Failed to fetch vehicles');
   }
 
-  return response.json();
+  const data = await response.json();
+  return data.vehicles;
 }
