@@ -1,0 +1,30 @@
+pricing:1 <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes">
+layout-4866b5b4008cd95e.js:1  POST https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev/v1/feedback 500 (Internal Server Error)
+f @ layout-4866b5b4008cd95e.js:1
+a_ @ fd9d1056-f1adccefa94a35c1.js:1
+aR @ fd9d1056-f1adccefa94a35c1.js:1
+(anonymous) @ fd9d1056-f1adccefa94a35c1.js:1
+sF @ fd9d1056-f1adccefa94a35c1.js:1
+sM @ fd9d1056-f1adccefa94a35c1.js:1
+(anonymous) @ fd9d1056-f1adccefa94a35c1.js:1
+o4 @ fd9d1056-f1adccefa94a35c1.js:1
+iV @ fd9d1056-f1adccefa94a35c1.js:1
+sU @ fd9d1056-f1adccefa94a35c1.js:1
+uR @ fd9d1056-f1adccefa94a35c1.js:1
+uM @ fd9d1056-f1adccefa94a35c1.js:1
+117-66b345cbda6e44d3.js:1 Error submitting feedback: Error: Failed to submit feedback
+    at f (layout-4866b5b4008cd95e.js:1:6951)
+window.console.error @ 117-66b345cbda6e44d3.js:1
+f @ layout-4866b5b4008cd95e.js:1
+await in f
+a_ @ fd9d1056-f1adccefa94a35c1.js:1
+aR @ fd9d1056-f1adccefa94a35c1.js:1
+(anonymous) @ fd9d1056-f1adccefa94a35c1.js:1
+sF @ fd9d1056-f1adccefa94a35c1.js:1
+sM @ fd9d1056-f1adccefa94a35c1.js:1
+(anonymous) @ fd9d1056-f1adccefa94a35c1.js:1
+o4 @ fd9d1056-f1adccefa94a35c1.js:1
+iV @ fd9d1056-f1adccefa94a35c1.js:1
+sU @ fd9d1056-f1adccefa94a35c1.js:1
+uR @ fd9d1056-f1adccefa94a35c1.js:1
+uM @ fd9d1056-f1adccefa94a35c1.js:1

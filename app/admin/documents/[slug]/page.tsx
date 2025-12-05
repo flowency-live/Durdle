@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -26,7 +26,6 @@ interface Comment {
 
 export default function DocumentViewerPage() {
   const params = useParams();
-  const router = useRouter();
   const slug = params.slug as string;
 
   const [document, setDocument] = useState<DocumentData | null>(null);
@@ -41,15 +40,7 @@ export default function DocumentViewerPage() {
   const [addingComment, setAddingComment] = useState(false);
   const [username, setUsername] = useState('');
 
-  useEffect(() => {
-    fetchDocument();
-    fetchComments();
-
-    const storedUsername = localStorage.getItem('durdle_admin_username') || 'Admin';
-    setUsername(storedUsername);
-  }, [slug]);
-
-  const fetchDocument = async () => {
+  const fetchDocument = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/admin/documents/${slug}`);
@@ -66,9 +57,9 @@ export default function DocumentViewerPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [slug]);
 
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
     try {
       const response = await fetch(
         `https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev/admin/documents/${slug}/comments`
@@ -84,7 +75,15 @@ export default function DocumentViewerPage() {
     } catch (err) {
       console.error('Error fetching comments:', err);
     }
-  };
+  }, [slug]);
+
+  useEffect(() => {
+    fetchDocument();
+    fetchComments();
+
+    const storedUsername = localStorage.getItem('durdle_admin_username') || 'Admin';
+    setUsername(storedUsername);
+  }, [slug, fetchDocument, fetchComments]);
 
   const handleSave = async () => {
     if (!document) return;

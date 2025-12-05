@@ -202,7 +202,7 @@ Attributes:
 | `quotes-calculator-dev` | Generate quote (checks fixed routes first, then variable pricing) | 10s | 512MB | durdle-fixed-routes-dev<br>durdle-pricing-config-dev<br>durdle-main-table-dev |
 | `pricing-manager-dev` | Admin CRUD for vehicle pricing | 10s | 256MB | durdle-pricing-config-dev |
 | `fixed-routes-manager-dev` | Admin CRUD for fixed routes | 15s | 512MB | durdle-fixed-routes-dev |
-| `locations-lookup-dev` | Google Maps Places Autocomplete proxy | 10s | 256MB | None |
+| `locations-lookup-dev` | Google Maps Places Autocomplete proxy with dual CORS strategy (public + admin) | 10s | 256MB | None |
 | `vehicle-manager-dev` | Vehicle metadata management | 10s | 256MB | durdle-pricing-config-dev |
 | `uploads-presigned-dev` | Generate S3 presigned URLs for image uploads | 5s | 128MB | None |
 | `admin-auth-dev` | Admin authentication (login/session/logout) | 5s | 256MB | durdle-admin-users-dev |
@@ -252,6 +252,7 @@ Attributes:
 |--------|------|-----------------|---------|
 | POST | `/v1/quotes` | quotes-calculator-dev | Generate quote |
 | GET | `/v1/vehicles` | pricing-manager-dev | List active vehicles with images |
+| GET | `/v1/locations/autocomplete` | locations-lookup-dev | Google Maps location search (public - no auth) |
 
 #### Admin Endpoints (Auth required)
 
@@ -266,13 +267,16 @@ Attributes:
 | POST | `/admin/pricing/fixed-routes` | fixed-routes-manager-dev | Create fixed route |
 | PUT | `/admin/pricing/fixed-routes/{routeId}` | fixed-routes-manager-dev | Update fixed route |
 | DELETE | `/admin/pricing/fixed-routes/{routeId}` | fixed-routes-manager-dev | Delete fixed route |
-| GET | `/admin/locations/autocomplete` | locations-lookup-dev | Google Maps autocomplete |
+| GET | `/admin/locations/autocomplete` | locations-lookup-dev | Google Maps autocomplete (admin - with credentials) |
 | POST | `/admin/uploads/presigned` | uploads-presigned-dev | Generate S3 presigned URL |
 
 **CORS Configuration:**
-- Allowed Origins: `http://localhost:3000`, `https://durdle.co.uk`
-- Allowed Methods: `GET, POST, PUT, DELETE, OPTIONS`
-- Allowed Headers: `Content-Type, Authorization`
+- **Public Endpoints (`/v1/*`):** Wildcard CORS (`Access-Control-Allow-Origin: *`) - no credentials
+- **Admin Endpoints (`/admin/*`):** Dynamic origin matching with credentials
+  - Allowed Origins: `http://localhost:3000`, `https://durdle.flowency.build`, `https://durdle.co.uk`
+  - Allowed Methods: `GET, POST, PUT, DELETE, OPTIONS`
+  - Allowed Headers: `Content-Type, Authorization, X-Session-Token`
+  - Credentials: `true` (supports cookies/auth headers)
 
 ---
 
@@ -281,11 +285,21 @@ Attributes:
 #### Google Maps API
 **APIs Used:**
 - Distance Matrix API (quote calculations - distance and duration)
-- Places Autocomplete API (location search for admin)
+- Places Autocomplete API (location search)
+  - Public endpoint: `/v1/locations/autocomplete` (customer quote form)
+  - Admin endpoint: `/admin/locations/autocomplete` (fixed route management)
 
 **API Key Storage:** AWS Secrets Manager (`durdle/google-maps-api-key`)
 
+**Architecture - Dual CORS Strategy:**
+- Single Lambda (`locations-lookup-dev`) serves both endpoints
+- Path-based CORS detection:
+  - Admin paths (`/admin/*`): Dynamic origin + credentials
+  - Public paths (`/v1/*`): Wildcard CORS without credentials
+- Google Maps API key remains secure (never exposed to clients)
+
 **Caching:**
+- API key: Cached in Lambda container memory on cold start
 - Vehicle pricing: 5-minute cache in Lambda container
 - Fixed routes: No cache (query DynamoDB each time)
 
@@ -417,10 +431,11 @@ POST /v1/quotes → quotes-calculator Lambda
    - Returns detailed quote with breakdown
 
 3. **Location Autocomplete**
-   - GET /admin/locations/autocomplete - Google Maps Places Autocomplete
-   - Currently admin-only, but can be:
-     - Made public by removing auth requirement, OR
-     - Proxied via Next.js API route to keep it protected
+   - GET /v1/locations/autocomplete - Public Google Maps Places Autocomplete
+   - Wildcard CORS for easy integration from any origin
+   - No authentication required (API key secure in Lambda)
+   - Session token support for cost optimization
+   - Minimum 3 characters to trigger search
 
 4. **Quote Storage**
    - Quotes stored in durdle-main-table-dev with 15-minute expiry
@@ -585,7 +600,6 @@ export async function POST(request: Request) {
 ### 12.1 Phase 2 Limitations
 
 - Admin authentication is basic (no MFA, no SSO)
-- Location autocomplete is admin-only endpoint
 - No quote retrieval by ID (customer can't reload quote)
 - No surge pricing support
 - No booking functionality (Phase 3)
@@ -593,7 +607,6 @@ export async function POST(request: Request) {
 ### 12.2 Phase 2.5 Enhancements (Fast Followers)
 
 - Surge pricing (date/time-based multipliers)
-- Public location autocomplete endpoint
 - Quote retrieval by ID
 - Rate limiting on API Gateway
 - CloudWatch alarms

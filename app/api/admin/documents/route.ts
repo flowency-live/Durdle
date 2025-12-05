@@ -4,7 +4,7 @@ import { join } from 'path';
 
 const DOCS_DIR = join(process.cwd(), '.documentation', 'WorkingDocuments');
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const files = await readdir(DOCS_DIR);
 
