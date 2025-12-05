@@ -14,16 +14,30 @@ const JWT_EXPIRY = 28800; // 8 hours in seconds
 
 let cachedJwtSecret = null;
 
-const headers = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': 'http://localhost:3000',
-  'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-  'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-  'Access-Control-Allow-Credentials': 'true'
+const getAllowedOrigins = () => [
+  'http://localhost:3000',
+  'https://durdle.flowency.build',
+  'https://durdle.co.uk'
+];
+
+const getHeaders = (origin) => {
+  const allowedOrigins = getAllowedOrigins();
+  const allowedOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+
+  return {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+    'Access-Control-Allow-Credentials': 'true'
+  };
 };
 
 export const handler = async (event) => {
   console.log('Event:', JSON.stringify(event, null, 2));
+
+  const origin = event.headers?.origin || event.headers?.Origin || '';
+  const headers = getHeaders(origin);
 
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -34,29 +48,29 @@ export const handler = async (event) => {
 
     if (path.includes('/login')) {
       if (httpMethod !== 'POST') {
-        return errorResponse(405, 'Method not allowed');
+        return errorResponse(405, 'Method not allowed', null, headers);
       }
-      return await login(event.body);
+      return await login(event.body, headers);
     }
 
     if (path.includes('/logout')) {
       if (httpMethod !== 'POST') {
-        return errorResponse(405, 'Method not allowed');
+        return errorResponse(405, 'Method not allowed', null, headers);
       }
-      return await logout();
+      return await logout(headers);
     }
 
     if (path.includes('/session')) {
       if (httpMethod !== 'GET') {
-        return errorResponse(405, 'Method not allowed');
+        return errorResponse(405, 'Method not allowed', null, headers);
       }
-      return await verifySession(event.headers);
+      return await verifySession(event.headers, headers);
     }
 
-    return errorResponse(404, 'Endpoint not found');
+    return errorResponse(404, 'Endpoint not found', null, headers);
   } catch (error) {
     console.error('Error:', error);
-    return errorResponse(500, 'Internal server error', error.message);
+    return errorResponse(500, 'Internal server error', error.message, headers);
   }
 };
 
@@ -81,11 +95,11 @@ async function getJwtSecret() {
   }
 }
 
-async function login(requestBody) {
+async function login(requestBody, headers) {
   const data = JSON.parse(requestBody);
 
   if (!data.username || !data.password) {
-    return errorResponse(400, 'Missing username or password');
+    return errorResponse(400, 'Missing username or password', null, headers);
   }
 
   // Fetch user from DynamoDB
@@ -101,14 +115,14 @@ async function login(requestBody) {
 
   if (!result.Item) {
     console.log('User not found:', data.username);
-    return errorResponse(401, 'Invalid username or password');
+    return errorResponse(401, 'Invalid username or password', null, headers);
   }
 
   const user = result.Item;
 
   // Check if user is active
   if (!user.active) {
-    return errorResponse(403, 'Account is disabled');
+    return errorResponse(403, 'Account is disabled', null, headers);
   }
 
   // Compare password with bcrypt
@@ -116,7 +130,7 @@ async function login(requestBody) {
 
   if (!passwordMatch) {
     console.log('Password mismatch for user:', data.username);
-    return errorResponse(401, 'Invalid username or password');
+    return errorResponse(401, 'Invalid username or password', null, headers);
   }
 
   // Update lastLogin timestamp
@@ -170,7 +184,7 @@ async function login(requestBody) {
   };
 }
 
-async function logout() {
+async function logout(headers) {
   // Clear the session cookie
   const cookieHeader = 'sessionToken=; HttpOnly; Secure; SameSite=Strict; Max-Age=0; Path=/';
 
@@ -187,7 +201,7 @@ async function logout() {
   };
 }
 
-async function verifySession(requestHeaders) {
+async function verifySession(requestHeaders, headers) {
   // Extract token from Authorization header or Cookie
   let token = null;
 
@@ -203,7 +217,7 @@ async function verifySession(requestHeaders) {
   }
 
   if (!token) {
-    return errorResponse(401, 'No session token provided');
+    return errorResponse(401, 'No session token provided', null, headers);
   }
 
   try {
@@ -222,7 +236,7 @@ async function verifySession(requestHeaders) {
     const result = await ddbDocClient.send(getCommand);
 
     if (!result.Item || !result.Item.active) {
-      return errorResponse(403, 'Account is disabled or not found');
+      return errorResponse(403, 'Account is disabled or not found', null, headers);
     }
 
     return {
@@ -240,16 +254,16 @@ async function verifySession(requestHeaders) {
     };
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
-      return errorResponse(401, 'Session expired');
+      return errorResponse(401, 'Session expired', null, headers);
     }
     if (error.name === 'JsonWebTokenError') {
-      return errorResponse(401, 'Invalid session token');
+      return errorResponse(401, 'Invalid session token', null, headers);
     }
     throw error;
   }
 }
 
-function errorResponse(statusCode, message, details = null) {
+function errorResponse(statusCode, message, details = null, headers) {
   const body = { error: message };
   if (details) {
     body.details = details;
