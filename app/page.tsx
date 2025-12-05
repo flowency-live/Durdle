@@ -86,7 +86,7 @@ export default function Home() {
               <FeedbackButton />
               <a
                 href="/admin/login"
-                className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-sage/10 transition-colors"
+                className="p-2 rounded-full bg-gradient-to-br from-yellow-500 to-amber-600 hover:from-yellow-600 hover:to-amber-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110"
                 title="Admin Login"
               >
                 <KeyRound className="w-5 h-5" />
