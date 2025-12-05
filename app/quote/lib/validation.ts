@@ -26,7 +26,7 @@ export const quoteFormSchema = z.object({
   }, 'Pickup must be at least 24 hours from now'),
   passengers: z.number().min(1, 'At least 1 passenger required').max(8, 'Maximum 8 passengers'),
   vehicleType: z.enum(['standard', 'executive', 'minibus'], {
-    errorMap: () => ({ message: 'Please select a vehicle type' })
+    message: 'Please select a vehicle type'
   }),
   returnJourney: z.boolean().optional(),
   contactDetails: z.object({
