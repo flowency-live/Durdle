@@ -13,6 +13,7 @@ import LoadingState from './components/LoadingState';
 import QuoteResult from './components/QuoteResult';
 import { calculateQuote } from './lib/api';
 import { QuoteResponse, QuoteRequest, Location } from './lib/types';
+import FeedbackButton from '../components/FeedbackButton';
 
 type Step = 1 | 2 | 3;
 
@@ -123,13 +124,16 @@ export default function QuotePage() {
                 className="h-10 md:h-12 w-auto"
               />
             </Link>
-            <Link
-              href="/"
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Back to Home</span>
-            </Link>
+            <div className="flex items-center gap-3">
+              <FeedbackButton />
+              <Link
+                href="/"
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span className="hidden sm:inline">Back to Home</span>
+              </Link>
+            </div>
           </div>
         </div>
       </header>

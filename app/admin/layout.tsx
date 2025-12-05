@@ -3,6 +3,7 @@
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import FeedbackButton from '../components/FeedbackButton';
 
 interface User {
   username: string;
@@ -116,8 +117,13 @@ export default function AdminLayout({
       {/* Sidebar */}
       <aside className="fixed top-0 left-0 w-64 h-full bg-gray-900 text-white">
         <div className="p-6 border-b border-gray-800">
-          <h1 className="text-2xl font-bold text-blue-400">Durdle Admin</h1>
-          <p className="text-sm text-gray-400 mt-1">Transport Management</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-blue-400">Durdle Admin</h1>
+              <p className="text-sm text-gray-400 mt-1">Transport Management</p>
+            </div>
+            <FeedbackButton />
+          </div>
         </div>
 
         <nav className="p-4">
@@ -190,6 +196,24 @@ export default function AdminLayout({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
                   </svg>
                   Vehicle Types
+                </div>
+              </Link>
+            </li>
+
+            <li>
+              <Link
+                href="/admin/feedback"
+                className={`block px-4 py-3 rounded-lg transition-colors ${
+                  pathname === '/admin/feedback'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-300 hover:bg-gray-800'
+                }`}
+              >
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                  </svg>
+                  Feedback
                 </div>
               </Link>
             </li>
