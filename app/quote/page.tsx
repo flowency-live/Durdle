@@ -9,6 +9,7 @@ import LocationInput from './components/LocationInput';
 import DateTimePicker from './components/DateTimePicker';
 import VehicleSelector from './components/VehicleSelector';
 import PassengerCounter from './components/PassengerCounter';
+import LuggageCounter from './components/LuggageCounter';
 import LoadingState from './components/LoadingState';
 import QuoteResult from './components/QuoteResult';
 import { calculateQuote } from './lib/api';
@@ -24,6 +25,7 @@ export default function QuotePage() {
   const [dropoffLocation, setDropoffLocation] = useState<Location>({ address: '', placeId: '' });
   const [pickupDate, setPickupDate] = useState<Date | null>(null);
   const [passengers, setPassengers] = useState(2);
+  const [luggage, setLuggage] = useState(0);
   const [vehicleType, setVehicleType] = useState<string | null>(null);
 
   // UI state
@@ -101,6 +103,8 @@ export default function QuotePage() {
     setPickupLocation({ address: '', placeId: '' });
     setDropoffLocation({ address: '', placeId: '' });
     setPickupDate(null);
+    setPassengers(2);
+    setLuggage(0);
     setVehicleType(null);
     setError(null);
   };
@@ -226,13 +230,18 @@ export default function QuotePage() {
                     Choose your vehicle
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    Select passenger count and vehicle type
+                    Select passengers, luggage, and vehicle type
                   </p>
                 </div>
 
                 <PassengerCounter
                   count={passengers}
                   onChange={setPassengers}
+                />
+
+                <LuggageCounter
+                  count={luggage}
+                  onChange={setLuggage}
                 />
 
                 <VehicleSelector
