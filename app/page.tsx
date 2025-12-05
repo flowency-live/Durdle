@@ -1,5 +1,5 @@
 import { MapPin, Clock, Shield, Car, Users, Briefcase, Plane, ArrowRight, KeyRound } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import Image from "next/image";
 
 const features = [
@@ -89,9 +89,9 @@ export default function Home() {
               >
                 <KeyRound className="w-5 h-5" />
               </a>
-              <Button variant="hero-golden" size="default" asChild>
-                <a href="/quote">Get Quote</a>
-              </Button>
+              <a href="/quote" className={buttonVariants({ variant: "hero-golden", size: "default" })}>
+                Get Quote
+              </a>
             </div>
           </div>
         </div>
@@ -136,12 +136,12 @@ export default function Home() {
               </p>
 
               <div className="animate-fade-up-delay-3 flex flex-col sm:flex-row gap-4 justify-center">
-                <Button variant="hero-golden" size="xl" asChild>
-                  <a href="/quote">Get a Quote</a>
-                </Button>
-                <Button variant="hero-outline" size="xl" asChild>
-                  <a href="#services">Learn More</a>
-                </Button>
+                <a href="/quote" className={buttonVariants({ variant: "hero-golden", size: "xl" })}>
+                  Get a Quote
+                </a>
+                <a href="#services" className={buttonVariants({ variant: "hero-outline", size: "xl" })}>
+                  Learn More
+                </a>
               </div>
 
               {/* Key points */}
@@ -369,12 +369,10 @@ export default function Home() {
                 Get an instant quote in seconds. No hidden fees, no surprises - just reliable
                 transport when you need it.
               </p>
-              <Button variant="hero-golden" size="xl" className="group" asChild>
-                <a href="/quote">
-                  Get Your Free Quote
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </a>
-              </Button>
+              <a href="/quote" className={buttonVariants({ variant: "hero-golden", size: "xl", className: "group" })}>
+                Get Your Free Quote
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </a>
             </div>
           </div>
         </section>
