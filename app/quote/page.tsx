@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import Link from 'next/link';
@@ -19,7 +19,7 @@ import FeedbackButton from '../components/FeedbackButton';
 
 type Step = 1 | 2 | 3;
 
-export default function QuotePage() {
+function QuotePageContent() {
   const searchParams = useSearchParams();
 
   // Form state
@@ -317,5 +317,20 @@ export default function QuotePage() {
       {/* Loading Overlay */}
       {loading && <LoadingState />}
     </div>
+  );
+}
+
+export default function QuotePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-sage-light border-t-sage-dark mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    }>
+      <QuotePageContent />
+    </Suspense>
   );
 }
