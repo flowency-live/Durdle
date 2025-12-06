@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { MapPin, Loader2 } from 'lucide-react';
 
 interface LocationInputProps {
-  label: string;
+  label?: string;
   value: string;
   onSelect: (address: string, placeId: string) => void;
   placeholder?: string;
@@ -100,9 +100,11 @@ export default function LocationInput({
 
   return (
     <div className="space-y-2" ref={containerRef}>
-      <label className="block text-sm font-medium text-foreground">
-        {label} *
-      </label>
+      {label && (
+        <label className="block text-sm font-medium text-foreground">
+          {label} *
+        </label>
+      )}
       <div className="relative">
         <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
           <MapPin className="w-5 h-5 text-muted-foreground" />
@@ -144,9 +146,6 @@ export default function LocationInput({
       {error && (
         <p className="text-sm text-error">{error}</p>
       )}
-      <p className="text-xs text-muted-foreground">
-        Start typing to see location suggestions
-      </p>
     </div>
   );
 }

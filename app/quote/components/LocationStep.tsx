@@ -62,19 +62,18 @@ export default function LocationStep({
 
   return (
     <div className="space-y-6">
-      {/* Pickup Location - Always visible */}
+      {/* Start Location - Always visible */}
       <div className="bg-card rounded-2xl p-6 shadow-mobile border-2 border-sage-light">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-full bg-sage-dark/10 flex items-center justify-center">
             <MapPin className="w-5 h-5 text-sage-dark" />
           </div>
-          <h3 className="text-lg font-semibold text-foreground">Pickup Location</h3>
+          <h3 className="text-lg font-semibold text-foreground">Start Location</h3>
         </div>
         <LocationInput
-          label="Where are you being picked up?"
           value={pickup?.address || ''}
           onSelect={handlePickupSelect}
-          placeholder="Enter pickup address"
+          placeholder="Enter Start Location"
           error={errors.pickup}
           autoFocus={true}
         />
@@ -88,19 +87,18 @@ export default function LocationStep({
             <div className="h-8 w-0.5 bg-sage-light"></div>
           </div>
 
-          {/* Dropoff Location */}
+          {/* End Location */}
           <div className="bg-card rounded-2xl p-6 shadow-mobile border-2 border-sage-light animate-fade-up">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-navy-dark/10 flex items-center justify-center">
                 <MapPin className="w-5 h-5 text-navy-dark" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground">Dropoff Location</h3>
+              <h3 className="text-lg font-semibold text-foreground">End Location</h3>
             </div>
             <LocationInput
-              label="Where are you going?"
               value={dropoff?.address || ''}
               onSelect={handleDropoffSelect}
-              placeholder="Enter destination address"
+              placeholder="Enter End Location"
               error={errors.dropoff}
             />
           </div>

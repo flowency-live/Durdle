@@ -360,25 +360,14 @@ function QuotePageContent() {
 
             {/* Step 1: Locations */}
             {currentStep === 1 && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="font-playfair text-xl md:text-2xl font-semibold text-foreground mb-2">
-                    Where are you going?
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    Enter your pickup and dropoff locations
-                  </p>
-                </div>
-
-                <LocationStep
-                  pickup={pickupLocation}
-                  dropoff={dropoffLocation}
-                  waypoints={waypoints}
-                  onPickupChange={setPickupLocation}
-                  onDropoffChange={setDropoffLocation}
-                  onWaypointsChange={setWaypoints}
-                />
-              </div>
+              <LocationStep
+                pickup={pickupLocation}
+                dropoff={dropoffLocation}
+                waypoints={waypoints}
+                onPickupChange={setPickupLocation}
+                onDropoffChange={setDropoffLocation}
+                onWaypointsChange={setWaypoints}
+              />
             )}
 
             {/* Step 2: Date & Time */}
