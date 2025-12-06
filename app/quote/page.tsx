@@ -361,7 +361,7 @@ function QuotePageContent() {
             </div>
           )}
 
-          <div className="bg-card rounded-2xl md:rounded-3xl shadow-deep p-4 md:p-8 space-y-6 md:space-y-8">
+          <div className="space-y-6">
 
             {/* Step 1: Locations */}
             {currentStep === 1 && (
