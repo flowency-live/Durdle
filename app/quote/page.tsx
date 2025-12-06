@@ -377,69 +377,36 @@ function QuotePageContent() {
 
             {/* Step 2: Date & Time */}
             {currentStep === 2 && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="font-playfair text-xl md:text-2xl font-semibold text-foreground mb-2">
-                    When do you need pickup?
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    Select your preferred date and time
-                  </p>
-                </div>
-
-                <DateTimeStep
-                  selectedDate={pickupDate}
-                  onChange={setPickupDate}
-                />
-              </div>
+              <DateTimeStep
+                selectedDate={pickupDate}
+                onChange={setPickupDate}
+              />
             )}
 
             {/* Step 3: Passengers & Luggage */}
             {currentStep === 3 && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="font-playfair text-xl md:text-2xl font-semibold text-foreground mb-2">
-                    How many passengers?
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    Select passengers and luggage count
-                  </p>
-                </div>
+              <div className="bg-card rounded-2xl p-4 shadow-mobile border-2 border-sage-light space-y-6">
+                <PassengerCounter
+                  count={passengers}
+                  onChange={setPassengers}
+                />
 
-                <div className="bg-card rounded-2xl p-6 shadow-mobile border-2 border-sage-light space-y-6">
-                  <PassengerCounter
-                    count={passengers}
-                    onChange={setPassengers}
+                <div className="border-t border-border pt-6">
+                  <LuggageCounter
+                    count={luggage}
+                    onChange={setLuggage}
                   />
-
-                  <div className="border-t border-border pt-6">
-                    <LuggageCounter
-                      count={luggage}
-                      onChange={setLuggage}
-                    />
-                  </div>
                 </div>
               </div>
             )}
 
             {/* Step 4: Vehicle Selection */}
             {currentStep === 4 && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="font-playfair text-xl md:text-2xl font-semibold text-foreground mb-2">
-                    Choose your vehicle
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    Select the vehicle that suits your needs
-                  </p>
-                </div>
-
-                <VehicleSelector
-                  selected={vehicleType}
-                  onChange={setVehicleType}
-                  passengers={passengers}
-                />
-              </div>
+              <VehicleSelector
+                selected={vehicleType}
+                onChange={setVehicleType}
+                passengers={passengers}
+              />
             )}
 
             {/* Error Message */}
