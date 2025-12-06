@@ -1,14 +1,19 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Location } from '../lib/types';
+import { Location, Waypoint } from '../lib/types';
 import dynamic from 'next/dynamic';
 import 'leaflet/dist/leaflet.css';
+
+interface Coordinates {
+  lat: number;
+  lng: number;
+}
 
 interface MapPreviewProps {
   pickup: Location | null;
   dropoff: Location | null;
-  waypoints?: Location[];
+  waypoints?: Waypoint[];
   className?: string;
 }
 
@@ -36,6 +41,8 @@ const Polyline = dynamic(
 
 export default function MapPreview({ pickup, dropoff, waypoints = [], className = '' }: MapPreviewProps) {
   const [mounted, setMounted] = useState(false);
+  const [coordinates, setCoordinates] = useState<Map<string, Coordinates>>(new Map());
+  const [isGeocoding, setIsGeocoding] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -54,29 +61,105 @@ export default function MapPreview({ pickup, dropoff, waypoints = [], className 
     }
   }, []);
 
-  // TODO: Implement proper geocoding using Google Places API placeId or Nominatim
-  // For now, using Dorset center as placeholder coordinates
+  // Geocode locations using Google Places API
+  useEffect(() => {
+    if (!mounted || !window.google) return;
+
+    const geocodeLocation = async (location: Location): Promise<[string, Coordinates] | null> => {
+      if (!location.placeId) return null;
+
+      try {
+        const geocoder = new window.google.maps.Geocoder();
+        const result = await geocoder.geocode({ placeId: location.placeId });
+
+        if (result.results[0]) {
+          const { lat, lng } = result.results[0].geometry.location;
+          return [location.placeId, { lat: lat(), lng: lng() }];
+        }
+      } catch (error) {
+        console.error('Geocoding error:', error);
+      }
+      return null;
+    };
+
+    const geocodeAll = async () => {
+      setIsGeocoding(true);
+      const locations: Location[] = [];
+      if (pickup) locations.push(pickup);
+      waypoints.forEach(w => locations.push(w));
+      if (dropoff) locations.push(dropoff);
+
+      const results = await Promise.all(locations.map(geocodeLocation));
+      const coordMap = new Map<string, Coordinates>();
+
+      results.forEach(result => {
+        if (result) {
+          coordMap.set(result[0], result[1]);
+        }
+      });
+
+      setCoordinates(coordMap);
+      setIsGeocoding(false);
+    };
+
+    geocodeAll();
+  }, [mounted, pickup, dropoff, waypoints]);
 
   const locations = useMemo(() => {
-    const points: Array<{ location: Location; type: 'pickup' | 'waypoint' | 'dropoff' }> = [];
-    if (pickup) points.push({ location: pickup, type: 'pickup' });
-    waypoints.forEach(w => points.push({ location: w, type: 'waypoint' }));
-    if (dropoff) points.push({ location: dropoff, type: 'dropoff' });
+    const points: Array<{
+      location: Location;
+      type: 'pickup' | 'waypoint' | 'dropoff';
+      coords?: Coordinates;
+    }> = [];
+
+    if (pickup && pickup.placeId) {
+      const coords = coordinates.get(pickup.placeId);
+      if (coords) points.push({ location: pickup, type: 'pickup', coords });
+    }
+
+    waypoints.forEach(w => {
+      if (w.placeId) {
+        const coords = coordinates.get(w.placeId);
+        if (coords) points.push({ location: w, type: 'waypoint', coords });
+      }
+    });
+
+    if (dropoff && dropoff.placeId) {
+      const coords = coordinates.get(dropoff.placeId);
+      if (coords) points.push({ location: dropoff, type: 'dropoff', coords });
+    }
+
     return points;
-  }, [pickup, dropoff, waypoints]);
+  }, [pickup, dropoff, waypoints, coordinates]);
 
   // Calculate map center and bounds
   const mapCenter: [number, number] = useMemo(() => {
-    if (!pickup && !dropoff) return [50.7155, -2.4397]; // Dorset center
-    // TODO: Calculate actual center based on geocoded coordinates
-    return [50.7155, -2.4397];
-  }, [pickup, dropoff]);
+    if (locations.length === 0) return [50.7155, -2.4397]; // Dorset center
+
+    const lats = locations.map(l => l.coords!.lat);
+    const lngs = locations.map(l => l.coords!.lng);
+    const avgLat = lats.reduce((a, b) => a + b, 0) / lats.length;
+    const avgLng = lngs.reduce((a, b) => a + b, 0) / lngs.length;
+
+    return [avgLat, avgLng];
+  }, [locations]);
 
   if (!mounted || (!pickup && !dropoff)) {
     return (
       <div className={`bg-muted rounded-2xl overflow-hidden ${className}`}>
         <div className="w-full h-48 md:h-56 flex items-center justify-center text-muted-foreground text-sm">
           Select locations to preview route
+        </div>
+      </div>
+    );
+  }
+
+  if (isGeocoding || locations.length === 0) {
+    return (
+      <div className={`bg-card rounded-2xl overflow-hidden shadow-mobile border-2 border-sage-light ${className}`}>
+        <div className="w-full h-48 md:h-56 flex items-center justify-center text-muted-foreground text-sm">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-sage-light border-t-sage-dark mr-3"></div>
+          Loading map...
         </div>
       </div>
     );
@@ -99,7 +182,7 @@ export default function MapPreview({ pickup, dropoff, waypoints = [], className 
 
           {/* Markers for each location */}
           {locations.map((loc, idx) => (
-            <Marker key={idx} position={mapCenter}>
+            <Marker key={idx} position={[loc.coords!.lat, loc.coords!.lng]}>
               <Popup>
                 <div className="text-sm">
                   <strong className="capitalize">{loc.type}</strong>
@@ -113,7 +196,7 @@ export default function MapPreview({ pickup, dropoff, waypoints = [], className 
           {/* Draw route line */}
           {locations.length > 1 && (
             <Polyline
-              positions={locations.map(() => mapCenter)}
+              positions={locations.map(loc => [loc.coords!.lat, loc.coords!.lng])}
               pathOptions={{ color: '#8fb894', weight: 4, opacity: 0.7 }}
             />
           )}
