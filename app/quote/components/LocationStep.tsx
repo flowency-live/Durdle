@@ -90,14 +90,6 @@ export default function LocationStep({
     onWaypointsChange(updatedWaypoints);
   };
 
-  const handleUseCurrentLocationForField = async () => {
-    // Trigger the search view's current location handler
-    // This is handled within LocationSearchView
-  };
-
-  // Count total fields to determine isLast
-  const totalFields = 2 + waypoints.length; // pickup + destination + waypoints
-
   return (
     <>
       {/* Single Condensed Card */}
