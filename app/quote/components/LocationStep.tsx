@@ -1,10 +1,9 @@
 'use client';
 
-import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Location, Waypoint } from '../lib/types';
-import LocationField from './LocationField';
-import LocationSearchView from './LocationSearchView';
+import LocationInput from './LocationInput';
+import WaypointInput from './WaypointInput';
 
 interface LocationStepProps {
   pickup: Location | null;
@@ -19,11 +18,6 @@ interface LocationStepProps {
   };
 }
 
-interface ActiveField {
-  type: 'pickup' | 'destination' | 'waypoint';
-  index?: number;
-}
-
 export default function LocationStep({
   pickup,
   dropoff,
@@ -33,61 +27,29 @@ export default function LocationStep({
   onWaypointsChange,
   errors = {}
 }: LocationStepProps) {
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [activeField, setActiveField] = useState<ActiveField | null>(null);
-
-  const openSearch = (type: 'pickup' | 'destination' | 'waypoint', index?: number) => {
-    setActiveField({ type, index });
-    setSearchOpen(true);
+  const handlePickupSelect = (address: string, placeId: string) => {
+    onPickupChange({ address, placeId });
   };
 
-  const closeSearch = () => {
-    setSearchOpen(false);
-    setActiveField(null);
+  const handleDropoffSelect = (address: string, placeId: string) => {
+    onDropoffChange({ address, placeId });
   };
 
-  const handleSearchSelect = (location: Location) => {
-    if (!activeField) return;
-
-    if (activeField.type === 'pickup') {
-      onPickupChange(location);
-
-      // Auto-focus destination if empty
-      if (!dropoff) {
-        setTimeout(() => {
-          openSearch('destination');
-        }, 300);
-      } else {
-        closeSearch();
-      }
-    } else if (activeField.type === 'destination') {
-      onDropoffChange(location);
-      closeSearch();
-    } else if (activeField.type === 'waypoint' && activeField.index !== undefined) {
-      const updatedWaypoints = [...waypoints];
-      updatedWaypoints[activeField.index] = {
-        address: location.address,
-        placeId: location.placeId,
-        waitTime: waypoints[activeField.index]?.waitTime
-      };
-      onWaypointsChange(updatedWaypoints);
-      closeSearch();
-    }
+  const handleWaypointChange = (index: number, waypoint: Waypoint) => {
+    const newWaypoints = [...waypoints];
+    newWaypoints[index] = waypoint;
+    onWaypointsChange(newWaypoints);
   };
 
   const addWaypoint = () => {
-    const newWaypoints = [...waypoints, { address: '', placeId: '', waitTime: 0 }];
-    onWaypointsChange(newWaypoints);
-
-    // Auto-open search for new waypoint
-    setTimeout(() => {
-      openSearch('waypoint', waypoints.length);
-    }, 100);
+    if (waypoints.length < 3) {
+      onWaypointsChange([...waypoints, { address: '', placeId: '' }]);
+    }
   };
 
   const removeWaypoint = (index: number) => {
-    const updatedWaypoints = waypoints.filter((_, i) => i !== index);
-    onWaypointsChange(updatedWaypoints);
+    const newWaypoints = waypoints.filter((_, i) => i !== index);
+    onWaypointsChange(newWaypoints);
   };
 
   return (
@@ -100,93 +62,76 @@ export default function LocationStep({
           <h3 className="text-sm font-semibold text-foreground">Plan your trip</h3>
         </div>
 
-        {/* Location Fields Stack */}
+        {/* Location Fields with Progressive Disclosure */}
         <div className="space-y-0">
 
-          {/* Pickup Field */}
-          <LocationField
-            type="pickup"
-            value={pickup}
-            placeholder="Pickup location"
-            onFocus={() => openSearch('pickup')}
-            showCurrentLocationButton={false}
-            isLast={false}
-          />
-
-          {/* Waypoints (inserted between pickup and destination) */}
-          {waypoints.map((waypoint, idx) => (
-            <LocationField
-              key={idx}
-              type="waypoint"
-              value={waypoint.address ? { address: waypoint.address, placeId: waypoint.placeId } : null}
-              placeholder={`Waypoint ${idx + 1}`}
-              onFocus={() => openSearch('waypoint', idx)}
-              icon={idx + 1}
-              onRemove={() => removeWaypoint(idx)}
-              isLast={false}
+          {/* Start Location - Always Visible */}
+          <div className="py-2">
+            <LocationInput
+              value={pickup?.address || ''}
+              onSelect={handlePickupSelect}
+              placeholder="Start Location"
+              error={errors.pickup}
             />
-          ))}
+          </div>
 
-          {/* Destination Field */}
-          <LocationField
-            type="destination"
-            value={dropoff}
-            placeholder="Where to?"
-            onFocus={() => openSearch('destination')}
-            showCurrentLocationButton={false}
-            isLast={true}
-          />
+          {/* Divider */}
+          {pickup && <div className="border-b border-border my-2"></div>}
+
+          {/* Destination - Shown after pickup selected */}
+          {pickup && (
+            <div className="py-2 animate-fade-up">
+              <LocationInput
+                value={dropoff?.address || ''}
+                onSelect={handleDropoffSelect}
+                placeholder="Where to?"
+                error={errors.dropoff}
+              />
+            </div>
+          )}
+
+          {/* Waypoints - Shown between pickup and destination after both selected */}
+          {pickup && dropoff && waypoints.length > 0 && (
+            <>
+              <div className="border-b border-border my-2"></div>
+              <div className="space-y-2 py-2">
+                {waypoints.map((waypoint, index) => (
+                  <WaypointInput
+                    key={index}
+                    index={index}
+                    waypoint={waypoint}
+                    onChange={(updatedWaypoint) => handleWaypointChange(index, updatedWaypoint)}
+                    onRemove={() => removeWaypoint(index)}
+                  />
+                ))}
+              </div>
+            </>
+          )}
 
         </div>
 
-        {/* Add Waypoint Button */}
-        {waypoints.length < 3 && (
-          <button
-            type="button"
-            onClick={addWaypoint}
-            className="mt-3 flex items-center gap-2 text-sm text-sage-dark hover:text-sage-dark/80 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            {waypoints.length === 0 ? 'Add waypoints along the way' : 'Add another stop'}
-          </button>
+        {/* Add Waypoint Button - Only shown after both locations selected */}
+        {pickup && dropoff && waypoints.length < 3 && (
+          <>
+            {waypoints.length > 0 && <div className="border-b border-border my-2"></div>}
+            <button
+              type="button"
+              onClick={addWaypoint}
+              className="mt-2 flex items-center gap-2 text-sm text-sage-dark hover:text-sage-dark/80 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Add waypoints along the way
+            </button>
+          </>
         )}
 
         {waypoints.length === 3 && (
-          <p className="mt-3 text-xs text-muted-foreground">
+          <p className="mt-2 text-xs text-muted-foreground">
             Maximum 3 waypoints allowed
           </p>
         )}
 
       </div>
-
-      {/* Error Messages */}
-      {(errors.pickup || errors.dropoff) && (
-        <div className="mt-3 space-y-2">
-          {errors.pickup && (
-            <p className="text-sm text-error">{errors.pickup}</p>
-          )}
-          {errors.dropoff && (
-            <p className="text-sm text-error">{errors.dropoff}</p>
-          )}
-        </div>
-      )}
-
-      {/* Full-Screen Search Modal */}
-      {searchOpen && activeField && (
-        <LocationSearchView
-          activeFieldType={activeField.type}
-          activeFieldIndex={activeField.index}
-          initialValue={
-            activeField.type === 'pickup'
-              ? pickup?.address || ''
-              : activeField.type === 'destination'
-              ? dropoff?.address || ''
-              : waypoints[activeField.index!]?.address || ''
-          }
-          onSelect={handleSearchSelect}
-          onClose={closeSearch}
-        />
-      )}
     </>
   );
 }

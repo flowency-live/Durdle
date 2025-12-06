@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Location, Waypoint } from '../lib/types';
 import dynamic from 'next/dynamic';
+import { useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 interface Coordinates {
@@ -38,6 +39,25 @@ const Polyline = dynamic(
   () => import('react-leaflet').then((mod) => mod.Polyline),
   { ssr: false }
 );
+
+// Component to automatically fit map bounds to show all markers
+function FitBounds({ locations }: { locations: Array<{ coords?: Coordinates }> }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (locations.length > 0) {
+      const bounds = locations
+        .filter(loc => loc.coords)
+        .map(loc => [loc.coords!.lat, loc.coords!.lng] as [number, number]);
+
+      if (bounds.length > 0) {
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
+      }
+    }
+  }, [locations, map]);
+
+  return null;
+}
 
 export default function MapPreview({ pickup, dropoff, waypoints = [], className = '' }: MapPreviewProps) {
   const [mounted, setMounted] = useState(false);
@@ -176,7 +196,7 @@ export default function MapPreview({ pickup, dropoff, waypoints = [], className 
       <div className="relative w-full h-48 md:h-56">
         <MapContainer
           center={mapCenter}
-          zoom={10}
+          zoom={8}
           scrollWheelZoom={false}
           className="w-full h-full z-0"
           style={{ height: '100%', width: '100%' }}
@@ -185,6 +205,9 @@ export default function MapPreview({ pickup, dropoff, waypoints = [], className 
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
+
+          {/* Auto-fit bounds to show all markers */}
+          <FitBounds locations={locations} />
 
           {/* Markers for each location */}
           {locations.map((loc, idx) => (

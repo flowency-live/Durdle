@@ -1,25 +1,19 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git log:*)",
-      "Bash(npx tsc:*)",
-      "Bash(mkdir \"C:\\VSProjects\\_Websites\\Durdle\\.documentation\\CTO\")",
-      "Bash(aws apigateway get-resources:*)",
-      "Bash(aws apigateway create-resource:*)",
-      "Bash(aws lambda get-function:*)",
-      "Bash(aws apigateway put-method:*)",
-      "Bash(MSYS_NO_PATHCONV=1 aws apigateway put-integration:*)",
-      "Bash(for dir in \"c:\\VSProjects\\_Websites\\Durdle\\durdle-serverless-api\\functions\"/*)",
-      "Bash(do if [ -d \"$dir\" ])",
-      "Bash(ls:*)",
-      "Bash(fi)",
-      "Bash(done)",
-      "Bash(for dir in */)",
-      "Bash(do echo \"=== $dir ===\")",
-      "Bash(awk:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(MSYS_NO_PATHCONV=1 aws lambda update-function-code:*)",
+      "Bash(aws lambda list-functions:*)",
+      "Bash(aws apigateway create-deployment:*)",
+      "Bash(for func in admin-auth-dev pricing-manager-dev quotes-calculator-dev locations-lookup-dev uploads-presigned-dev vehicle-manager-dev feedback-manager-dev document-comments-dev fixed-routes-manager-dev)",
+      "Bash(do echo \"=== $func ===\")",
+      "Bash(aws lambda get-function-configuration:*)",
+      "Bash(curl:*)",
+      "Bash(zip:*)",
+      "Bash(powershell -Command \"Compress-Archive -Path index.mjs,package.json,package-lock.json,node_modules -DestinationPath admin-auth.zip -Force\")",
+      "Bash(aws lambda update-function-code:*)",
+      "Bash(powershell -Command \"Compress-Archive -Path index.mjs,package.json,package-lock.json,node_modules -DestinationPath feedback-manager.zip -Force\")",
+      "Bash(do echo \"Enabling X-Ray on $func...\")",
+      "Bash(aws lambda update-function-configuration:*)"
     ],
     "deny": [],
     "ask": []

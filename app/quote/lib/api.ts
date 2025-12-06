@@ -2,8 +2,7 @@
 // Based on QUOTE_WIZARD_IMPLEMENTATION_SPEC.md
 
 import { QuoteRequest, QuoteResponse, Vehicle, ApiError, FixedRoute, FixedRoutesResponse } from './types';
-
-const API_BASE_URL = 'https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev';
+import { API_BASE_URL, API_ENDPOINTS } from '@/lib/config/api';
 
 /**
  * Calculate a quote based on journey details
@@ -11,7 +10,7 @@ const API_BASE_URL = 'https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev
  * @returns Quote response with pricing and journey details
  */
 export async function calculateQuote(request: QuoteRequest): Promise<QuoteResponse> {
-  const response = await fetch(`${API_BASE_URL}/v1/quotes`, {
+  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.quotes}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -32,7 +31,7 @@ export async function calculateQuote(request: QuoteRequest): Promise<QuoteRespon
  * @returns Array of active vehicles with images and pricing
  */
 export async function getVehicles(): Promise<Vehicle[]> {
-  const response = await fetch(`${API_BASE_URL}/v1/vehicles`, {
+  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.vehicles}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -53,7 +52,7 @@ export async function getVehicles(): Promise<Vehicle[]> {
  * @returns Array of active fixed routes with pricing
  */
 export async function getFixedRoutes(): Promise<FixedRoute[]> {
-  const response = await fetch(`${API_BASE_URL}/v1/fixed-routes`, {
+  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.fixedRoutes}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',

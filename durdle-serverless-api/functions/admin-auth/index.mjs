@@ -88,10 +88,12 @@ async function getJwtSecret() {
     cachedJwtSecret = response.SecretString;
     return cachedJwtSecret;
   } catch (error) {
-    console.error('Failed to fetch JWT secret, using fallback');
-    // Fallback secret (for development only)
-    cachedJwtSecret = 'durdle-dev-jwt-secret-fallback-' + Date.now();
-    return cachedJwtSecret;
+    console.error('CRITICAL: Failed to fetch JWT secret from Secrets Manager', {
+      secretName: JWT_SECRET_NAME,
+      error: error.message
+    });
+    // Fail fast - no fallback secrets in production
+    throw new Error(`JWT secret unavailable: ${error.message}`);
   }
 }
 

@@ -10,6 +10,7 @@
 2. **[CTO_TECHNICAL_REFERENCE.md](CTO_TECHNICAL_REFERENCE.md)** - Quick lookup: Lambdas, APIs, schemas
 3. **[CTO_ARCHITECTURE_DECISIONS.md](CTO_ARCHITECTURE_DECISIONS.md)** - Why we chose each technology
 4. **[CTO_DEVELOPMENT_GUIDE.md](CTO_DEVELOPMENT_GUIDE.md)** - How to add features safely
+5. **[CODE_AUDIT_AND_REMEDIATION.md](CODE_AUDIT_AND_REMEDIATION.md)** - Code review findings and 6-week fix plan
 
 ## Technical Specifications
 
