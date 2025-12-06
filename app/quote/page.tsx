@@ -6,26 +6,28 @@ import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import LocationInput from './components/LocationInput';
-import DateTimePicker from './components/DateTimePicker';
+import LocationStep from './components/LocationStep';
+import DateTimeStep from './components/DateTimeStep';
+import MapPreview from './components/MapPreview';
 import VehicleSelector from './components/VehicleSelector';
 import PassengerCounter from './components/PassengerCounter';
 import LuggageCounter from './components/LuggageCounter';
 import LoadingState from './components/LoadingState';
 import QuoteResult from './components/QuoteResult';
 import { calculateQuote } from './lib/api';
-import { QuoteResponse, QuoteRequest, Location } from './lib/types';
+import { QuoteResponse, QuoteRequest, Location, Waypoint } from './lib/types';
 import FeedbackButton from '../components/FeedbackButton';
 
-type Step = 1 | 2 | 3;
+type Step = 1 | 2 | 3 | 4;
 
 function QuotePageContent() {
   const searchParams = useSearchParams();
 
   // Form state
   const [currentStep, setCurrentStep] = useState<Step>(1);
-  const [pickupLocation, setPickupLocation] = useState<Location>({ address: '', placeId: '' });
-  const [dropoffLocation, setDropoffLocation] = useState<Location>({ address: '', placeId: '' });
+  const [pickupLocation, setPickupLocation] = useState<Location | null>(null);
+  const [dropoffLocation, setDropoffLocation] = useState<Location | null>(null);
+  const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
   const [pickupDate, setPickupDate] = useState<Date | null>(null);
   const [passengers, setPassengers] = useState(2);
   const [luggage, setLuggage] = useState(0);
@@ -51,12 +53,23 @@ function QuotePageContent() {
 
   // Validation
   const canProceedFromStep1 = () => {
-    return pickupLocation.address.trim() !== '' &&
-           dropoffLocation.address.trim() !== '' &&
-           pickupDate !== null;
+    // Step 1: Locations (pickup and dropoff required)
+    return pickupLocation?.address.trim() !== '' &&
+           dropoffLocation?.address.trim() !== '';
   };
 
   const canProceedFromStep2 = () => {
+    // Step 2: Date & Time
+    return pickupDate !== null;
+  };
+
+  const canProceedFromStep3 = () => {
+    // Step 3: Passengers & Luggage (always valid, has defaults)
+    return true;
+  };
+
+  const canProceedFromStep4 = () => {
+    // Step 4: Vehicle selection
     return vehicleType !== null;
   };
 
@@ -64,19 +77,29 @@ function QuotePageContent() {
     setError(null);
 
     if (currentStep === 1 && !canProceedFromStep1()) {
-      setError('Please complete all journey details');
+      setError('Please enter pickup and dropoff locations');
       return;
     }
 
     if (currentStep === 2 && !canProceedFromStep2()) {
+      setError('Please select pickup date and time');
+      return;
+    }
+
+    if (currentStep === 3 && !canProceedFromStep3()) {
+      setError('Please enter passenger details');
+      return;
+    }
+
+    if (currentStep === 4 && !canProceedFromStep4()) {
       setError('Please select a vehicle type');
       return;
     }
 
-    if (currentStep === 2) {
+    if (currentStep === 4) {
       handleSubmit();
     } else {
-      setCurrentStep((prev) => Math.min(prev + 1, 3) as Step);
+      setCurrentStep((prev) => Math.min(prev + 1, 4) as Step);
     }
   };
 
@@ -88,7 +111,7 @@ function QuotePageContent() {
   const handleSubmit = async () => {
     setError(null);
 
-    if (!pickupDate || !vehicleType) {
+    if (!pickupLocation || !dropoffLocation || !pickupDate || !vehicleType) {
       setError('Please complete all required fields');
       return;
     }
@@ -96,9 +119,15 @@ function QuotePageContent() {
     try {
       setLoading(true);
 
+      // Convert waypoints to Location[] for API (remove wait time info for now)
+      const waypointLocations: Location[] = waypoints
+        .filter(w => w.address.trim() !== '')
+        .map(({ address, placeId }) => ({ address, placeId }));
+
       const request: QuoteRequest = {
         pickupLocation,
         dropoffLocation,
+        waypoints: waypointLocations.length > 0 ? waypointLocations : undefined,
         pickupTime: pickupDate.toISOString(),
         passengers,
         luggage,
@@ -117,8 +146,9 @@ function QuotePageContent() {
   const handleNewQuote = () => {
     setQuote(null);
     setCurrentStep(1);
-    setPickupLocation({ address: '', placeId: '' });
-    setDropoffLocation({ address: '', placeId: '' });
+    setPickupLocation(null);
+    setDropoffLocation(null);
+    setWaypoints([]);
     setPickupDate(null);
     setPassengers(2);
     setLuggage(0);
@@ -161,41 +191,73 @@ function QuotePageContent() {
 
       {/* Progress Indicator - Mobile Optimized */}
       <div className="bg-card border-b border-border py-4 md:py-6">
-        <div className="container px-4 mx-auto max-w-2xl">
+        <div className="container px-4 mx-auto max-w-3xl">
           <div className="flex items-center justify-between">
-            {/* Step 1 */}
-            <div className="flex items-center flex-1">
-              <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center font-semibold ${
+            {/* Step 1: Locations */}
+            <div className="flex items-center">
+              <div className={`w-7 h-7 md:w-9 md:h-9 rounded-full flex items-center justify-center font-semibold text-xs md:text-sm ${
                 currentStep >= 1 ? 'bg-sage-dark text-white' : 'bg-muted text-muted-foreground'
               }`}>
-                {currentStep > 1 ? <Check className="w-5 h-5" /> : '1'}
+                {currentStep > 1 ? <Check className="w-4 h-4 md:w-5 md:h-5" /> : '1'}
               </div>
-              <div className="ml-2 hidden sm:block">
-                <p className="text-xs md:text-sm font-medium text-foreground">Journey</p>
+              <div className="ml-1.5 hidden lg:block">
+                <p className="text-xs font-medium text-foreground">Locations</p>
               </div>
             </div>
 
             {/* Connector */}
-            <div className={`flex-1 h-0.5 mx-2 ${currentStep >= 2 ? 'bg-sage-dark' : 'bg-border'}`} />
+            <div className={`flex-1 h-0.5 mx-1.5 md:mx-2 ${currentStep >= 2 ? 'bg-sage-dark' : 'bg-border'}`} />
 
-            {/* Step 2 */}
-            <div className="flex items-center flex-1">
-              <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center font-semibold ${
+            {/* Step 2: Date & Time */}
+            <div className="flex items-center">
+              <div className={`w-7 h-7 md:w-9 md:h-9 rounded-full flex items-center justify-center font-semibold text-xs md:text-sm ${
                 currentStep >= 2 ? 'bg-sage-dark text-white' : 'bg-muted text-muted-foreground'
               }`}>
-                {currentStep > 2 ? <Check className="w-5 h-5" /> : '2'}
+                {currentStep > 2 ? <Check className="w-4 h-4 md:w-5 md:h-5" /> : '2'}
               </div>
-              <div className="ml-2 hidden sm:block">
-                <p className="text-xs md:text-sm font-medium text-foreground">Vehicle</p>
+              <div className="ml-1.5 hidden lg:block">
+                <p className="text-xs font-medium text-foreground">Date & Time</p>
+              </div>
+            </div>
+
+            {/* Connector */}
+            <div className={`flex-1 h-0.5 mx-1.5 md:mx-2 ${currentStep >= 3 ? 'bg-sage-dark' : 'bg-border'}`} />
+
+            {/* Step 3: Passengers */}
+            <div className="flex items-center">
+              <div className={`w-7 h-7 md:w-9 md:h-9 rounded-full flex items-center justify-center font-semibold text-xs md:text-sm ${
+                currentStep >= 3 ? 'bg-sage-dark text-white' : 'bg-muted text-muted-foreground'
+              }`}>
+                {currentStep > 3 ? <Check className="w-4 h-4 md:w-5 md:h-5" /> : '3'}
+              </div>
+              <div className="ml-1.5 hidden lg:block">
+                <p className="text-xs font-medium text-foreground">Passengers</p>
+              </div>
+            </div>
+
+            {/* Connector */}
+            <div className={`flex-1 h-0.5 mx-1.5 md:mx-2 ${currentStep >= 4 ? 'bg-sage-dark' : 'bg-border'}`} />
+
+            {/* Step 4: Vehicle */}
+            <div className="flex items-center">
+              <div className={`w-7 h-7 md:w-9 md:h-9 rounded-full flex items-center justify-center font-semibold text-xs md:text-sm ${
+                currentStep >= 4 ? 'bg-sage-dark text-white' : 'bg-muted text-muted-foreground'
+              }`}>
+                {currentStep > 4 ? <Check className="w-4 h-4 md:w-5 md:h-5" /> : '4'}
+              </div>
+              <div className="ml-1.5 hidden lg:block">
+                <p className="text-xs font-medium text-foreground">Vehicle</p>
               </div>
             </div>
           </div>
 
           {/* Mobile step labels */}
-          <div className="sm:hidden mt-3 text-center">
+          <div className="lg:hidden mt-3 text-center">
             <p className="text-sm font-medium text-foreground">
-              {currentStep === 1 && 'Journey Details'}
-              {currentStep === 2 && 'Passengers & Vehicle'}
+              {currentStep === 1 && 'Locations'}
+              {currentStep === 2 && 'Date & Time'}
+              {currentStep === 3 && 'Passengers & Luggage'}
+              {currentStep === 4 && 'Choose Vehicle'}
             </p>
           </div>
         </div>
@@ -204,9 +266,20 @@ function QuotePageContent() {
       {/* Form Content */}
       <section className="py-6 md:py-12">
         <div className="container px-4 mx-auto max-w-2xl">
-          <div className="bg-card rounded-2xl md:rounded-3xl shadow-xl p-4 md:p-8 space-y-6 md:space-y-8">
+          {/* Map Preview - Persistent across steps after locations selected */}
+          {pickupLocation && dropoffLocation && (
+            <div className="mb-6 animate-fade-up">
+              <MapPreview
+                pickup={pickupLocation}
+                dropoff={dropoffLocation}
+                waypoints={waypoints}
+              />
+            </div>
+          )}
 
-            {/* Step 1: Journey Details */}
+          <div className="bg-card rounded-2xl md:rounded-3xl shadow-deep p-4 md:p-8 space-y-6 md:space-y-8">
+
+            {/* Step 1: Locations */}
             {currentStep === 1 && (
               <div className="space-y-6">
                 <div>
@@ -218,49 +291,75 @@ function QuotePageContent() {
                   </p>
                 </div>
 
-                <LocationInput
-                  label="Pickup Location"
-                  value={pickupLocation.address}
-                  onSelect={(address, placeId) => setPickupLocation({ address, placeId })}
-                  placeholder="e.g., Bournemouth Railway Station"
-                  autoFocus
+                <LocationStep
+                  pickup={pickupLocation}
+                  dropoff={dropoffLocation}
+                  waypoints={waypoints}
+                  onPickupChange={setPickupLocation}
+                  onDropoffChange={setDropoffLocation}
+                  onWaypointsChange={setWaypoints}
                 />
+              </div>
+            )}
 
-                <LocationInput
-                  label="Dropoff Location"
-                  value={dropoffLocation.address}
-                  onSelect={(address, placeId) => setDropoffLocation({ address, placeId })}
-                  placeholder="e.g., Poole Harbour"
-                />
+            {/* Step 2: Date & Time */}
+            {currentStep === 2 && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="font-playfair text-xl md:text-2xl font-semibold text-foreground mb-2">
+                    When do you need pickup?
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Select your preferred date and time
+                  </p>
+                </div>
 
-                <DateTimePicker
+                <DateTimeStep
                   selectedDate={pickupDate}
                   onChange={setPickupDate}
                 />
               </div>
             )}
 
-            {/* Step 2: Passengers & Vehicle */}
-            {currentStep === 2 && (
+            {/* Step 3: Passengers & Luggage */}
+            {currentStep === 3 && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="font-playfair text-xl md:text-2xl font-semibold text-foreground mb-2">
+                    How many passengers?
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Select passengers and luggage count
+                  </p>
+                </div>
+
+                <div className="bg-card rounded-2xl p-6 shadow-mobile border-2 border-sage-light space-y-6">
+                  <PassengerCounter
+                    count={passengers}
+                    onChange={setPassengers}
+                  />
+
+                  <div className="border-t border-border pt-6">
+                    <LuggageCounter
+                      count={luggage}
+                      onChange={setLuggage}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Vehicle Selection */}
+            {currentStep === 4 && (
               <div className="space-y-6">
                 <div>
                   <h2 className="font-playfair text-xl md:text-2xl font-semibold text-foreground mb-2">
                     Choose your vehicle
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    Select passengers, luggage, and vehicle type
+                    Select the vehicle that suits your needs
                   </p>
                 </div>
-
-                <PassengerCounter
-                  count={passengers}
-                  onChange={setPassengers}
-                />
-
-                <LuggageCounter
-                  count={luggage}
-                  onChange={setLuggage}
-                />
 
                 <VehicleSelector
                   selected={vehicleType}
@@ -297,11 +396,13 @@ function QuotePageContent() {
                 onClick={handleNextStep}
                 disabled={
                   (currentStep === 1 && !canProceedFromStep1()) ||
-                  (currentStep === 2 && !canProceedFromStep2())
+                  (currentStep === 2 && !canProceedFromStep2()) ||
+                  (currentStep === 3 && !canProceedFromStep3()) ||
+                  (currentStep === 4 && !canProceedFromStep4())
                 }
                 className="flex-1"
               >
-                {currentStep === 2 ? (
+                {currentStep === 4 ? (
                   <>Get Quote</>
                 ) : (
                   <>

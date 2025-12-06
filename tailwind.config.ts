@@ -60,6 +60,9 @@ const config: Config = {
       boxShadow: {
         "soft": "0 2px 8px rgba(0, 0, 0, 0.08)",
         "card": "0 4px 16px rgba(0, 0, 0, 0.1)",
+        "deep": "0 8px 24px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.1)",
+        "floating": "0 12px 32px rgba(0, 0, 0, 0.2), 0 6px 12px rgba(0, 0, 0, 0.12)",
+        "mobile": "0 6px 20px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.1)",
       },
       animation: {
         "fade-up": "fadeUp 0.6s ease-out",

@@ -78,7 +78,8 @@
       "Bash(aws amplify list-apps:*)",
       "Bash(aws amplify list-jobs:*)",
       "Bash(aws amplify get-job:*)",
-      "Bash(aws lambda get-function-configuration:*)"
+      "Bash(aws lambda get-function-configuration:*)",
+      "Bash(ls -la \"c:\\VSProjects\\_Websites\\Durdle\\app\\quote\\components\"\" 2>/dev/null || echo \"Components directory check \")"
     ],
     "deny": [],
     "ask": []

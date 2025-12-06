@@ -1,16 +1,19 @@
 'use client';
 
-import { MapPin, Clock, Calendar, Users, Car, Luggage } from 'lucide-react';
+import { MapPin, Clock, Calendar, Users, Car, Luggage, ArrowLeft, X, Edit2 } from 'lucide-react';
 import { QuoteResponse } from '../lib/types';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 interface QuoteResultProps {
   quote: QuoteResponse;
   onNewQuote: () => void;
+  onBack?: () => void;
+  onCancel?: () => void;
 }
 
-export default function QuoteResult({ quote, onNewQuote }: QuoteResultProps) {
+export default function QuoteResult({ quote, onNewQuote, onBack, onCancel }: QuoteResultProps) {
   const [timeRemaining, setTimeRemaining] = useState<string>('');
 
   useEffect(() => {
@@ -40,6 +43,30 @@ export default function QuoteResult({ quote, onNewQuote }: QuoteResultProps) {
   return (
     <section className="pb-24">
       <div className="container px-4 mx-auto max-w-4xl">
+        {/* Navigation Header */}
+        <div className="flex items-center justify-between mb-6">
+          <Button
+            type="button"
+            variant="hero-outline"
+            size="default"
+            onClick={onBack || onNewQuote}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Back to Edit</span>
+            <span className="sm:hidden">Back</span>
+          </Button>
+
+          <Link
+            href="/"
+            className="flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <X className="w-4 h-4" />
+            <span className="hidden sm:inline">Cancel Quote</span>
+            <span className="sm:hidden">Cancel</span>
+          </Link>
+        </div>
+
         {/* Quote Card */}
         <div className="bg-card rounded-3xl shadow-xl overflow-hidden">
           {/* Header */}
@@ -54,6 +81,19 @@ export default function QuoteResult({ quote, onNewQuote }: QuoteResultProps) {
 
           {/* Journey Details */}
           <div className="p-6 space-y-6">
+            {/* Section Header with Edit */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-foreground">Journey Details</h3>
+              <button
+                type="button"
+                onClick={onBack || onNewQuote}
+                className="flex items-center gap-1.5 text-sm text-sage-dark hover:text-sage-dark/80 transition-colors"
+              >
+                <Edit2 className="w-4 h-4" />
+                <span>Edit</span>
+              </button>
+            </div>
+
             {/* Route Summary */}
             <div className="space-y-4">
               <div className="flex items-start gap-4">

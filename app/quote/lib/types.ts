@@ -21,6 +21,11 @@ export interface Location {
   placeId?: string;
 }
 
+// Waypoint Type (extends Location with wait time)
+export interface Waypoint extends Location {
+  waitTime?: number; // Wait time in minutes at this waypoint
+}
+
 // Quote Request (POST /v1/quotes)
 export interface QuoteRequest {
   pickupLocation: Location;
