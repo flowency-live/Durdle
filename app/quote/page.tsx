@@ -53,7 +53,7 @@ function QuotePageContent() {
     const routeId = searchParams.get('route');
 
     if (routeId) {
-      async function loadFixedRoute() {
+      const loadFixedRoute = async () => {
         try {
           const routes = await getFixedRoutes();
           const route = routes.find(r => r.routeId === routeId);
@@ -72,7 +72,7 @@ function QuotePageContent() {
         } catch (error) {
           console.error('Failed to load fixed route:', error);
         }
-      }
+      };
 
       loadFixedRoute();
     }
