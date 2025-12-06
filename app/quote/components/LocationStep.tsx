@@ -167,7 +167,7 @@ export default function LocationStep({
                 {waypoints.length < 3 && (
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="hero-outline"
                     onClick={addWaypoint}
                     className="w-full"
                   >
