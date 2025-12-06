@@ -91,34 +91,34 @@ export default function QuoteResult({ quote, onNewQuote, onBack, onConfirmBookin
             </div>
 
             {/* Route Summary */}
-            <div className="space-y-4">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full bg-sage-dark/10 flex items-center justify-center flex-shrink-0">
-                  <MapPin className="w-5 h-5 text-sage-dark" />
+            <div className="space-y-2">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-sage-dark/10 flex items-center justify-center flex-shrink-0">
+                  <MapPin className="w-4 h-4 text-sage-dark" />
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-foreground">
                     {quote.pickupLocation.address}
                   </p>
-                  <p className="text-sm text-muted-foreground mt-1">Pickup location</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Pickup location</p>
                 </div>
               </div>
 
               {/* Waypoints */}
               {quote.waypoints && quote.waypoints.length > 0 && quote.waypoints.map((waypoint, index) => (
                 <div key={index}>
-                  <div className="flex items-center gap-4 pl-5">
-                    <div className="h-12 w-0.5 bg-border" />
+                  <div className="flex items-center gap-3 pl-4">
+                    <div className="h-6 w-0.5 bg-border" />
                   </div>
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                      <MapPin className="w-5 h-5 text-amber-600" />
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                      <MapPin className="w-4 h-4 text-amber-600" />
                     </div>
                     <div className="flex-1">
                       <p className="font-medium text-foreground">
                         {waypoint.address}
                       </p>
-                      <p className="text-sm text-muted-foreground mt-1">
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         Stop {index + 1}
                         {waypoint.waitTime && waypoint.waitTime > 0 && (
                           <span className="ml-2 text-amber-600">
@@ -131,11 +131,11 @@ export default function QuoteResult({ quote, onNewQuote, onBack, onConfirmBookin
                 </div>
               ))}
 
-              <div className="flex items-center gap-4 pl-5">
-                <div className="h-12 w-0.5 bg-border" />
+              <div className="flex items-center gap-3 pl-4">
+                <div className="h-6 w-0.5 bg-border" />
               </div>
 
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-full bg-navy-dark/10 flex items-center justify-center flex-shrink-0">
                   <MapPin className="w-5 h-5 text-navy-dark" />
                 </div>
