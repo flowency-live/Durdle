@@ -50,7 +50,7 @@ export default function Error({
           </Button>
           <Button
             onClick={() => window.location.href = '/'}
-            variant="outline"
+            variant="hero-outline"
             className="w-full"
           >
             Return to home

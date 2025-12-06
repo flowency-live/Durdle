@@ -41,7 +41,7 @@ export default function QuoteError({
           </Button>
           <Button
             onClick={() => window.location.href = '/'}
-            variant="outline"
+            variant="hero-outline"
             className="w-full"
           >
             Return to home
