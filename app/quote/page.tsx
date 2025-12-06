@@ -146,9 +146,9 @@ function QuotePageContent() {
     try {
       setLoading(true);
 
-      // Filter out empty waypoints and send full Waypoint objects with wait times
+      // Filter out empty waypoints - must have both address AND placeId
       const filteredWaypoints: Waypoint[] = waypoints
-        .filter(w => w.address.trim() !== '');
+        .filter(w => w.address.trim() !== '' && w.placeId && w.placeId.trim() !== '');
 
       const request: QuoteRequest = {
         pickupLocation,
@@ -160,9 +160,12 @@ function QuotePageContent() {
         vehicleType: vehicleType as 'standard' | 'executive' | 'minibus',
       };
 
+      console.log('Quote request:', request);
+
       const response = await calculateQuote(request);
       setQuote(response);
     } catch (err) {
+      console.error('Quote calculation error:', err);
       setError(err instanceof Error ? err.message : 'Failed to calculate quote. Please try again.');
     } finally {
       setLoading(false);

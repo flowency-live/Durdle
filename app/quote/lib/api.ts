@@ -19,8 +19,19 @@ export async function calculateQuote(request: QuoteRequest): Promise<QuoteRespon
   });
 
   if (!response.ok) {
-    const error: ApiError = await response.json();
-    throw new Error(error.error?.message || 'Failed to calculate quote');
+    let errorMessage = 'Failed to calculate quote';
+
+    try {
+      const error: ApiError = await response.json();
+      errorMessage = error.error?.message || errorMessage;
+      console.error('API Error Response:', error);
+    } catch (parseError) {
+      // If response isn't JSON (e.g., 500 errors), use status text
+      errorMessage = `Server error (${response.status}): ${response.statusText}`;
+      console.error('Failed to parse error response:', parseError);
+    }
+
+    throw new Error(errorMessage);
   }
 
   return response.json();
