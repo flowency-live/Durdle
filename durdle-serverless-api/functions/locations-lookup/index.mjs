@@ -53,6 +53,26 @@ export const handler = async (event) => {
   try {
     const { queryStringParameters } = event;
 
+    // Handle reverse geocoding endpoint
+    if (path.includes('/geocode')) {
+      if (!queryStringParameters || !queryStringParameters.lat || !queryStringParameters.lng) {
+        return errorResponse(400, 'Missing required query parameters: lat, lng', null, headers);
+      }
+
+      const { lat, lng } = queryStringParameters;
+      const result = await fetchReverseGeocode(lat, lng);
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          ...result,
+          status: 'OK'
+        })
+      };
+    }
+
+    // Handle autocomplete endpoint
     if (!queryStringParameters || !queryStringParameters.input) {
       return errorResponse(400, 'Missing required query parameter: input', null, headers);
     }
@@ -122,6 +142,35 @@ async function fetchAutocomplete(input, sessionToken) {
     types: prediction.types,
     icon: getIconForTypes(prediction.types)
   }));
+}
+
+async function fetchReverseGeocode(lat, lng) {
+  const apiKey = await getGoogleMapsApiKey();
+
+  const url = 'https://maps.googleapis.com/maps/api/geocode/json';
+  const params = {
+    latlng: `${lat},${lng}`,
+    key: apiKey,
+    result_type: 'street_address|premise|route|locality'
+  };
+
+  const response = await axios.get(url, { params });
+
+  if (response.data.status !== 'OK' && response.data.status !== 'ZERO_RESULTS') {
+    throw new Error(`Google Maps Geocoding API error: ${response.data.status}`);
+  }
+
+  if (response.data.status === 'ZERO_RESULTS' || !response.data.results || response.data.results.length === 0) {
+    throw new Error('No address found for these coordinates');
+  }
+
+  const result = response.data.results[0];
+
+  return {
+    address: result.formatted_address,
+    place_id: result.place_id,
+    location: result.geometry.location
+  };
 }
 
 function getIconForTypes(types) {

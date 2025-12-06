@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { MapPin, Loader2 } from 'lucide-react';
+import { MapPin, Loader2, Crosshair } from 'lucide-react';
 
 interface LocationInputProps {
   label?: string;
@@ -29,6 +29,7 @@ export default function LocationInput({
   const [suggestions, setSuggestions] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [gettingLocation, setGettingLocation] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout>();
   const containerRef = useRef<HTMLDivElement>(null);
   const isSelectingRef = useRef(false);
@@ -98,6 +99,70 @@ export default function LocationInput({
     setSuggestions([]);
   };
 
+  const handleUseCurrentLocation = async () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser');
+      return;
+    }
+
+    setGettingLocation(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+
+          const response = await fetch(
+            `https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev/v1/locations/geocode?lat=${latitude}&lng=${longitude}`
+          );
+
+          if (!response.ok) {
+            throw new Error('Failed to get address from coordinates');
+          }
+
+          const data = await response.json();
+
+          if (data.address && data.place_id) {
+            isSelectingRef.current = true;
+            setInput(data.address);
+            onSelect(data.address, data.place_id);
+          } else {
+            throw new Error('Invalid response from geocoding service');
+          }
+        } catch (err) {
+          console.error('Geocoding error:', err);
+          alert(err instanceof Error ? err.message : 'Failed to get address from your location');
+        } finally {
+          setGettingLocation(false);
+        }
+      },
+      (err) => {
+        console.error('Geolocation error:', err);
+        let message = 'Failed to get your location';
+
+        switch (err.code) {
+          case err.PERMISSION_DENIED:
+            message = 'Location permission denied. Please enable location access in your browser settings.';
+            break;
+          case err.POSITION_UNAVAILABLE:
+            message = 'Location information is unavailable.';
+            break;
+          case err.TIMEOUT:
+            message = 'Location request timed out.';
+            break;
+        }
+
+        alert(message);
+        setGettingLocation(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  };
+
   return (
     <div className="space-y-2" ref={containerRef}>
       {label && (
@@ -143,6 +208,27 @@ export default function LocationInput({
           </div>
         )}
       </div>
+
+      {/* Current Location Button */}
+      <button
+        type="button"
+        onClick={handleUseCurrentLocation}
+        disabled={gettingLocation}
+        className="flex items-center gap-2 text-sm text-sage-dark hover:text-sage-dark/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {gettingLocation ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Getting your location...
+          </>
+        ) : (
+          <>
+            <Crosshair className="w-4 h-4" />
+            Use Current Location
+          </>
+        )}
+      </button>
+
       {error && (
         <p className="text-sm text-error">{error}</p>
       )}
