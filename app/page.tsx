@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from "react";
-import { MapPin, Clock, Shield, Car, Users, Briefcase, Plane, ArrowRight, KeyRound, Menu, X } from "lucide-react";
+import { MapPin, Clock, Shield, Car, Users, Briefcase, Plane, ArrowRight, KeyRound } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import Image from "next/image";
 import FeedbackButton from "./components/FeedbackButton";
@@ -106,21 +106,20 @@ export default function Home() {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-lg hover:bg-sage-light/10 transition-colors"
-              aria-label="Toggle menu"
+              className="md:hidden p-3 min-w-[60px] min-h-[60px] bg-transparent border-none outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-dark focus-visible:ring-offset-2 rounded menutoggle"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-navigation-menu"
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
             >
-              {mobileMenuOpen ? (
-                <X className="w-6 h-6 text-foreground" />
-              ) : (
-                <Menu className="w-6 h-6 text-foreground" />
-              )}
+              <div className={`icon-left ${mobileMenuOpen ? 'open' : ''}`} />
+              <div className={`icon-right ${mobileMenuOpen ? 'open' : ''}`} />
             </button>
           </div>
         </div>
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-sage-light/50 bg-background/98 backdrop-blur-lg">
+          <div id="mobile-navigation-menu" className="md:hidden border-t border-sage-light/50 bg-background/98 backdrop-blur-lg">
             <div className="container px-4 py-6 mx-auto">
               <nav className="flex flex-col gap-4">
                 <a

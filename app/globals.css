@@ -185,3 +185,72 @@
     animation: slide-up 0.3s ease-out forwards;
   }
 }
+
+/* Mobile Menu Toggle Animation - Hamburger to X */
+.menutoggle {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-left,
+.icon-right {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 3px;
+  background-color: hsl(var(--navy-dark));
+  transition: all 0.5s ease;
+}
+
+.icon-left::before,
+.icon-left::after {
+  content: "";
+  position: absolute;
+  width: 30px;
+  height: 3px;
+  background-color: hsl(var(--navy-dark));
+  transition: all 0.5s ease;
+  left: 0;
+}
+
+/* Create the 3-line burger */
+.icon-left::before {
+  top: -8px;
+}
+
+.icon-left::after {
+  top: 8px;
+}
+
+/* Hide the right icon initially */
+.icon-right {
+  opacity: 0;
+}
+
+/* Transform to X when open */
+.icon-left.open {
+  background-color: transparent;
+}
+
+.icon-left.open::before {
+  top: 0;
+  transform: rotate(45deg);
+}
+
+.icon-left.open::after {
+  top: 0;
+  transform: rotate(-45deg);
+}
+
+.icon-right.open {
+  opacity: 0;
+}
