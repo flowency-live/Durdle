@@ -17,7 +17,7 @@ import QuoteResult from './components/QuoteResult';
 import ContactDetailsForm, { ContactDetails } from './components/ContactDetailsForm';
 import PaymentForm, { PaymentDetails } from './components/PaymentForm';
 import BookingConfirmation from './components/BookingConfirmation';
-import { calculateQuote } from './lib/api';
+import { calculateQuote, getFixedRoutes } from './lib/api';
 import { QuoteResponse, QuoteRequest, Location, Waypoint } from './lib/types';
 import FeedbackButton from '../components/FeedbackButton';
 
@@ -50,19 +50,31 @@ function QuotePageContent() {
 
   // Pre-fill locations from URL parameters (from fixed route pricing)
   useEffect(() => {
-    const from = searchParams.get('from');
-    const to = searchParams.get('to');
+    const routeId = searchParams.get('route');
 
-    if (from) {
-      setPickupLocation({ address: from, placeId: '' });
-    }
-    if (to) {
-      setDropoffLocation({ address: to, placeId: '' });
-    }
+    if (routeId) {
+      async function loadFixedRoute() {
+        try {
+          const routes = await getFixedRoutes();
+          const route = routes.find(r => r.routeId === routeId);
 
-    // If both locations are provided (coming from pricing page), skip to step 2
-    if (from && to) {
-      setCurrentStep(2);
+          if (route) {
+            setPickupLocation({
+              address: route.originName,
+              placeId: route.originPlaceId
+            });
+            setDropoffLocation({
+              address: route.destinationName,
+              placeId: route.destinationPlaceId
+            });
+            setCurrentStep(2); // Skip to date/time step
+          }
+        } catch (error) {
+          console.error('Failed to load fixed route:', error);
+        }
+      }
+
+      loadFixedRoute();
     }
   }, [searchParams]);
 

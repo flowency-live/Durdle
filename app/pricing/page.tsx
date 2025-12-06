@@ -188,7 +188,7 @@ export default function PricingPage() {
 
                     {/* Book Now Button */}
                     <Link
-                      href={`/quote?from=${encodeURIComponent(route.originName)}&to=${encodeURIComponent(route.destinationName)}`}
+                      href={`/quote?route=${route.routeId}`}
                       className={buttonVariants({
                         variant: "hero-golden",
                         size: "default",

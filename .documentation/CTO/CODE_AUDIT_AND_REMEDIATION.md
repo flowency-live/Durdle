@@ -20,6 +20,11 @@
 - Centralized API config created (`lib/config/api.ts`)
 - Quote API client updated to use env vars
 
+✅ **Input Validation**
+- Zod validation added to quotes-calculator Lambda
+- Schema-based validation replaces manual field checks
+- Structured error responses with field-level details
+
 ✅ **Observability**
 - X-Ray tracing enabled on all 9 Lambda functions
 

@@ -13,7 +13,9 @@
       "Bash(aws lambda update-function-code:*)",
       "Bash(powershell -Command \"Compress-Archive -Path index.mjs,package.json,package-lock.json,node_modules -DestinationPath feedback-manager.zip -Force\")",
       "Bash(do echo \"Enabling X-Ray on $func...\")",
-      "Bash(aws lambda update-function-configuration:*)"
+      "Bash(aws lambda update-function-configuration:*)",
+      "Bash(npm install:*)",
+      "Bash(powershell -Command \"Compress-Archive -Path index.mjs,validation.mjs,package.json,package-lock.json,node_modules -DestinationPath quotes-calculator.zip -Force\")"
     ],
     "deny": [],
     "ask": []

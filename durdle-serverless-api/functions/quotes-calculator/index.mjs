@@ -3,6 +3,7 @@ import { DynamoDBDocumentClient, PutCommand, QueryCommand, ScanCommand, GetComma
 import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
 import axios from 'axios';
 import { randomUUID } from 'crypto';
+import { safeValidateQuoteRequest } from './validation.mjs';
 
 const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION });
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
@@ -351,56 +352,23 @@ export const handler = async (event) => {
   console.log('Quote calculator invoked:', JSON.stringify(event, null, 2));
 
   try {
-    const body = JSON.parse(event.body || '{}');
+    const rawBody = JSON.parse(event.body || '{}');
 
-    if (!body.pickupLocation?.address || !body.dropoffLocation?.address) {
+    // Validate request with Zod
+    const validation = safeValidateQuoteRequest(rawBody);
+
+    if (!validation.success) {
       return {
         statusCode: 400,
         headers: {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*',
         },
-        body: JSON.stringify({
-          error: {
-            code: 'INVALID_REQUEST',
-            message: 'Pickup and dropoff locations are required',
-          },
-        }),
+        body: JSON.stringify({ error: validation.error }),
       };
     }
 
-    if (!body.pickupTime) {
-      return {
-        statusCode: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-        body: JSON.stringify({
-          error: {
-            code: 'INVALID_REQUEST',
-            message: 'Pickup time is required',
-          },
-        }),
-      };
-    }
-
-    if (!body.passengers || body.passengers < 1 || body.passengers > 8) {
-      return {
-        statusCode: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-        body: JSON.stringify({
-          error: {
-            code: 'INVALID_REQUEST',
-            message: 'Passengers must be between 1 and 8',
-          },
-        }),
-      };
-    }
-
+    const body = validation.data;
     const vehicleType = body.vehicleType || 'standard';
     const waypoints = body.waypoints || [];
     const hasWaypoints = waypoints.length > 0;
