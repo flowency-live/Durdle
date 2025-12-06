@@ -363,7 +363,7 @@ function QuotePageContent() {
       </div>
 
       {/* Form Content */}
-      <section className="py-6 md:py-12">
+      <section className="py-6 md:py-12 pb-28 md:pb-12">
         <div className="container px-4 mx-auto max-w-2xl">
           {/* Map Preview - Shows route with all locations */}
           {pickupLocation && dropoffLocation && (
@@ -430,47 +430,51 @@ function QuotePageContent() {
                 <p className="text-sm text-error">{error}</p>
               </div>
             )}
-
-            {/* Navigation Buttons */}
-            <div className="flex gap-3 pt-4">
-              {currentStep > 1 && (
-                <Button
-                  type="button"
-                  variant="default"
-                  size="xl"
-                  onClick={handlePreviousStep}
-                  className="w-auto px-6"
-                >
-                  <ArrowLeft className="w-5 h-5 mr-2" />
-                  Back
-                </Button>
-              )}
-              <Button
-                type="button"
-                variant="hero-golden"
-                size="xl"
-                onClick={handleNextStep}
-                disabled={
-                  (currentStep === 1 && !canProceedFromStep1()) ||
-                  (currentStep === 2 && !canProceedFromStep2()) ||
-                  (currentStep === 3 && !canProceedFromStep3()) ||
-                  (currentStep === 4 && !canProceedFromStep4())
-                }
-                className="flex-1"
-              >
-                {currentStep === 4 ? (
-                  <>Get Quote</>
-                ) : (
-                  <>
-                    Next
-                    <ArrowRight className="w-5 h-5 ml-2" />
-                  </>
-                )}
-              </Button>
-            </div>
           </div>
         </div>
       </section>
+
+      {/* Sticky Navigation Buttons - Mobile Fixed, Desktop Inline */}
+      <div className="fixed md:static bottom-0 left-0 right-0 z-40 bg-background border-t md:border-0 border-border p-4 md:p-0 shadow-lg md:shadow-none">
+        <div className="container mx-auto max-w-2xl">
+          <div className="flex gap-3">
+            {currentStep > 1 && (
+              <Button
+                type="button"
+                variant="default"
+                size="xl"
+                onClick={handlePreviousStep}
+                className="w-auto px-6"
+              >
+                <ArrowLeft className="w-5 h-5 mr-2" />
+                Back
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="hero-golden"
+              size="xl"
+              onClick={handleNextStep}
+              disabled={
+                (currentStep === 1 && !canProceedFromStep1()) ||
+                (currentStep === 2 && !canProceedFromStep2()) ||
+                (currentStep === 3 && !canProceedFromStep3()) ||
+                (currentStep === 4 && !canProceedFromStep4())
+              }
+              className="flex-1"
+            >
+              {currentStep === 4 ? (
+                <>Get Quote</>
+              ) : (
+                <>
+                  Next
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
 
       {/* Loading Overlay */}
       {loading && <LoadingState />}

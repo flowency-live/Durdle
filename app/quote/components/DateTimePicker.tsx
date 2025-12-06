@@ -50,6 +50,7 @@ export default function DateTimePicker({ selectedDate, onChange, error }: DateTi
           maxDate={maxDate}
           filterTime={filterPassedTime}
           placeholderText="Select pickup date and time"
+          readOnly
           className={`w-full pl-12 pr-4 py-3 rounded-xl border ${
             error ? 'border-error' : 'border-border'
           } focus:outline-none focus:ring-2 focus:ring-sage-dark bg-background text-foreground`}
