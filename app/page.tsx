@@ -81,7 +81,7 @@ export default function Home() {
                 About
               </a>
               <a
-                href="#contact"
+                href="/quoteQR"
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 Contact
@@ -144,7 +144,7 @@ export default function Home() {
                   About
                 </a>
                 <a
-                  href="#contact"
+                  href="/quoteQR"
                   onClick={() => setMobileMenuOpen(false)}
                   className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
                 >

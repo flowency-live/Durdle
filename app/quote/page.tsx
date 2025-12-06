@@ -372,6 +372,7 @@ function QuotePageContent() {
                 pickup={pickupLocation}
                 dropoff={dropoffLocation}
                 waypoints={waypoints}
+                pickupTime={pickupDate}
               />
             </div>
           )}

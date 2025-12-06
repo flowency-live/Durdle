@@ -1,6 +1,6 @@
 'use client';
 
-import { MapPin, Clock, Calendar, Users, Car, Luggage, ArrowLeft, X, Edit2 } from 'lucide-react';
+import { MapPin, Clock, Calendar, Users, Car, Luggage, ArrowLeft, Edit2 } from 'lucide-react';
 import { QuoteResponse } from '../lib/types';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
@@ -49,7 +49,7 @@ export default function QuoteResult({ quote, onNewQuote, onBack, onConfirmBookin
     <section className="pb-24">
       <div className="container px-4 mx-auto max-w-4xl">
         {/* Navigation Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center mb-6">
           <Button
             type="button"
             variant="hero-outline"
@@ -61,15 +61,6 @@ export default function QuoteResult({ quote, onNewQuote, onBack, onConfirmBookin
             <span className="hidden sm:inline">Back to Edit</span>
             <span className="sm:hidden">Back</span>
           </Button>
-
-          <Link
-            href="/"
-            className="flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <X className="w-4 h-4" />
-            <span className="hidden sm:inline">Cancel Quote</span>
-            <span className="sm:hidden">Cancel</span>
-          </Link>
         </div>
 
         {/* Quote Card */}
@@ -142,16 +133,6 @@ export default function QuoteResult({ quote, onNewQuote, onBack, onConfirmBookin
 
               <div className="flex items-center gap-4 pl-5">
                 <div className="h-12 w-0.5 bg-border" />
-                <div className="flex-1 flex items-center gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Car className="w-4 h-4" />
-                    <span>{quote.journey.distance.text}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    <span>{quote.journey.duration.text}</span>
-                  </div>
-                </div>
               </div>
 
               <div className="flex items-start gap-4">
@@ -210,6 +191,15 @@ export default function QuoteResult({ quote, onNewQuote, onBack, onConfirmBookin
                   <p className="text-xs text-muted-foreground">Vehicle</p>
                   <p className="text-sm font-medium text-foreground">
                     {quote.vehicleType}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <MapPin className="w-5 h-5 text-sage-dark" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Distance</p>
+                  <p className="text-sm font-medium text-foreground">
+                    {quote.journey.distance.text}
                   </p>
                 </div>
               </div>
@@ -272,7 +262,7 @@ export default function QuoteResult({ quote, onNewQuote, onBack, onConfirmBookin
           </div>
 
           {/* CTA */}
-          <div className="p-6 bg-muted/50 space-y-4">
+          <div className="p-6 bg-muted/50 space-y-3">
             <Button
               type="button"
               variant="hero-golden"
@@ -283,7 +273,17 @@ export default function QuoteResult({ quote, onNewQuote, onBack, onConfirmBookin
             >
               Confirm Booking
             </Button>
-            <div className="text-center space-y-1">
+            <Link href="/" className="block">
+              <Button
+                type="button"
+                variant="default"
+                size="xl"
+                className="w-full"
+              >
+                Cancel Quote
+              </Button>
+            </Link>
+            <div className="text-center space-y-1 pt-2">
               <p className="text-sm text-muted-foreground">
                 Quote expires in: <span className="font-semibold text-foreground">{timeRemaining}</span>
               </p>

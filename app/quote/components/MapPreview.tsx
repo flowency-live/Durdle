@@ -15,6 +15,7 @@ interface MapPreviewProps {
   pickup: Location | null;
   dropoff: Location | null;
   waypoints?: Waypoint[];
+  pickupTime?: Date | null;
   className?: string;
 }
 
@@ -59,7 +60,7 @@ function FitBounds({ locations }: { locations: Array<{ coords?: Coordinates }> }
   return null;
 }
 
-export default function MapPreview({ pickup, dropoff, waypoints = [], className = '' }: MapPreviewProps) {
+export default function MapPreview({ pickup, dropoff, waypoints = [], pickupTime = null, className = '' }: MapPreviewProps) {
   const [mounted, setMounted] = useState(false);
   const [coordinates, setCoordinates] = useState<Map<string, Coordinates>>(new Map());
   const [isGeocoding, setIsGeocoding] = useState(false);
@@ -263,6 +264,22 @@ export default function MapPreview({ pickup, dropoff, waypoints = [], className 
             <div className="flex items-start gap-2">
               <span className="font-semibold min-w-[60px]">Dropoff:</span>
               <span className="truncate">{dropoff.address}</span>
+            </div>
+          )}
+          {pickupTime && (
+            <div className="flex items-start gap-2 mt-2 pt-2 border-t border-sage-light">
+              <span className="font-semibold min-w-[60px]">Pickup:</span>
+              <span>
+                {pickupTime.toLocaleDateString('en-GB', {
+                  weekday: 'short',
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric'
+                })} at {pickupTime.toLocaleTimeString('en-GB', {
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </span>
             </div>
           )}
         </div>
