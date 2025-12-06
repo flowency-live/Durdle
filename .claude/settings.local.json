@@ -3,7 +3,23 @@
     "allow": [
       "Bash(git log:*)",
       "Bash(npx tsc:*)",
-      "Bash(mkdir \"C:\\VSProjects\\_Websites\\Durdle\\.documentation\\CTO\")"
+      "Bash(mkdir \"C:\\VSProjects\\_Websites\\Durdle\\.documentation\\CTO\")",
+      "Bash(aws apigateway get-resources:*)",
+      "Bash(aws apigateway create-resource:*)",
+      "Bash(aws lambda get-function:*)",
+      "Bash(aws apigateway put-method:*)",
+      "Bash(MSYS_NO_PATHCONV=1 aws apigateway put-integration:*)",
+      "Bash(for dir in \"c:\\VSProjects\\_Websites\\Durdle\\durdle-serverless-api\\functions\"/*)",
+      "Bash(do if [ -d \"$dir\" ])",
+      "Bash(ls:*)",
+      "Bash(fi)",
+      "Bash(done)",
+      "Bash(for dir in */)",
+      "Bash(do echo \"=== $dir ===\")",
+      "Bash(awk:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

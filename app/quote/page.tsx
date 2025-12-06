@@ -8,7 +8,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import LocationStep from './components/LocationStep';
 import DateTimeStep from './components/DateTimeStep';
-import MapPreview from './components/MapPreview';
+// import MapPreview from './components/MapPreview'; // Disabled until backend API supports place-details endpoint
 import VehicleSelector from './components/VehicleSelector';
 import PassengerCounter from './components/PassengerCounter';
 import LuggageCounter from './components/LuggageCounter';

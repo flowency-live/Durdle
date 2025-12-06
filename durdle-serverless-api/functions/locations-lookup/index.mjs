@@ -53,6 +53,25 @@ export const handler = async (event) => {
   try {
     const { queryStringParameters } = event;
 
+    // Handle place details endpoint (placeId to lat/lng)
+    if (path.includes('/place-details')) {
+      if (!queryStringParameters || !queryStringParameters.placeId) {
+        return errorResponse(400, 'Missing required query parameter: placeId', null, headers);
+      }
+
+      const { placeId } = queryStringParameters;
+      const result = await fetchPlaceDetails(placeId);
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          location: result.location,
+          status: 'OK'
+        })
+      };
+    }
+
     // Handle reverse geocoding endpoint
     if (path.includes('/geocode')) {
       if (!queryStringParameters || !queryStringParameters.lat || !queryStringParameters.lng) {
@@ -142,6 +161,34 @@ async function fetchAutocomplete(input, sessionToken) {
     types: prediction.types,
     icon: getIconForTypes(prediction.types)
   }));
+}
+
+async function fetchPlaceDetails(placeId) {
+  const apiKey = await getGoogleMapsApiKey();
+
+  const url = 'https://maps.googleapis.com/maps/api/place/details/json';
+  const params = {
+    place_id: placeId,
+    fields: 'geometry',
+    key: apiKey
+  };
+
+  const response = await axios.get(url, { params });
+
+  if (response.data.status !== 'OK') {
+    throw new Error(`Google Maps Place Details API error: ${response.data.status}`);
+  }
+
+  if (!response.data.result || !response.data.result.geometry || !response.data.result.geometry.location) {
+    throw new Error('No location data found for this place ID');
+  }
+
+  return {
+    location: {
+      lat: response.data.result.geometry.location.lat,
+      lng: response.data.result.geometry.location.lng
+    }
+  };
 }
 
 async function fetchReverseGeocode(lat, lng) {
