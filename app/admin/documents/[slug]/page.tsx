@@ -12,6 +12,11 @@ const MDEditor = dynamic(
   { ssr: false }
 );
 
+const MarkdownPreview = dynamic(
+  () => import('@uiw/react-markdown-preview'),
+  { ssr: false }
+);
+
 interface DocumentData {
   content: string;
   sha: string;
@@ -358,7 +363,7 @@ Generated: ${new Date().toLocaleString()}
           </div>
         ) : (
           <div className="p-6" data-color-mode="dark">
-            <MDEditor.Markdown
+            <MarkdownPreview
               source={docData.content}
               style={{ backgroundColor: 'transparent', color: 'inherit' }}
             />

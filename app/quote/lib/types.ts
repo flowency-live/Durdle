@@ -105,18 +105,25 @@ export interface ApiError {
   };
 }
 
-// Fixed Route Types
+// Fixed Route Types (matches Lambda formatRoute response)
 export interface FixedRoute {
-  id: string;
-  fromLocation: string;
-  toLocation: string;
+  routeId: string;
+  originPlaceId: string;
+  originName: string;
+  originType: string;
+  destinationPlaceId: string;
+  destinationName: string;
+  destinationType: string;
+  vehicleId: string;
+  vehicleName: string;
+  price: number; // in pence
   distance: number;
-  durationMinutes: number;
-  basePrice: number;
-  vehicleType: string;
+  estimatedDuration: number;
   active: boolean;
-  created: string;
-  updated: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+  updatedBy: string;
 }
 
 export interface FixedRoutesResponse {

@@ -31,7 +31,7 @@ export default function PricingPage() {
 
   // Group routes by departure location
   const groupedRoutes = routes.reduce((acc, route) => {
-    const from = route.fromLocation;
+    const from = route.originName;
     if (!acc[from]) {
       acc[from] = [];
     }
@@ -148,7 +148,7 @@ export default function PricingPage() {
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {groupedRoutes[fromLocation].map((route) => (
                   <div
-                    key={route.id}
+                    key={route.routeId}
                     className="bg-card rounded-2xl p-6 shadow-lg border-2 border-sage-light hover:border-sage transition-all hover:shadow-xl"
                   >
                     {/* Route Info */}
@@ -157,7 +157,7 @@ export default function PricingPage() {
                         <MapPin className="w-5 h-5 text-sage-dark flex-shrink-0 mt-0.5" />
                         <div className="flex-1">
                           <div className="font-semibold text-navy text-lg">
-                            {route.toLocation}
+                            {route.destinationName}
                           </div>
                         </div>
                       </div>
@@ -166,7 +166,7 @@ export default function PricingPage() {
                         <span>{route.distance} miles</span>
                         <span className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
-                          {route.durationMinutes} min
+                          {route.estimatedDuration} min
                         </span>
                       </div>
                     </div>
@@ -174,21 +174,21 @@ export default function PricingPage() {
                     {/* Vehicle Type */}
                     <div className="mb-4 py-2 px-3 bg-sage-light/30 rounded-lg">
                       <p className="text-xs text-navy-light font-medium">
-                        {route.vehicleType}
+                        {route.vehicleName}
                       </p>
                     </div>
 
                     {/* Price */}
                     <div className="mb-4">
                       <div className="text-3xl font-bold text-sage-dark">
-                        £{route.basePrice.toFixed(2)}
+                        £{(route.price / 100).toFixed(2)}
                       </div>
                       <p className="text-xs text-muted-foreground">One-way journey</p>
                     </div>
 
                     {/* Book Now Button */}
                     <Link
-                      href={`/quote?from=${encodeURIComponent(route.fromLocation)}&to=${encodeURIComponent(route.toLocation)}`}
+                      href={`/quote?from=${encodeURIComponent(route.originName)}&to=${encodeURIComponent(route.destinationName)}`}
                       className={buttonVariants({
                         variant: "hero-golden",
                         size: "default",
