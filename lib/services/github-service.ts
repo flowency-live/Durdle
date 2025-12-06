@@ -21,6 +21,18 @@ export interface GitHubError {
   status?: number;
 }
 
+interface GitHubContentItem {
+  type: string;
+  name: string;
+  path: string;
+  sha: string;
+  size: number;
+  url: string;
+  html_url: string;
+  git_url: string;
+  download_url: string | null;
+}
+
 /**
  * Fetch a document from GitHub
  */
@@ -220,8 +232,8 @@ export async function listDocuments(): Promise<Array<{slug: string, name: string
     }
 
     return data
-      .filter((item: any) => item.type === 'file' && item.name.endsWith('.md'))
-      .map((item: any) => ({
+      .filter((item: GitHubContentItem) => item.type === 'file' && item.name.endsWith('.md'))
+      .map((item: GitHubContentItem) => ({
         slug: item.name.replace('.md', ''),
         name: item.name,
         path: item.path
@@ -238,6 +250,6 @@ export async function listDocuments(): Promise<Array<{slug: string, name: string
 /**
  * Type guard to check if result is an error
  */
-export function isGitHubError(result: any): result is GitHubError {
-  return result && typeof result === 'object' && 'error' in result;
+export function isGitHubError(result: unknown): result is GitHubError {
+  return result !== null && typeof result === 'object' && 'error' in result;
 }
