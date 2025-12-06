@@ -8,7 +8,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import LocationStep from './components/LocationStep';
 import DateTimeStep from './components/DateTimeStep';
-// import MapPreview from './components/MapPreview'; // Disabled until backend API supports place-details endpoint
+import MapPreview from './components/MapPreview';
 import VehicleSelector from './components/VehicleSelector';
 import PassengerCounter from './components/PassengerCounter';
 import LuggageCounter from './components/LuggageCounter';
@@ -350,7 +350,7 @@ function QuotePageContent() {
       {/* Form Content */}
       <section className="py-6 md:py-12">
         <div className="container px-4 mx-auto max-w-2xl">
-          {/* Map Preview - Disabled: Backend API endpoint /v1/locations/place-details does not exist
+          {/* Map Preview - Shows route with all locations */}
           {pickupLocation && dropoffLocation && (
             <div className="mb-6 animate-fade-up">
               <MapPreview
@@ -360,7 +360,6 @@ function QuotePageContent() {
               />
             </div>
           )}
-          */}
 
           <div className="bg-card rounded-2xl md:rounded-3xl shadow-deep p-4 md:p-8 space-y-6 md:space-y-8">
 
