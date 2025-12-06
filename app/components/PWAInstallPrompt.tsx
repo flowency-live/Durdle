@@ -20,7 +20,7 @@ export default function PWAInstallPrompt() {
     setIsStandalone(isStandAlone);
 
     // Check if iOS
-    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as Window & { MSStream?: unknown }).MSStream;
     setIsIOS(iOS);
 
     // Check if prompt was previously dismissed
@@ -119,8 +119,8 @@ export default function PWAInstallPrompt() {
                       <li>
                         Tap the <Share className="inline w-4 h-4 mx-1" /> Share button below
                       </li>
-                      <li>Select "Add to Home Screen"</li>
-                      <li>Tap "Add"</li>
+                      <li>Select &ldquo;Add to Home Screen&rdquo;</li>
+                      <li>Tap &ldquo;Add&rdquo;</li>
                     </ol>
                   </div>
                 ) : (
