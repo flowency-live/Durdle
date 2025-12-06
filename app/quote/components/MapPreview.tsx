@@ -4,18 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { Location } from '../lib/types';
 import dynamic from 'next/dynamic';
 import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-
-// Fix Leaflet default icon issue with Next.js
-if (typeof window !== 'undefined') {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  delete (L.Icon.Default.prototype as any)._getIconUrl;
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  });
-}
 
 interface MapPreviewProps {
   pickup: Location | null;
@@ -51,6 +39,19 @@ export default function MapPreview({ pickup, dropoff, waypoints = [], className 
 
   useEffect(() => {
     setMounted(true);
+
+    // Fix Leaflet default icon issue with Next.js
+    if (typeof window !== 'undefined') {
+      import('leaflet').then((L) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        delete (L.Icon.Default.prototype as any)._getIconUrl;
+        L.Icon.Default.mergeOptions({
+          iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+          iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+          shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        });
+      });
+    }
   }, []);
 
   // TODO: Implement proper geocoding using Google Places API placeId or Nominatim

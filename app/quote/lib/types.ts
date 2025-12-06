@@ -30,7 +30,7 @@ export interface Waypoint extends Location {
 export interface QuoteRequest {
   pickupLocation: Location;
   dropoffLocation: Location;
-  waypoints?: Location[];
+  waypoints?: Waypoint[]; // Changed from Location[] to support wait times
   pickupTime: string; // ISO 8601 format
   passengers: number; // 1-8
   luggage?: number; // Number of bags
@@ -68,7 +68,8 @@ export interface QuoteResponse {
     breakdown: {
       baseFare: number; // pence
       distanceCharge: number;
-      timeCharge: number;
+      timeCharge?: number; // Legacy field (deprecated)
+      waitTimeCharge: number; // Wait time charge (v2.0)
       subtotal: number;
       tax: number;
       total: number;
@@ -78,6 +79,7 @@ export interface QuoteResponse {
   vehicleType: string;
   pickupLocation: Location;
   dropoffLocation: Location;
+  waypoints?: Waypoint[]; // Include waypoints in response
   pickupTime: string;
   passengers: number;
   luggage?: number;
@@ -89,7 +91,7 @@ export interface QuoteResponse {
 export interface QuoteFormData {
   pickupLocation: Location;
   dropoffLocation: Location;
-  waypoints: Location[];
+  waypoints: Waypoint[]; // Changed to Waypoint[] for wait time support
   pickupDate: Date | null;
   pickupTime: string;
   passengers: number;

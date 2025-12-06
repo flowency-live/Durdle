@@ -119,15 +119,14 @@ function QuotePageContent() {
     try {
       setLoading(true);
 
-      // Convert waypoints to Location[] for API (remove wait time info for now)
-      const waypointLocations: Location[] = waypoints
-        .filter(w => w.address.trim() !== '')
-        .map(({ address, placeId }) => ({ address, placeId }));
+      // Filter out empty waypoints and send full Waypoint objects with wait times
+      const filteredWaypoints: Waypoint[] = waypoints
+        .filter(w => w.address.trim() !== '');
 
       const request: QuoteRequest = {
         pickupLocation,
         dropoffLocation,
-        waypoints: waypointLocations.length > 0 ? waypointLocations : undefined,
+        waypoints: filteredWaypoints.length > 0 ? filteredWaypoints : undefined,
         pickupTime: pickupDate.toISOString(),
         passengers,
         luggage,

@@ -107,6 +107,33 @@ export default function QuoteResult({ quote, onNewQuote, onBack }: QuoteResultPr
                 </div>
               </div>
 
+              {/* Waypoints */}
+              {quote.waypoints && quote.waypoints.length > 0 && quote.waypoints.map((waypoint, index) => (
+                <div key={index}>
+                  <div className="flex items-center gap-4 pl-5">
+                    <div className="h-12 w-0.5 bg-border" />
+                  </div>
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                      <MapPin className="w-5 h-5 text-amber-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground">
+                        {waypoint.address}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Stop {index + 1}
+                        {waypoint.waitTime && waypoint.waitTime > 0 && (
+                          <span className="ml-2 text-amber-600">
+                            • Wait {waypoint.waitTime} min
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
               <div className="flex items-center gap-4 pl-5">
                 <div className="h-12 w-0.5 bg-border" />
                 <div className="flex-1 flex items-center gap-4 text-sm text-muted-foreground">
@@ -211,12 +238,23 @@ export default function QuoteResult({ quote, onNewQuote, onBack }: QuoteResultPr
                     £{(quote.pricing.breakdown.distanceCharge / 100).toFixed(2)}
                   </span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Time charge</span>
-                  <span className="font-medium text-foreground">
-                    £{(quote.pricing.breakdown.timeCharge / 100).toFixed(2)}
-                  </span>
-                </div>
+                {quote.pricing.breakdown.waitTimeCharge > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Wait time charge</span>
+                    <span className="font-medium text-foreground">
+                      £{(quote.pricing.breakdown.waitTimeCharge / 100).toFixed(2)}
+                    </span>
+                  </div>
+                )}
+                {/* Legacy support for old quotes with timeCharge */}
+                {quote.pricing.breakdown.timeCharge !== undefined && quote.pricing.breakdown.timeCharge > 0 && !quote.pricing.breakdown.waitTimeCharge && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Time charge</span>
+                    <span className="font-medium text-foreground">
+                      £{(quote.pricing.breakdown.timeCharge / 100).toFixed(2)}
+                    </span>
+                  </div>
+                )}
                 <div className="border-t border-border pt-3 flex justify-between items-center">
                   <span className="text-lg font-bold text-foreground">Total</span>
                   <span className="text-3xl font-bold text-sage-dark">

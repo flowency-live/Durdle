@@ -16,6 +16,7 @@ export const quoteFormSchema = z.object({
     z.object({
       address: z.string(),
       placeId: z.string().optional(),
+      waitTime: z.number().min(0, 'Wait time cannot be negative').max(480, 'Maximum wait time is 8 hours (480 minutes)').optional(),
     })
   ).max(3, 'Maximum 3 waypoints allowed').optional(),
   pickupTime: z.string().refine((date) => {

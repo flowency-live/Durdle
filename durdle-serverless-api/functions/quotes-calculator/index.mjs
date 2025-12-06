@@ -194,14 +194,78 @@ async function calculateDistance(origin, destination, apiKey) {
   }
 }
 
-async function calculatePricing(distanceMiles, durationMinutes, vehicleType = 'standard') {
+async function calculateRouteWithWaypoints(origin, destination, waypoints, apiKey) {
+  const url = 'https://maps.googleapis.com/maps/api/directions/json';
+
+  try {
+    // Build waypoints parameter for Directions API
+    // Format: optimize:false|place_id:ChIJ...|place_id:ChIJ...
+    const waypointsParam = waypoints
+      .filter(wp => wp.placeId || wp.address)
+      .map(wp => wp.placeId ? `place_id:${wp.placeId}` : wp.address)
+      .join('|');
+
+    const params = {
+      origin: origin,
+      destination: destination,
+      key: apiKey,
+      units: 'imperial',
+    };
+
+    // Only add waypoints parameter if we have waypoints
+    if (waypointsParam) {
+      params.waypoints = `optimize:false|${waypointsParam}`;
+    }
+
+    const response = await axios.get(url, { params });
+
+    if (response.data.status !== 'OK') {
+      throw new Error(`Google Maps Directions API error: ${response.data.status}`);
+    }
+
+    if (!response.data.routes || response.data.routes.length === 0) {
+      throw new Error('No route found');
+    }
+
+    const route = response.data.routes[0];
+    const leg = route.legs[0];
+
+    // Calculate total distance and duration across all legs
+    let totalDistance = 0;
+    let totalDuration = 0;
+
+    route.legs.forEach(leg => {
+      totalDistance += leg.distance.value;
+      totalDuration += leg.duration.value;
+    });
+
+    return {
+      distance: {
+        meters: totalDistance,
+        miles: (totalDistance / 1609.34).toFixed(2),
+        text: `${(totalDistance / 1609.34).toFixed(1)} mi`,
+      },
+      duration: {
+        seconds: totalDuration,
+        minutes: Math.ceil(totalDuration / 60),
+        text: `${Math.ceil(totalDuration / 60)} mins`,
+      },
+      polyline: route.overview_polyline?.points || null,
+    };
+  } catch (error) {
+    console.error('Route calculation with waypoints failed:', error);
+    throw new Error('Unable to calculate route with waypoints');
+  }
+}
+
+async function calculatePricing(distanceMiles, waitTimeMinutes, vehicleType = 'standard') {
   const allPricing = await getVehiclePricing();
   const rates = allPricing[vehicleType] || allPricing.standard;
 
   const baseFare = rates.baseFare;
   const distanceCharge = Math.round(distanceMiles * rates.perMile);
-  const timeCharge = Math.round(durationMinutes * rates.perMinute);
-  const subtotal = baseFare + distanceCharge + timeCharge;
+  const waitTimeCharge = Math.round(waitTimeMinutes * rates.perMinute);
+  const subtotal = baseFare + distanceCharge + waitTimeCharge;
   const tax = 0;
   const total = subtotal + tax;
 
@@ -210,7 +274,7 @@ async function calculatePricing(distanceMiles, durationMinutes, vehicleType = 's
     breakdown: {
       baseFare,
       distanceCharge,
-      timeCharge,
+      waitTimeCharge,
       subtotal,
       tax,
       total,
@@ -338,10 +402,16 @@ export const handler = async (event) => {
     }
 
     const vehicleType = body.vehicleType || 'standard';
+    const waypoints = body.waypoints || [];
+    const hasWaypoints = waypoints.length > 0;
 
-    // Check for fixed route first if placeIds are provided
+    // Calculate total wait time from waypoints (in minutes)
+    const totalWaitTime = waypoints.reduce((sum, wp) => sum + (wp.waitTime || 0), 0);
+
+    // Check for fixed route first if placeIds are provided AND no waypoints
+    // Fixed routes do not support waypoints
     let fixedRoute = null;
-    if (body.pickupLocation.placeId && body.dropoffLocation.placeId) {
+    if (!hasWaypoints && body.pickupLocation.placeId && body.dropoffLocation.placeId) {
       fixedRoute = await checkFixedRoute(
         body.pickupLocation.placeId,
         body.dropoffLocation.placeId,
@@ -378,7 +448,7 @@ export const handler = async (event) => {
         breakdown: {
           baseFare: 0,
           distanceCharge: 0,
-          timeCharge: 0,
+          waitTimeCharge: 0,
           subtotal: fixedRoute.price,
           tax: 0,
           total: fixedRoute.price
@@ -399,15 +469,30 @@ export const handler = async (event) => {
       console.log('Using variable pricing calculation');
       const apiKey = await getGoogleMapsApiKey();
 
-      route = await calculateDistance(
-        body.pickupLocation.address,
-        body.dropoffLocation.address,
-        apiKey
-      );
+      if (hasWaypoints) {
+        // Use Directions API for routes with waypoints
+        console.log(`Calculating route with ${waypoints.length} waypoints, total wait time: ${totalWaitTime} minutes`);
+        route = await calculateRouteWithWaypoints(
+          body.pickupLocation.placeId || body.pickupLocation.address,
+          body.dropoffLocation.placeId || body.dropoffLocation.address,
+          waypoints,
+          apiKey
+        );
+      } else {
+        // Use Distance Matrix API for simple routes
+        console.log('Calculating simple route (no waypoints)');
+        route = await calculateDistance(
+          body.pickupLocation.address,
+          body.dropoffLocation.address,
+          apiKey
+        );
+      }
 
+      // Calculate pricing: baseFare + (distance × perMile) + (waitTime × perMinute)
+      // Note: Journey driving time is NOT charged, only explicit wait times
       pricing = await calculatePricing(
         parseFloat(route.distance.miles),
-        route.duration.minutes,
+        totalWaitTime, // Only charge for explicit wait times, not driving time
         vehicleType
       );
     }
@@ -424,13 +509,14 @@ export const handler = async (event) => {
         distance: route.distance,
         duration: route.duration,
         route: {
-          polyline: null,
+          polyline: route.polyline || null,
         },
       },
       pricing,
       vehicleType,
       pickupLocation: body.pickupLocation,
       dropoffLocation: body.dropoffLocation,
+      ...(hasWaypoints && { waypoints }), // Only include waypoints if they exist
       pickupTime: body.pickupTime,
       passengers: body.passengers,
       luggage: body.luggage || 0,
