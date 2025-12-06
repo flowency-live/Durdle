@@ -1,26 +1,12 @@
-documents:1 <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes">
-page-8edd69ab726bdd1d.js:1  GET https://api.github.com/repos/flowency-live/client-docs/contents/durdle/admin 404 (Not Found)
-u @ page-8edd69ab726bdd1d.js:1
-m @ page-8edd69ab726bdd1d.js:1
-(anonymous) @ page-8edd69ab726bdd1d.js:1
+icon-192.png:1  GET https://durdle.flowency.build/icon-192.png 404 (Not Found)
+quote:1 Error while trying to use the following icon from the Manifest: https://durdle.flowency.build/icon-192.png (Download error or resource isn't a valid image)
+quote:1 Access to fetch at 'https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev/v1/locations/place-details?placeId=ChIJE5s-JhFLekgRDqlAF-aWYVI' from origin 'https://durdle.flowency.build' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+page-7544921d0d1c3a59.js:1  GET https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev/v1/locations/place-details?placeId=ChIJE5s-JhFLekgRDqlAF-aWYVI net::ERR_FAILED 403 (Forbidden)
+e @ page-7544921d0d1c3a59.js:1
+(anonymous) @ page-7544921d0d1c3a59.js:1
+(anonymous) @ page-7544921d0d1c3a59.js:1
 aW @ fd9d1056-8f5c0e971c2480b7.js:1
 oe @ fd9d1056-8f5c0e971c2480b7.js:1
-ol @ fd9d1056-8f5c0e971c2480b7.js:1
-or @ fd9d1056-8f5c0e971c2480b7.js:1
-ol @ fd9d1056-8f5c0e971c2480b7.js:1
-or @ fd9d1056-8f5c0e971c2480b7.js:1
-ol @ fd9d1056-8f5c0e971c2480b7.js:1
-or @ fd9d1056-8f5c0e971c2480b7.js:1
-ol @ fd9d1056-8f5c0e971c2480b7.js:1
-or @ fd9d1056-8f5c0e971c2480b7.js:1
-ol @ fd9d1056-8f5c0e971c2480b7.js:1
-or @ fd9d1056-8f5c0e971c2480b7.js:1
-ol @ fd9d1056-8f5c0e971c2480b7.js:1
-or @ fd9d1056-8f5c0e971c2480b7.js:1
-ol @ fd9d1056-8f5c0e971c2480b7.js:1
-or @ fd9d1056-8f5c0e971c2480b7.js:1
-ol @ fd9d1056-8f5c0e971c2480b7.js:1
-or @ fd9d1056-8f5c0e971c2480b7.js:1
 ol @ fd9d1056-8f5c0e971c2480b7.js:1
 or @ fd9d1056-8f5c0e971c2480b7.js:1
 ol @ fd9d1056-8f5c0e971c2480b7.js:1
@@ -139,14 +125,22 @@ ol @ fd9d1056-8f5c0e971c2480b7.js:1
 id @ fd9d1056-8f5c0e971c2480b7.js:1
 o @ fd9d1056-8f5c0e971c2480b7.js:1
 M @ 117-a7249a5dd453f649.js:1
-117-a7249a5dd453f649.js:1 Failed to list documents from GitHub: Error: GitHub API error: 404
-    at u (page-8edd69ab726bdd1d.js:1:4483)
-    at async m (page-8edd69ab726bdd1d.js:1:423)
+117-a7249a5dd453f649.js:1 Geocoding error: TypeError: Failed to fetch
+    at e (page-7544921d0d1c3a59.js:1:20289)
+    at Array.map (<anonymous>)
+    at page-7544921d0d1c3a59.js:1:20735
+    at page-7544921d0d1c3a59.js:1:20801
+    at aW (fd9d1056-8f5c0e971c2480b7.js:1:73241)
+    at oe (fd9d1056-8f5c0e971c2480b7.js:1:84682)
+    at ol (fd9d1056-8f5c0e971c2480b7.js:1:85320)
+    at or (fd9d1056-8f5c0e971c2480b7.js:1:85204)
+    at ol (fd9d1056-8f5c0e971c2480b7.js:1:86265)
+    at or (fd9d1056-8f5c0e971c2480b7.js:1:85204)
 push.2304.window.console.error @ 117-a7249a5dd453f649.js:1
-u @ page-8edd69ab726bdd1d.js:1
-await in u
-m @ page-8edd69ab726bdd1d.js:1
-(anonymous) @ page-8edd69ab726bdd1d.js:1
+e @ page-7544921d0d1c3a59.js:1
+await in e
+(anonymous) @ page-7544921d0d1c3a59.js:1
+(anonymous) @ page-7544921d0d1c3a59.js:1
 aW @ fd9d1056-8f5c0e971c2480b7.js:1
 oe @ fd9d1056-8f5c0e971c2480b7.js:1
 ol @ fd9d1056-8f5c0e971c2480b7.js:1
@@ -165,6 +159,251 @@ ol @ fd9d1056-8f5c0e971c2480b7.js:1
 or @ fd9d1056-8f5c0e971c2480b7.js:1
 ol @ fd9d1056-8f5c0e971c2480b7.js:1
 or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+id @ fd9d1056-8f5c0e971c2480b7.js:1
+o @ fd9d1056-8f5c0e971c2480b7.js:1
+M @ 117-a7249a5dd453f649.js:1
+quote:1 Access to fetch at 'https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev/v1/locations/place-details?placeId=ChIJXR1Xblw1ekgRKM1LpWhnsbg' from origin 'https://durdle.flowency.build' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+page-7544921d0d1c3a59.js:1  GET https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev/v1/locations/place-details?placeId=ChIJXR1Xblw1ekgRKM1LpWhnsbg net::ERR_FAILED 403 (Forbidden)
+e @ page-7544921d0d1c3a59.js:1
+(anonymous) @ page-7544921d0d1c3a59.js:1
+(anonymous) @ page-7544921d0d1c3a59.js:1
+aW @ fd9d1056-8f5c0e971c2480b7.js:1
+oe @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+or @ fd9d1056-8f5c0e971c2480b7.js:1
+ol @ fd9d1056-8f5c0e971c2480b7.js:1
+id @ fd9d1056-8f5c0e971c2480b7.js:1
+o @ fd9d1056-8f5c0e971c2480b7.js:1
+M @ 117-a7249a5dd453f649.js:1
+117-a7249a5dd453f649.js:1 Geocoding error: TypeError: Failed to fetch
+    at e (page-7544921d0d1c3a59.js:1:20289)
+    at Array.map (<anonymous>)
+    at page-7544921d0d1c3a59.js:1:20735
+    at page-7544921d0d1c3a59.js:1:20801
+    at aW (fd9d1056-8f5c0e971c2480b7.js:1:73241)
+    at oe (fd9d1056-8f5c0e971c2480b7.js:1:84682)
+    at ol (fd9d1056-8f5c0e971c2480b7.js:1:85320)
+    at or (fd9d1056-8f5c0e971c2480b7.js:1:85204)
+    at ol (fd9d1056-8f5c0e971c2480b7.js:1:86265)
+    at or (fd9d1056-8f5c0e971c2480b7.js:1:85204)
+push.2304.window.console.error @ 117-a7249a5dd453f649.js:1
+e @ page-7544921d0d1c3a59.js:1
+await in e
+(anonymous) @ page-7544921d0d1c3a59.js:1
+(anonymous) @ page-7544921d0d1c3a59.js:1
+aW @ fd9d1056-8f5c0e971c2480b7.js:1
+oe @ fd9d1056-8f5c0e971c2480b7.js:1
 ol @ fd9d1056-8f5c0e971c2480b7.js:1
 or @ fd9d1056-8f5c0e971c2480b7.js:1
 ol @ fd9d1056-8f5c0e971c2480b7.js:1

@@ -350,7 +350,7 @@ function QuotePageContent() {
       {/* Form Content */}
       <section className="py-6 md:py-12">
         <div className="container px-4 mx-auto max-w-2xl">
-          {/* Map Preview - Persistent across steps after locations selected */}
+          {/* Map Preview - Disabled: Backend API endpoint /v1/locations/place-details does not exist
           {pickupLocation && dropoffLocation && (
             <div className="mb-6 animate-fade-up">
               <MapPreview
@@ -360,6 +360,7 @@ function QuotePageContent() {
               />
             </div>
           )}
+          */}
 
           <div className="bg-card rounded-2xl md:rounded-3xl shadow-deep p-4 md:p-8 space-y-6 md:space-y-8">
 
