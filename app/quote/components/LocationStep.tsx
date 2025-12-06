@@ -72,29 +72,17 @@ export default function LocationStep({
               onSelect={handlePickupSelect}
               placeholder="Start Location"
               error={errors.pickup}
+              hideCurrentLocation={!!(pickup && dropoff)}
             />
           </div>
 
           {/* Divider */}
           {pickup && <div className="border-b border-border my-2"></div>}
 
-          {/* Destination - Shown after pickup selected */}
-          {pickup && (
-            <div className="py-2 animate-fade-up">
-              <LocationInput
-                value={dropoff?.address || ''}
-                onSelect={handleDropoffSelect}
-                placeholder="Where to?"
-                error={errors.dropoff}
-              />
-            </div>
-          )}
-
-          {/* Waypoints - Shown between pickup and destination after both selected */}
-          {pickup && dropoff && waypoints.length > 0 && (
+          {/* Waypoints - Shown after pickup selected, before destination */}
+          {pickup && waypoints.length > 0 && (
             <>
-              <div className="border-b border-border my-2"></div>
-              <div className="space-y-2 py-2">
+              <div className="space-y-3 py-2">
                 {waypoints.map((waypoint, index) => (
                   <WaypointInput
                     key={index}
@@ -105,7 +93,21 @@ export default function LocationStep({
                   />
                 ))}
               </div>
+              <div className="border-b border-border my-2"></div>
             </>
+          )}
+
+          {/* Destination - Shown after pickup selected */}
+          {pickup && (
+            <div className="py-2 animate-fade-up">
+              <LocationInput
+                value={dropoff?.address || ''}
+                onSelect={handleDropoffSelect}
+                placeholder="Where to?"
+                error={errors.dropoff}
+                hideCurrentLocation={!!(pickup && dropoff)}
+              />
+            </div>
           )}
 
         </div>

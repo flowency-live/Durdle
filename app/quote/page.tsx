@@ -433,7 +433,7 @@ function QuotePageContent() {
               {currentStep > 1 && (
                 <Button
                   type="button"
-                  variant="hero-outline"
+                  variant="default"
                   size="xl"
                   onClick={handlePreviousStep}
                   className="w-auto px-6"

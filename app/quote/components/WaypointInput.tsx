@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Clock, HelpCircle, X } from 'lucide-react';
+import { Clock, Check, X } from 'lucide-react';
 import LocationInput from './LocationInput';
 import { Waypoint } from '../lib/types';
 
@@ -13,41 +13,33 @@ interface WaypointInputProps {
 }
 
 export default function WaypointInput({ index, waypoint, onChange, onRemove }: WaypointInputProps) {
-  const [showWaitTime, setShowWaitTime] = useState(!!waypoint.waitTime);
-  const [showHelp, setShowHelp] = useState(false);
+  const [editingWaitTime, setEditingWaitTime] = useState(false);
+  const [tempWaitTime, setTempWaitTime] = useState(waypoint.waitTime || 0);
 
   const handleLocationSelect = (address: string, placeId: string) => {
     onChange({ ...waypoint, address, placeId });
   };
 
-  const handleWaitTimeChange = (minutes: number) => {
-    onChange({ ...waypoint, waitTime: minutes > 0 ? minutes : undefined });
+  const handleWaitTimeConfirm = () => {
+    onChange({ ...waypoint, waitTime: tempWaitTime > 0 ? tempWaitTime : undefined });
+    setEditingWaitTime(false);
   };
 
-  const toggleWaitTime = () => {
-    if (showWaitTime) {
-      onChange({ ...waypoint, waitTime: undefined });
-      setShowWaitTime(false);
-    } else {
-      setShowWaitTime(true);
-    }
+  const handleWaitTimeCancel = () => {
+    setTempWaitTime(waypoint.waitTime || 0);
+    setEditingWaitTime(false);
   };
 
   return (
-    <div className="space-y-3 p-4 bg-muted/20 rounded-xl border border-sage-light/50">
-      {/* Header */}
+    <div className="space-y-2">
+      {/* Header with Remove Button */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full bg-sage/30 flex items-center justify-center text-xs font-semibold text-sage-dark">
-            {index + 1}
-          </div>
-          <span className="text-sm font-medium text-foreground">Stop {index + 1}</span>
-        </div>
+        <span className="text-xs font-medium text-muted-foreground">Waypoint {index + 1}</span>
         <button
           type="button"
           onClick={onRemove}
           className="text-error hover:text-error/80 transition-colors p-1"
-          aria-label="Remove stop"
+          aria-label="Remove waypoint"
         >
           <X className="w-4 h-4" />
         </button>
@@ -57,94 +49,79 @@ export default function WaypointInput({ index, waypoint, onChange, onRemove }: W
       <LocationInput
         value={waypoint.address}
         onSelect={handleLocationSelect}
-        placeholder="Enter Waypoint Location"
+        placeholder="Enter waypoint location"
       />
 
-      {/* Wait Time Section */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
+      {/* Wait Time Toggle/Display */}
+      {!editingWaitTime && !waypoint.waitTime && (
+        <button
+          type="button"
+          onClick={() => setEditingWaitTime(true)}
+          className="text-xs text-sage-dark hover:text-sage-dark/80 transition-colors flex items-center gap-1"
+        >
+          <Clock className="w-3 h-3" />
+          Add wait time
+        </button>
+      )}
+
+      {!editingWaitTime && waypoint.waitTime && (
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            Wait: {Math.floor(waypoint.waitTime / 60)}h {waypoint.waitTime % 60}m
+          </span>
           <button
             type="button"
-            onClick={toggleWaitTime}
-            className="text-sm text-sage-dark hover:text-sage-dark/80 transition-colors flex items-center gap-1"
+            onClick={() => {
+              setTempWaitTime(waypoint.waitTime || 0);
+              setEditingWaitTime(true);
+            }}
+            className="text-sage-dark hover:text-sage-dark/80 transition-colors"
           >
-            <Clock className="w-4 h-4" />
-            {showWaitTime ? 'Remove wait time' : 'Add wait time'}
+            Edit
           </button>
+        </div>
+      )}
 
-          {/* Help Icon with Popup */}
-          <div className="relative">
+      {/* Wait Time Input (Editing Mode) */}
+      {editingWaitTime && (
+        <div className="animate-fade-up space-y-2">
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min="0"
+              max="480"
+              step="15"
+              value={tempWaitTime}
+              onChange={(e) => setTempWaitTime(parseInt(e.target.value) || 0)}
+              className="flex-1 px-3 py-2 text-sm rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-sage-dark bg-background text-foreground"
+              placeholder="0"
+            />
+            <span className="text-xs text-muted-foreground w-16">
+              {tempWaitTime ? `${Math.floor(tempWaitTime / 60)}h ${tempWaitTime % 60}m` : '0m'}
+            </span>
             <button
               type="button"
-              onClick={() => setShowHelp(!showHelp)}
-              className="text-muted-foreground hover:text-foreground transition-colors p-1"
-              aria-label="Wait time help"
+              onClick={handleWaitTimeConfirm}
+              className="p-2 rounded-lg bg-sage-dark text-white hover:bg-sage-dark/90 transition-colors"
+              aria-label="Confirm wait time"
             >
-              <HelpCircle className="w-4 h-4" />
+              <Check className="w-4 h-4" />
             </button>
-
-            {/* Help Popup */}
-            {showHelp && (
-              <>
-                {/* Backdrop */}
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setShowHelp(false)}
-                />
-                {/* Popup */}
-                <div className="absolute right-0 top-8 z-50 w-64 bg-card border-2 border-sage-light rounded-xl shadow-floating p-4">
-                  <div className="flex items-start gap-2 mb-2">
-                    <Clock className="w-5 h-5 text-sage-dark flex-shrink-0 mt-0.5" />
-                    <h4 className="font-semibold text-foreground text-sm">Wait Time</h4>
-                  </div>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    Add a wait time if the driver needs to wait at this stop before continuing.
-                  </p>
-                  <div className="bg-sage-light/30 rounded-lg p-2 text-xs text-navy-light">
-                    <strong>Example:</strong> Drop Kevin off, wait 2 hours, then continue to final destination.
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowHelp(false)}
-                    className="mt-3 text-xs text-sage-dark hover:underline"
-                  >
-                    Got it
-                  </button>
-                </div>
-              </>
-            )}
+            <button
+              type="button"
+              onClick={handleWaitTimeCancel}
+              className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Cancel"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
+          <p className="text-xs text-muted-foreground">
+            Wait time in minutes (max 8 hours)
+          </p>
         </div>
-
-        {/* Wait Time Input */}
-        {showWaitTime && (
-          <div className="animate-fade-up">
-            <div className="flex items-center gap-3">
-              <div className="flex-1">
-                <label className="block text-xs font-medium text-foreground mb-1">
-                  Wait Time (minutes)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="480"
-                  step="15"
-                  value={waypoint.waitTime || 0}
-                  onChange={(e) => handleWaitTimeChange(parseInt(e.target.value) || 0)}
-                  className="w-full px-3 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-sage-dark bg-background text-foreground"
-                  placeholder="0"
-                />
-              </div>
-              <div className="text-xs text-muted-foreground pt-5">
-                {waypoint.waitTime ? `${Math.floor(waypoint.waitTime / 60)}h ${waypoint.waitTime % 60}m` : '0h 0m'}
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Maximum 8 hours (480 minutes)
-            </p>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }

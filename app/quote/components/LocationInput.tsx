@@ -10,6 +10,7 @@ interface LocationInputProps {
   placeholder?: string;
   error?: string;
   autoFocus?: boolean;
+  hideCurrentLocation?: boolean;
 }
 
 interface Prediction {
@@ -23,7 +24,8 @@ export default function LocationInput({
   onSelect,
   placeholder,
   error,
-  autoFocus = false
+  autoFocus = false,
+  hideCurrentLocation = false
 }: LocationInputProps) {
   const [input, setInput] = useState(value);
   const [suggestions, setSuggestions] = useState<Prediction[]>([]);
@@ -210,24 +212,26 @@ export default function LocationInput({
       </div>
 
       {/* Current Location Button */}
-      <button
-        type="button"
-        onClick={handleUseCurrentLocation}
-        disabled={gettingLocation}
-        className="flex items-center gap-2 text-sm text-sage-dark hover:text-sage-dark/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {gettingLocation ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Getting your location...
-          </>
-        ) : (
-          <>
-            <Crosshair className="w-4 h-4" />
-            Use Current Location
-          </>
-        )}
-      </button>
+      {!hideCurrentLocation && (
+        <button
+          type="button"
+          onClick={handleUseCurrentLocation}
+          disabled={gettingLocation}
+          className="flex items-center gap-2 text-sm text-sage-dark hover:text-sage-dark/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {gettingLocation ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Getting your location...
+            </>
+          ) : (
+            <>
+              <Crosshair className="w-4 h-4" />
+              Use Current Location
+            </>
+          )}
+        </button>
+      )}
 
       {error && (
         <p className="text-sm text-error">{error}</p>
