@@ -10,9 +10,10 @@ interface QuoteResultProps {
   quote: QuoteResponse;
   onNewQuote: () => void;
   onBack?: () => void;
+  onConfirmBooking?: () => void;
 }
 
-export default function QuoteResult({ quote, onNewQuote, onBack }: QuoteResultProps) {
+export default function QuoteResult({ quote, onNewQuote, onBack, onConfirmBooking }: QuoteResultProps) {
   const [timeRemaining, setTimeRemaining] = useState<string>('');
 
   useEffect(() => {
@@ -272,9 +273,10 @@ export default function QuoteResult({ quote, onNewQuote, onBack }: QuoteResultPr
               variant="hero-golden"
               size="xl"
               className="w-full"
-              disabled
+              onClick={onConfirmBooking}
+              disabled={!onConfirmBooking}
             >
-              Confirm Booking (Coming Soon)
+              Confirm Booking
             </Button>
             <div className="text-center space-y-1">
               <p className="text-sm text-muted-foreground">

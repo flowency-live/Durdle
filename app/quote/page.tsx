@@ -14,11 +14,15 @@ import PassengerCounter from './components/PassengerCounter';
 import LuggageCounter from './components/LuggageCounter';
 import LoadingState from './components/LoadingState';
 import QuoteResult from './components/QuoteResult';
+import ContactDetailsForm, { ContactDetails } from './components/ContactDetailsForm';
+import PaymentForm, { PaymentDetails } from './components/PaymentForm';
+import BookingConfirmation from './components/BookingConfirmation';
 import { calculateQuote } from './lib/api';
 import { QuoteResponse, QuoteRequest, Location, Waypoint } from './lib/types';
 import FeedbackButton from '../components/FeedbackButton';
 
 type Step = 1 | 2 | 3 | 4;
+type BookingStage = 'quote' | 'contact' | 'payment' | 'confirmation';
 
 function QuotePageContent() {
   const searchParams = useSearchParams();
@@ -37,6 +41,12 @@ function QuotePageContent() {
   const [quote, setQuote] = useState<QuoteResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Booking flow state
+  const [bookingStage, setBookingStage] = useState<BookingStage>('quote');
+  const [contactDetails, setContactDetails] = useState<ContactDetails | null>(null);
+  const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | null>(null);
+  const [bookingId, setBookingId] = useState<string>('');
 
   // Pre-fill locations from URL parameters (from fixed route pricing)
   useEffect(() => {
@@ -153,10 +163,80 @@ function QuotePageContent() {
     setLuggage(0);
     setVehicleType(null);
     setError(null);
+    setBookingStage('quote');
+    setContactDetails(null);
+    setPaymentDetails(null);
+    setBookingId('');
   };
 
+  // Booking flow handlers
+  const handleConfirmBooking = () => {
+    setBookingStage('contact');
+  };
+
+  const handleContactSubmit = (details: ContactDetails) => {
+    setContactDetails(details);
+    setBookingStage('payment');
+  };
+
+  const handleContactBack = () => {
+    setBookingStage('quote');
+  };
+
+  const handlePaymentSubmit = (details: PaymentDetails) => {
+    setPaymentDetails(details);
+    // Generate mock booking ID
+    const mockBookingId = `DTC-${Date.now().toString().slice(-8)}`;
+    setBookingId(mockBookingId);
+    setBookingStage('confirmation');
+  };
+
+  const handlePaymentBack = () => {
+    setBookingStage('contact');
+  };
+
+  // Render booking confirmation
+  if (bookingStage === 'confirmation' && quote && contactDetails && bookingId) {
+    return (
+      <BookingConfirmation
+        quote={quote}
+        contactDetails={contactDetails}
+        bookingId={bookingId}
+      />
+    );
+  }
+
+  // Render payment form
+  if (bookingStage === 'payment' && quote && contactDetails) {
+    return (
+      <PaymentForm
+        onSubmit={handlePaymentSubmit}
+        onBack={handlePaymentBack}
+        initialValues={paymentDetails || undefined}
+      />
+    );
+  }
+
+  // Render contact details form
+  if (bookingStage === 'contact' && quote) {
+    return (
+      <ContactDetailsForm
+        onSubmit={handleContactSubmit}
+        onBack={handleContactBack}
+        initialValues={contactDetails || undefined}
+      />
+    );
+  }
+
+  // Render quote result
   if (quote) {
-    return <QuoteResult quote={quote} onNewQuote={handleNewQuote} />;
+    return (
+      <QuoteResult
+        quote={quote}
+        onNewQuote={handleNewQuote}
+        onConfirmBooking={handleConfirmBooking}
+      />
+    );
   }
 
   return (
