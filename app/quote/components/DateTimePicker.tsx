@@ -30,6 +30,11 @@ export default function DateTimePicker({ selectedDate, onChange, error }: DateTi
     return time.getTime() >= minDateTime.getTime();
   };
 
+  // Prevent mobile keyboard from appearing while still allowing picker to open
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.blur();
+  };
+
   return (
     <div className="space-y-2">
       <label className="block text-sm font-medium text-foreground">
@@ -50,7 +55,7 @@ export default function DateTimePicker({ selectedDate, onChange, error }: DateTi
           maxDate={maxDate}
           filterTime={filterPassedTime}
           placeholderText="Select pickup date and time"
-          readOnly
+          onFocus={handleFocus}
           className={`w-full pl-12 pr-4 py-3 rounded-xl border ${
             error ? 'border-error' : 'border-border'
           } focus:outline-none focus:ring-2 focus:ring-sage-dark bg-background text-foreground`}
