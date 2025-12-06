@@ -1,4 +1,7 @@
-import { MapPin, Clock, Shield, Car, Users, Briefcase, Plane, ArrowRight, KeyRound } from "lucide-react";
+'use client';
+
+import { useState } from "react";
+import { MapPin, Clock, Shield, Car, Users, Briefcase, Plane, ArrowRight, KeyRound, Menu, X } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import Image from "next/image";
 import FeedbackButton from "./components/FeedbackButton";
@@ -39,6 +42,8 @@ const features = [
 ];
 
 export default function Home() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <div className="min-h-screen">
       {/* Header */}
@@ -55,6 +60,7 @@ export default function Home() {
               />
             </div>
 
+            {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-8">
               <a
                 href="#services"
@@ -82,7 +88,8 @@ export default function Home() {
               </a>
             </nav>
 
-            <div className="flex items-center gap-3">
+            {/* Desktop Actions */}
+            <div className="hidden md:flex items-center gap-3">
               <FeedbackButton />
               <a
                 href="/admin/login"
@@ -95,8 +102,71 @@ export default function Home() {
                 Get Quote
               </a>
             </div>
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 rounded-lg hover:bg-sage-light/10 transition-colors"
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? (
+                <X className="w-6 h-6 text-foreground" />
+              ) : (
+                <Menu className="w-6 h-6 text-foreground" />
+              )}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-sage-light/50 bg-background/98 backdrop-blur-lg">
+            <div className="container px-4 py-6 mx-auto">
+              <nav className="flex flex-col gap-4">
+                <a
+                  href="#services"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
+                >
+                  Services
+                </a>
+                <a
+                  href="/pricing"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
+                >
+                  Pricing
+                </a>
+                <a
+                  href="#about"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
+                >
+                  About
+                </a>
+                <a
+                  href="#contact"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
+                >
+                  Contact
+                </a>
+                <div className="border-t border-border pt-4 mt-2 flex flex-col gap-3">
+                  <a href="/quote" className={buttonVariants({ variant: "hero-golden", size: "xl", className: "w-full" })}>
+                    Get Quote
+                  </a>
+                  <a
+                    href="/admin/login"
+                    className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-br from-yellow-500 to-amber-600 hover:from-yellow-600 hover:to-amber-700 text-white shadow-lg transition-all"
+                  >
+                    <KeyRound className="w-5 h-5" />
+                    <span className="font-medium">Admin Login</span>
+                  </a>
+                </div>
+              </nav>
+            </div>
+          </div>
+        )}
       </header>
 
       <main>
