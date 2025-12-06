@@ -265,7 +265,7 @@ export default function BookingConfirmation({ quote, contactDetails, bookingId }
               </li>
               <li className="flex gap-3">
                 <span className="font-semibold flex-shrink-0">2.</span>
-                <span>Your driver will be assigned and you'll receive their details 24 hours before pickup</span>
+                <span>Your driver will be assigned and you&apos;ll receive their details 24 hours before pickup</span>
               </li>
               <li className="flex gap-3">
                 <span className="font-semibold flex-shrink-0">3.</span>
