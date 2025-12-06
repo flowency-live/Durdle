@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { Calendar } from 'lucide-react';
@@ -11,11 +12,23 @@ interface DateTimePickerProps {
 }
 
 export default function DateTimePicker({ selectedDate, onChange, error }: DateTimePickerProps) {
+  const inputRef = useRef<DatePicker>(null);
+
   const minDate = new Date();
   minDate.setHours(minDate.getHours() + 24); // Minimum 24 hours from now
 
   const maxDate = new Date();
   maxDate.setMonth(maxDate.getMonth() + 6); // Maximum 6 months in advance
+
+  // Set inputMode to none on mount to prevent Android keyboard
+  useEffect(() => {
+    if (inputRef.current) {
+      const input = (inputRef.current as unknown as { input: HTMLInputElement }).input;
+      if (input) {
+        input.setAttribute('inputmode', 'none');
+      }
+    }
+  }, []);
 
   const handleChange = (date: Date | null) => {
     if (date) {
@@ -33,6 +46,8 @@ export default function DateTimePicker({ selectedDate, onChange, error }: DateTi
   // Prevent mobile keyboard from appearing while still allowing picker to open
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     e.target.blur();
+    // Extra prevention for Android - set inputMode to none
+    e.target.setAttribute('inputmode', 'none');
   };
 
   return (
@@ -45,6 +60,7 @@ export default function DateTimePicker({ selectedDate, onChange, error }: DateTi
           <Calendar className="w-5 h-5 text-muted-foreground" />
         </div>
         <DatePicker
+          ref={inputRef}
           selected={selectedDate}
           onChange={handleChange}
           showTimeSelect
@@ -56,6 +72,7 @@ export default function DateTimePicker({ selectedDate, onChange, error }: DateTi
           filterTime={filterPassedTime}
           placeholderText="Select pickup date and time"
           onFocus={handleFocus}
+          autoComplete="off"
           className={`w-full pl-12 pr-4 py-3 rounded-xl border ${
             error ? 'border-error' : 'border-border'
           } focus:outline-none focus:ring-2 focus:ring-sage-dark bg-background text-foreground`}
