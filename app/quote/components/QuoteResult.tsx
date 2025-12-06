@@ -16,6 +16,11 @@ interface QuoteResultProps {
 export default function QuoteResult({ quote, onNewQuote, onBack, onConfirmBooking }: QuoteResultProps) {
   const [timeRemaining, setTimeRemaining] = useState<string>('');
 
+  // Scroll to top when quote result appears
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
   useEffect(() => {
     const updateTimeRemaining = () => {
       const now = new Date();

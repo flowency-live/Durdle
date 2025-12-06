@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CreditCard, Lock, AlertCircle, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -23,6 +23,11 @@ export default function PaymentForm({ onSubmit, onBack, initialValues }: Payment
   const [expiryDate, setExpiryDate] = useState(initialValues?.expiryDate || '');
   const [cvv, setCvv] = useState(initialValues?.cvv || '');
   const [errors, setErrors] = useState<Partial<PaymentDetails>>({});
+
+  // Scroll to top when form appears
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   const formatCardNumber = (value: string) => {
     const cleaned = value.replace(/\s/g, '');
@@ -111,9 +116,10 @@ export default function PaymentForm({ onSubmit, onBack, initialValues }: Payment
   };
 
   return (
-    <section className="pb-24">
-      <div className="container px-4 mx-auto max-w-2xl">
-        <div className="bg-card rounded-3xl shadow-deep p-6 md:p-8">
+    <>
+      <section className="pb-28 md:pb-12">
+        <div className="container px-4 mx-auto max-w-2xl">
+          <div className="bg-card rounded-3xl shadow-deep p-6 md:p-8">
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-2">
@@ -278,30 +284,36 @@ export default function PaymentForm({ onSubmit, onBack, initialValues }: Payment
                 </div>
               </div>
             </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3 pt-4">
-              <Button
-                type="button"
-                variant="hero-outline"
-                size="xl"
-                onClick={onBack}
-                className="flex-1"
-              >
-                Back to Details
-              </Button>
-              <Button
-                type="submit"
-                variant="hero-golden"
-                size="xl"
-                className="flex-1"
-              >
-                Confirm Booking
-              </Button>
-            </div>
           </form>
         </div>
       </div>
     </section>
+
+    {/* Sticky Navigation Buttons - Mobile Fixed, Desktop Inline */}
+    <div className="fixed md:static bottom-0 left-0 right-0 z-40 bg-background border-t md:border-0 border-border p-4 md:p-0 shadow-lg md:shadow-none">
+      <div className="container mx-auto max-w-2xl">
+        <div className="flex gap-3">
+          <Button
+            type="button"
+            variant="default"
+            size="xl"
+            onClick={onBack}
+            className="flex-1"
+          >
+            Back to Details
+          </Button>
+          <Button
+            type="submit"
+            variant="hero-golden"
+            size="xl"
+            onClick={handleSubmit}
+            className="flex-1"
+          >
+            Confirm Booking
+          </Button>
+        </div>
+      </div>
+    </div>
+  </>
   );
 }
