@@ -6,7 +6,7 @@
 const GITHUB_TOKEN = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
 const GITHUB_OWNER = 'flowency-live';
 const GITHUB_REPO = 'client-docs';
-const DOCS_PATH = 'durdle/admin';
+const DOCS_PATH = 'clients/Docs_Durdle';
 
 export interface GitHubFile {
   content: string;
