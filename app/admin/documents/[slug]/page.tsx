@@ -38,7 +38,7 @@ export default function DocumentViewerPage() {
   const slug = params.slug as string;
 
   const [docData, setDocData] = useState<DocumentData | null>(null);
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [comments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
@@ -46,7 +46,6 @@ export default function DocumentViewerPage() {
   const [saving, setSaving] = useState(false);
 
   const [newComment, setNewComment] = useState('');
-  const [addingComment, setAddingComment] = useState(false);
   const [username, setUsername] = useState('');
 
   const fetchDocument = useCallback(async () => {
@@ -75,7 +74,7 @@ export default function DocumentViewerPage() {
     // Comments feature temporarily disabled - Lambda endpoint not yet deployed
     // Will be re-enabled once document-comments Lambda is available
     return;
-  }, [slug]);
+  }, []);
 
   useEffect(() => {
     fetchDocument();
@@ -124,12 +123,12 @@ export default function DocumentViewerPage() {
     return;
   };
 
-  const handleToggleStatus = async (comment: Comment) => {
+  const handleToggleStatus = async () => {
     alert('Comments feature coming soon - Lambda endpoint not yet deployed');
     return;
   };
 
-  const handleDeleteComment = async (commentId: string) => {
+  const handleDeleteComment = async () => {
     alert('Comments feature coming soon - Lambda endpoint not yet deployed');
     return;
   };
