@@ -245,7 +245,18 @@ export default function MapPreview({ pickup, dropoff, waypoints = [], className 
           {waypoints.length > 0 && (
             <div className="flex items-start gap-2">
               <span className="font-semibold min-w-[60px]">Stops:</span>
-              <span>{waypoints.length} waypoint{waypoints.length > 1 ? 's' : ''}</span>
+              <div className="flex-1 space-y-1">
+                {waypoints.map((waypoint, index) => (
+                  <div key={index} className="truncate">
+                    {waypoint.address}
+                    {waypoint.waitTime && (
+                      <span className="text-sage-dark ml-1">
+                        (Wait: {Math.floor(waypoint.waitTime / 60)}h {waypoint.waitTime % 60}m)
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
           {dropoff && (
