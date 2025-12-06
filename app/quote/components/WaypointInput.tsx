@@ -50,6 +50,7 @@ export default function WaypointInput({ index, waypoint, onChange, onRemove }: W
         value={waypoint.address}
         onSelect={handleLocationSelect}
         placeholder="Enter waypoint location"
+        hideCurrentLocation={true}
       />
 
       {/* Wait Time Toggle/Display */}
