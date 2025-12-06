@@ -215,26 +215,26 @@ export default function BookingConfirmation({ quote, contactDetails, bookingId }
               <div className="flex justify-between items-center">
                 <span className="text-base text-muted-foreground">Base Fare</span>
                 <span className="text-base font-semibold text-foreground">
-                  {formatCurrency(quote.pricing.baseFare)}
+                  {formatCurrency(quote.pricing.breakdown.baseFare / 100)}
                 </span>
               </div>
 
-              {quote.pricing.distanceFare > 0 && (
+              {quote.pricing.breakdown.distanceCharge > 0 && (
                 <div className="flex justify-between items-center">
                   <span className="text-base text-muted-foreground">
-                    Distance ({quote.pricing.distance.toFixed(1)} miles)
+                    Distance ({quote.journey.distance.miles} miles)
                   </span>
                   <span className="text-base font-semibold text-foreground">
-                    {formatCurrency(quote.pricing.distanceFare)}
+                    {formatCurrency(quote.pricing.breakdown.distanceCharge / 100)}
                   </span>
                 </div>
               )}
 
-              {quote.pricing.waitTimeFare > 0 && (
+              {quote.pricing.breakdown.waitTimeCharge > 0 && (
                 <div className="flex justify-between items-center">
                   <span className="text-base text-muted-foreground">Wait Time</span>
                   <span className="text-base font-semibold text-foreground">
-                    {formatCurrency(quote.pricing.waitTimeFare)}
+                    {formatCurrency(quote.pricing.breakdown.waitTimeCharge / 100)}
                   </span>
                 </div>
               )}
@@ -243,7 +243,7 @@ export default function BookingConfirmation({ quote, contactDetails, bookingId }
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-semibold text-foreground">Total</span>
                   <span className="text-2xl font-bold text-sage-dark">
-                    {formatCurrency(quote.pricing.totalFare)}
+                    {quote.pricing.displayTotal}
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
