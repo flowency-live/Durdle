@@ -222,6 +222,9 @@ export async function listDocuments(): Promise<Array<{slug: string, name: string
     });
 
     if (!response.ok) {
+      if (response.status === 404) {
+        return [];
+      }
       throw new Error(`GitHub API error: ${response.status}`);
     }
 
