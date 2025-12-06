@@ -61,20 +61,26 @@ export default function MapPreview({ pickup, dropoff, waypoints = [], className 
     }
   }, []);
 
-  // Geocode locations using Google Places API
+  // Geocode locations using backend API
   useEffect(() => {
-    if (!mounted || !window.google) return;
+    if (!mounted) return;
 
     const geocodeLocation = async (location: Location): Promise<[string, Coordinates] | null> => {
       if (!location.placeId) return null;
 
       try {
-        const geocoder = new window.google.maps.Geocoder();
-        const result = await geocoder.geocode({ placeId: location.placeId });
+        const response = await fetch(
+          `https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev/v1/locations/place-details?placeId=${encodeURIComponent(location.placeId)}`
+        );
 
-        if (result.results[0]) {
-          const { lat, lng } = result.results[0].geometry.location;
-          return [location.placeId, { lat: lat(), lng: lng() }];
+        if (!response.ok) {
+          throw new Error('Failed to geocode location');
+        }
+
+        const data = await response.json();
+
+        if (data.location) {
+          return [location.placeId, { lat: data.location.lat, lng: data.location.lng }];
         }
       } catch (error) {
         console.error('Geocoding error:', error);
