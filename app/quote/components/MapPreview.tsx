@@ -198,11 +198,12 @@ export default function MapPreview({ pickup, dropoff, waypoints = [], className 
           center={mapCenter}
           zoom={8}
           scrollWheelZoom={false}
+          attributionControl={false}
           className="w-full h-full z-0"
           style={{ height: '100%', width: '100%' }}
         >
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            attribution=""
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
