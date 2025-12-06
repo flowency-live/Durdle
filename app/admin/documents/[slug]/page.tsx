@@ -72,21 +72,9 @@ export default function DocumentViewerPage() {
   }, [slug]);
 
   const fetchComments = useCallback(async () => {
-    try {
-      const response = await fetch(
-        `https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev/admin/documents/${slug}/comments`
-      );
-
-      if (!response.ok) {
-        console.error('Failed to fetch comments');
-        return;
-      }
-
-      const data = await response.json();
-      setComments(data.comments || []);
-    } catch (err) {
-      console.error('Error fetching comments:', err);
-    }
+    // Comments feature temporarily disabled - Lambda endpoint not yet deployed
+    // Will be re-enabled once document-comments Lambda is available
+    return;
   }, [slug]);
 
   useEffect(() => {
@@ -132,80 +120,18 @@ export default function DocumentViewerPage() {
   };
 
   const handleAddComment = async () => {
-    if (!newComment.trim()) return;
-
-    try {
-      setAddingComment(true);
-      const response = await fetch(
-        `https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev/admin/documents/${slug}/comments`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            username,
-            comment: newComment,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to add comment');
-      }
-
-      setNewComment('');
-      await fetchComments();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to add comment');
-    } finally {
-      setAddingComment(false);
-    }
+    alert('Comments feature coming soon - Lambda endpoint not yet deployed');
+    return;
   };
 
   const handleToggleStatus = async (comment: Comment) => {
-    try {
-      const newStatus = comment.status === 'active' ? 'resolved' : 'active';
-      const response = await fetch(
-        `https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev/admin/documents/${slug}/comments/${comment.commentId}`,
-        {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ status: newStatus }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to update comment');
-      }
-
-      await fetchComments();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to update comment status');
-    }
+    alert('Comments feature coming soon - Lambda endpoint not yet deployed');
+    return;
   };
 
   const handleDeleteComment = async (commentId: string) => {
-    if (!confirm('Are you sure you want to delete this comment?')) return;
-
-    try {
-      const response = await fetch(
-        `https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev/admin/documents/${slug}/comments/${commentId}`,
-        {
-          method: 'DELETE',
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to delete comment');
-      }
-
-      await fetchComments();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete comment');
-    }
+    alert('Comments feature coming soon - Lambda endpoint not yet deployed');
+    return;
   };
 
   const handleExport = () => {
