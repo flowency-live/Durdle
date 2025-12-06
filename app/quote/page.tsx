@@ -436,10 +436,10 @@ function QuotePageContent() {
                   variant="hero-outline"
                   size="xl"
                   onClick={handlePreviousStep}
-                  className="flex-1"
+                  className="w-auto px-6"
                 >
-                  <ArrowLeft className="w-5 h-5" />
-                  <span className="hidden sm:inline">Back</span>
+                  <ArrowLeft className="w-5 h-5 mr-2" />
+                  Back
                 </Button>
               )}
               <Button
@@ -459,8 +459,8 @@ function QuotePageContent() {
                   <>Get Quote</>
                 ) : (
                   <>
-                    <span className="hidden sm:inline">Next</span>
-                    <ArrowRight className="w-5 h-5" />
+                    Next
+                    <ArrowRight className="w-5 h-5 ml-2" />
                   </>
                 )}
               </Button>
