@@ -59,6 +59,11 @@ function QuotePageContent() {
     if (to) {
       setDropoffLocation({ address: to, placeId: '' });
     }
+
+    // If both locations are provided (coming from pricing page), skip to step 2
+    if (from && to) {
+      setCurrentStep(2);
+    }
   }, [searchParams]);
 
   // Validation
@@ -432,6 +437,7 @@ function QuotePageContent() {
                 <VehicleSelector
                   selected={vehicleType}
                   onChange={setVehicleType}
+                  passengers={passengers}
                 />
               </div>
             )}

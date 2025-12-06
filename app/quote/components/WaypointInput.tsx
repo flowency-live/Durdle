@@ -57,7 +57,7 @@ export default function WaypointInput({ index, waypoint, onChange, onRemove }: W
       <LocationInput
         value={waypoint.address}
         onSelect={handleLocationSelect}
-        placeholder="Enter Stop Location"
+        placeholder="Enter Waypoint Location"
       />
 
       {/* Wait Time Section */}

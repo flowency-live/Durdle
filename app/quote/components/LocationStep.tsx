@@ -124,7 +124,7 @@ export default function LocationStep({
                 className="flex items-center gap-2 px-4 py-2 text-sm text-sage-dark hover:text-sage-dark/80 transition-colors"
               >
                 <Plus className="w-4 h-4" />
-                Add stops along the way (optional)
+                Add waypoints along the way (optional)
               </button>
             </div>
           ) : null}
@@ -138,7 +138,7 @@ export default function LocationStep({
                     <MapPin className="w-5 h-5 text-sage-dark" />
                   </div>
                   <h3 className="text-lg font-semibold text-foreground">
-                    Stops {waypoints.length > 0 && `(${waypoints.length})`}
+                    Waypoints {waypoints.length > 0 && `(${waypoints.length})`}
                   </h3>
                 </div>
                 <button
@@ -170,13 +170,13 @@ export default function LocationStep({
                     className="w-full"
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    Add Another Stop
+                    Add Another Waypoint
                   </Button>
                 )}
 
                 {waypoints.length === 3 && (
                   <p className="text-xs text-muted-foreground text-center">
-                    Maximum 3 stops allowed
+                    Maximum 3 waypoints allowed
                   </p>
                 )}
               </div>

@@ -9,6 +9,7 @@ import Image from 'next/image';
 interface VehicleSelectorProps {
   selected: string | null;
   onChange: (vehicleId: string) => void;
+  passengers: number;
   error?: string;
 }
 
@@ -18,7 +19,7 @@ const vehicleIcons: Record<string, typeof Car> = {
   minibus: Users,
 };
 
-export default function VehicleSelector({ selected, onChange, error }: VehicleSelectorProps) {
+export default function VehicleSelector({ selected, onChange, passengers, error }: VehicleSelectorProps) {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -82,14 +83,18 @@ export default function VehicleSelector({ selected, onChange, error }: VehicleSe
         {vehicles.map((vehicle) => {
           const Icon = vehicleIcons[vehicle.vehicleId] || Car;
           const isSelected = selected === vehicle.vehicleId;
+          const isDisabled = vehicle.capacity < passengers;
 
           return (
             <button
               key={vehicle.vehicleId}
               type="button"
-              onClick={() => onChange(vehicle.vehicleId)}
+              onClick={() => !isDisabled && onChange(vehicle.vehicleId)}
+              disabled={isDisabled}
               className={`relative p-6 rounded-2xl border-2 transition-all text-left ${
-                isSelected
+                isDisabled
+                  ? 'border-border bg-muted/30 opacity-50 cursor-not-allowed'
+                  : isSelected
                   ? 'border-sage-dark bg-sage-dark/10'
                   : 'border-border hover:border-sage-dark/50'
               }`}
@@ -129,6 +134,15 @@ export default function VehicleSelector({ selected, onChange, error }: VehicleSe
               <p className="text-sm text-muted-foreground mb-3">
                 Up to {vehicle.capacity} passengers
               </p>
+
+              {/* Capacity Warning */}
+              {isDisabled && (
+                <div className="mb-3 p-2 bg-error/10 border border-error/20 rounded-lg">
+                  <p className="text-xs text-error font-medium">
+                    Not available for {passengers} passengers
+                  </p>
+                </div>
+              )}
 
               {/* Features */}
               <ul className="space-y-2">
