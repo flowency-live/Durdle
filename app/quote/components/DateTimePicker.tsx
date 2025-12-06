@@ -23,6 +23,13 @@ export default function DateTimePicker({ selectedDate, onChange, error }: DateTi
     }
   };
 
+  // Filter out times that would be less than 24 hours from now
+  const filterPassedTime = (time: Date) => {
+    const now = new Date();
+    const minDateTime = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours from now
+    return time.getTime() >= minDateTime.getTime();
+  };
+
   return (
     <div className="space-y-2">
       <label className="block text-sm font-medium text-foreground">
@@ -41,6 +48,7 @@ export default function DateTimePicker({ selectedDate, onChange, error }: DateTi
           dateFormat="MMMM d, yyyy h:mm aa"
           minDate={minDate}
           maxDate={maxDate}
+          filterTime={filterPassedTime}
           placeholderText="Select pickup date and time"
           className={`w-full pl-12 pr-4 py-3 rounded-xl border ${
             error ? 'border-error' : 'border-border'
