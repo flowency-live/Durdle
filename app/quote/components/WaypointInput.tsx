@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { MapPin, Clock, HelpCircle, X } from 'lucide-react';
+import { Clock, HelpCircle, X } from 'lucide-react';
 import LocationInput from './LocationInput';
 import { Waypoint } from '../lib/types';
 

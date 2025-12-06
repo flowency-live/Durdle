@@ -10,10 +10,9 @@ interface QuoteResultProps {
   quote: QuoteResponse;
   onNewQuote: () => void;
   onBack?: () => void;
-  onCancel?: () => void;
 }
 
-export default function QuoteResult({ quote, onNewQuote, onBack, onCancel }: QuoteResultProps) {
+export default function QuoteResult({ quote, onNewQuote, onBack }: QuoteResultProps) {
   const [timeRemaining, setTimeRemaining] = useState<string>('');
 
   useEffect(() => {

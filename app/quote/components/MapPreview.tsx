@@ -8,6 +8,7 @@ import L from 'leaflet';
 
 // Fix Leaflet default icon issue with Next.js
 if (typeof window !== 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   delete (L.Icon.Default.prototype as any)._getIconUrl;
   L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -52,13 +53,8 @@ export default function MapPreview({ pickup, dropoff, waypoints = [], className 
     setMounted(true);
   }, []);
 
-  // Geocode locations to get coordinates (simplified - using placeholder coordinates)
-  // In production, you'd want to use Google Places API or Nominatim for geocoding
-  const getCoordinates = async (location: Location): Promise<[number, number]> => {
-    // For now, return Dorset center as placeholder
-    // TODO: Implement proper geocoding using Google Places API placeId or Nominatim
-    return [50.7155, -2.4397]; // Dorset, UK
-  };
+  // TODO: Implement proper geocoding using Google Places API placeId or Nominatim
+  // For now, using Dorset center as placeholder coordinates
 
   const locations = useMemo(() => {
     const points: Array<{ location: Location; type: 'pickup' | 'waypoint' | 'dropoff' }> = [];
