@@ -52,7 +52,7 @@ export async function listQuotes(filters: Record<string, unknown> = {}): Promise
 
 export async function getQuoteDetails(quoteId: string): Promise<unknown> {
   const encoded = encodeURIComponent(quoteId);
-  const url = `${getApiUrl(`${API_ENDPOINTS.adminQuotes}/${encoded}`)`}`;
+  const url = `${getApiUrl(`${API_ENDPOINTS.adminQuotes}/${encoded}`)}`;
   return authFetch(url, { method: 'GET' });
 }
 

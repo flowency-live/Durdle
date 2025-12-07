@@ -15,20 +15,48 @@ interface Quote {
 interface QuotesTableProps {
   quotes: Quote[];
   onRowClick: (quoteId: string) => void;
+  sortBy?: 'date' | 'price';
+  sortOrder?: 'asc' | 'desc';
+  onSort?: (column: 'date' | 'price') => void;
 }
 
-export default function QuotesTable({ quotes = [], onRowClick }: QuotesTableProps) {
+export default function QuotesTable({
+  quotes = [],
+  onRowClick,
+  sortBy,
+  sortOrder,
+  onSort,
+}: QuotesTableProps) {
+  function handleHeaderClick(column: 'date' | 'price') {
+    onSort?.(column);
+  }
+
+  function renderSortIcon(column: 'date' | 'price') {
+    if (sortBy !== column) return <span className="text-gray-300">↕</span>;
+    return sortOrder === 'asc' ? <span>▲</span> : <span>▼</span>;
+  }
+
   return (
     <div className="overflow-x-auto bg-white rounded-lg shadow-sm border border-gray-200">
       <table className="w-full text-left text-sm">
         <thead className="bg-gray-50">
           <tr>
             <th className="px-4 py-3">Reference</th>
-            <th className="px-4 py-3">Created</th>
+            <th
+              className="px-4 py-3 cursor-pointer hover:bg-gray-100 select-none"
+              onClick={() => handleHeaderClick('date')}
+            >
+              Created {renderSortIcon('date')}
+            </th>
             <th className="px-4 py-3">Customer</th>
             <th className="px-4 py-3">Pickup</th>
             <th className="px-4 py-3">Dropoff</th>
-            <th className="px-4 py-3">Price</th>
+            <th
+              className="px-4 py-3 cursor-pointer hover:bg-gray-100 select-none"
+              onClick={() => handleHeaderClick('price')}
+            >
+              Price {renderSortIcon('price')}
+            </th>
             <th className="px-4 py-3">Status</th>
           </tr>
         </thead>
