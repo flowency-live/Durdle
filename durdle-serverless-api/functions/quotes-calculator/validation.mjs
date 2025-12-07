@@ -61,8 +61,10 @@ export function safeValidateQuoteRequest(rawData) {
   }
 
   // Format Zod errors for API response
-  const errors = result.error.errors.map(err => ({
-    field: err.path.join('.'),
+  // Handle both standard errors and refine errors
+  const zodErrors = result.error?.errors || result.error?.issues || [];
+  const errors = zodErrors.map(err => ({
+    field: err.path?.join('.') || 'unknown',
     message: err.message,
     code: err.code
   }));

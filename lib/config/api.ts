@@ -30,6 +30,9 @@ export const API_ENDPOINTS = {
   adminDocuments: '/admin/documents',
   adminComments: '/admin/documents/comments',
   adminUploads: '/admin/uploads/presigned',
+  // Admin Quotes endpoints
+  adminQuotes: '/admin/quotes',
+  adminQuotesExport: '/admin/quotes/export',
 } as const;
 
 /**

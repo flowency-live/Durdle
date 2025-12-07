@@ -1,5 +1,6 @@
 import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
 import axios from 'axios';
+import { createLogger } from '/opt/nodejs/logger.mjs';
 
 const secretsClient = new SecretsManagerClient({ region: 'eu-west-2' });
 
@@ -39,8 +40,13 @@ const getHeaders = (path, origin) => {
   };
 };
 
-export const handler = async (event) => {
-  console.log('Event:', JSON.stringify(event, null, 2));
+export const handler = async (event, context) => {
+  const logger = createLogger(event, context);
+
+  logger.info('lambda_invocation', {
+    httpMethod: event.httpMethod,
+    path: event.path || event.requestContext?.resourcePath || ''
+  });
 
   const origin = event.headers?.origin || event.headers?.Origin || '';
   const path = event.path || event.requestContext?.resourcePath || '';
@@ -56,11 +62,23 @@ export const handler = async (event) => {
     // Handle place details endpoint (placeId to lat/lng)
     if (path.includes('/place-details')) {
       if (!queryStringParameters || !queryStringParameters.placeId) {
+        logger.warn('location_place_details_validation_error', {
+          error: 'Missing required query parameter: placeId'
+        });
         return errorResponse(400, 'Missing required query parameter: placeId', null, headers);
       }
 
       const { placeId } = queryStringParameters;
-      const result = await fetchPlaceDetails(placeId);
+
+      logger.info('location_place_details_start', { placeId });
+
+      const result = await fetchPlaceDetails(placeId, logger);
+
+      logger.info('location_place_details_success', {
+        placeId,
+        lat: result.location.lat,
+        lng: result.location.lng
+      });
 
       return {
         statusCode: 200,
@@ -75,11 +93,24 @@ export const handler = async (event) => {
     // Handle reverse geocoding endpoint
     if (path.includes('/geocode')) {
       if (!queryStringParameters || !queryStringParameters.lat || !queryStringParameters.lng) {
+        logger.warn('location_reverse_geocode_validation_error', {
+          error: 'Missing required query parameters: lat, lng'
+        });
         return errorResponse(400, 'Missing required query parameters: lat, lng', null, headers);
       }
 
       const { lat, lng } = queryStringParameters;
-      const result = await fetchReverseGeocode(lat, lng);
+
+      logger.info('location_reverse_geocode_start', { lat, lng });
+
+      const result = await fetchReverseGeocode(lat, lng, logger);
+
+      logger.info('location_reverse_geocode_success', {
+        lat,
+        lng,
+        address: result.address,
+        placeId: result.place_id
+      });
 
       return {
         statusCode: 200,
@@ -93,16 +124,31 @@ export const handler = async (event) => {
 
     // Handle autocomplete endpoint
     if (!queryStringParameters || !queryStringParameters.input) {
+      logger.warn('location_autocomplete_validation_error', {
+        error: 'Missing required query parameter: input'
+      });
       return errorResponse(400, 'Missing required query parameter: input', null, headers);
     }
 
     const { input, sessionToken } = queryStringParameters;
 
     if (input.length < 3) {
+      logger.warn('location_autocomplete_validation_error', {
+        error: 'Input must be at least 3 characters',
+        inputLength: input.length
+      });
       return errorResponse(400, 'Input must be at least 3 characters', null, headers);
     }
 
-    const predictions = await fetchAutocomplete(input, sessionToken);
+    logger.info('location_autocomplete_start', { input, sessionToken });
+
+    const predictions = await fetchAutocomplete(input, sessionToken, logger);
+
+    logger.info('location_autocomplete_success', {
+      input,
+      sessionToken,
+      resultCount: predictions.length
+    });
 
     return {
       statusCode: 200,
@@ -113,15 +159,27 @@ export const handler = async (event) => {
       })
     };
   } catch (error) {
-    console.error('Error:', error);
+    logger.error('lambda_error', {
+      error: error.message,
+      stack: error.stack
+    });
     return errorResponse(500, 'Internal server error', error.message, headers);
   }
 };
 
-async function getGoogleMapsApiKey() {
+async function getGoogleMapsApiKey(logger) {
   if (cachedApiKey) {
+    logger.info('secrets_manager_api_key', {
+      cacheHit: true,
+      secretName: GOOGLE_MAPS_SECRET_NAME
+    });
     return cachedApiKey;
   }
+
+  logger.info('secrets_manager_api_key', {
+    cacheHit: false,
+    secretName: GOOGLE_MAPS_SECRET_NAME
+  });
 
   const command = new GetSecretValueCommand({
     SecretId: GOOGLE_MAPS_SECRET_NAME
@@ -132,8 +190,8 @@ async function getGoogleMapsApiKey() {
   return cachedApiKey;
 }
 
-async function fetchAutocomplete(input, sessionToken) {
-  const apiKey = await getGoogleMapsApiKey();
+async function fetchAutocomplete(input, sessionToken, logger) {
+  const apiKey = await getGoogleMapsApiKey(logger);
 
   const url = 'https://maps.googleapis.com/maps/api/place/autocomplete/json';
   const params = {
@@ -143,7 +201,17 @@ async function fetchAutocomplete(input, sessionToken) {
     components: 'country:gb' // Restrict to UK
   };
 
+  const startTime = Date.now();
+
   const response = await axios.get(url, { params });
+
+  const duration = Date.now() - startTime;
+
+  logger.info('google_maps_api_call', {
+    endpoint: 'autocomplete',
+    duration,
+    status: response.data.status
+  });
 
   if (response.data.status !== 'OK' && response.data.status !== 'ZERO_RESULTS') {
     throw new Error(`Google Maps API error: ${response.data.status}`);
@@ -163,8 +231,8 @@ async function fetchAutocomplete(input, sessionToken) {
   }));
 }
 
-async function fetchPlaceDetails(placeId) {
-  const apiKey = await getGoogleMapsApiKey();
+async function fetchPlaceDetails(placeId, logger) {
+  const apiKey = await getGoogleMapsApiKey(logger);
 
   const url = 'https://maps.googleapis.com/maps/api/place/details/json';
   const params = {
@@ -173,7 +241,17 @@ async function fetchPlaceDetails(placeId) {
     key: apiKey
   };
 
+  const startTime = Date.now();
+
   const response = await axios.get(url, { params });
+
+  const duration = Date.now() - startTime;
+
+  logger.info('google_maps_api_call', {
+    endpoint: 'place_details',
+    duration,
+    status: response.data.status
+  });
 
   if (response.data.status !== 'OK') {
     throw new Error(`Google Maps Place Details API error: ${response.data.status}`);
@@ -191,8 +269,8 @@ async function fetchPlaceDetails(placeId) {
   };
 }
 
-async function fetchReverseGeocode(lat, lng) {
-  const apiKey = await getGoogleMapsApiKey();
+async function fetchReverseGeocode(lat, lng, logger) {
+  const apiKey = await getGoogleMapsApiKey(logger);
 
   const url = 'https://maps.googleapis.com/maps/api/geocode/json';
   const params = {
@@ -201,7 +279,17 @@ async function fetchReverseGeocode(lat, lng) {
     result_type: 'street_address|premise|route|locality'
   };
 
+  const startTime = Date.now();
+
   const response = await axios.get(url, { params });
+
+  const duration = Date.now() - startTime;
+
+  logger.info('google_maps_api_call', {
+    endpoint: 'reverse_geocode',
+    duration,
+    status: response.data.status
+  });
 
   if (response.data.status !== 'OK' && response.data.status !== 'ZERO_RESULTS') {
     throw new Error(`Google Maps Geocoding API error: ${response.data.status}`);

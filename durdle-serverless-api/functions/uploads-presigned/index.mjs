@@ -1,6 +1,7 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
+import { createLogger } from '/opt/nodejs/logger.mjs';
 
 const s3Client = new S3Client({ region: 'eu-west-2' });
 
@@ -22,8 +23,9 @@ const ALLOWED_MIME_TYPES = [
   'image/gif'
 ];
 
-export const handler = async (event) => {
-  console.log('Event:', JSON.stringify(event, null, 2));
+export const handler = async (event, context) => {
+  const logger = createLogger(event, context);
+  logger.log('lambda_invocation', { requestId: context.awsRequestId });
 
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -36,13 +38,25 @@ export const handler = async (event) => {
 
     const data = JSON.parse(event.body);
 
+    logger.log('upload_url_request_start', { fileName: data.fileName, fileType: data.fileType });
+
     // Validate required fields
     if (!data.fileName || !data.fileType) {
+      logger.log('upload_url_validation_error', {
+        reason: 'Missing required fields',
+        fileName: data.fileName,
+        fileType: data.fileType
+      });
       return errorResponse(400, 'Missing required fields: fileName, fileType');
     }
 
     // Validate file type
     if (!ALLOWED_MIME_TYPES.includes(data.fileType)) {
+      logger.log('upload_url_validation_error', {
+        reason: 'Invalid file type',
+        fileType: data.fileType,
+        allowedTypes: ALLOWED_MIME_TYPES
+      });
       return errorResponse(400, `Invalid file type. Allowed types: ${ALLOWED_MIME_TYPES.join(', ')}`);
     }
 
@@ -59,6 +73,13 @@ export const handler = async (event) => {
     };
 
     if (!validExtensions[data.fileType]?.includes(fileExtension)) {
+      logger.log('upload_url_validation_error', {
+        reason: 'Extension mismatch',
+        fileName: data.fileName,
+        fileType: data.fileType,
+        extension: fileExtension,
+        validExtensions: validExtensions[data.fileType]
+      });
       return errorResponse(400, 'File extension does not match MIME type');
     }
 
@@ -68,6 +89,8 @@ export const handler = async (event) => {
     const key = `${folder}/${uuid}.${fileExtension}`;
 
     // Create presigned URL
+    logger.log('s3_presigned_url_generation', { bucket: IMAGES_BUCKET_NAME, key });
+
     const command = new PutObjectCommand({
       Bucket: IMAGES_BUCKET_NAME,
       Key: key,
@@ -80,6 +103,12 @@ export const handler = async (event) => {
 
     const publicUrl = `https://${IMAGES_BUCKET_NAME}.s3.eu-west-2.amazonaws.com/${key}`;
 
+    logger.log('upload_url_request_success', {
+      key,
+      bucket: IMAGES_BUCKET_NAME,
+      expiresIn: PRESIGNED_URL_EXPIRY
+    });
+
     return {
       statusCode: 200,
       headers,
@@ -91,7 +120,10 @@ export const handler = async (event) => {
       })
     };
   } catch (error) {
-    console.error('Error:', error);
+    logger.log('lambda_error', {
+      error: error.message,
+      stack: error.stack
+    });
     return errorResponse(500, 'Internal server error', error.message);
   }
 };

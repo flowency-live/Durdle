@@ -1,0 +1,8 @@
+{
+  "httpMethod": "POST",
+  "path": "/v1/quotes",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": "{\"pickupLocation\":{\"address\":\"Bournemouth Airport, Christchurch\",\"placeId\":\"ChIJtest123\"},\"dropoffLocation\":{\"address\":\"Poole Train Station\",\"placeId\":\"ChIJtest456\"},\"pickupTime\":\"2025-12-07T10:00:00Z\",\"passengers\":2,\"vehicleType\":\"standard\"}"
+}

@@ -5,7 +5,9 @@
   "main": "index.mjs",
   "type": "module",
   "scripts": {
-    "test": "echo \"No tests yet\" && exit 0"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.700.0",
@@ -13,5 +15,9 @@
     "@aws-sdk/lib-dynamodb": "^3.700.0",
     "axios": "^1.7.0",
     "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "jest": "^30.2.0"
   }
 }

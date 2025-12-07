@@ -4,6 +4,16 @@ import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-sec
 import axios from 'axios';
 import { randomUUID } from 'crypto';
 import { safeValidateQuoteRequest } from './validation.mjs';
+import logger, {
+  createLogger,
+  logQuoteCalculationStart,
+  logQuoteCalculationSuccess,
+  logQuoteCalculationError,
+  logExternalApiCall,
+  logDatabaseOperation,
+  logValidationError,
+  logCacheAccess,
+} from '/opt/nodejs/logger.mjs';
 
 const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION });
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
@@ -29,7 +39,11 @@ async function getGoogleMapsApiKey() {
     cachedApiKey = response.SecretString;
     return cachedApiKey;
   } catch (error) {
-    console.error('Failed to retrieve Google Maps API key:', error);
+    logger.error({
+      event: 'secrets_manager_error',
+      secretName: GOOGLE_MAPS_SECRET_NAME,
+      errorMessage: error.message,
+    }, 'Failed to retrieve Google Maps API key');
     throw new Error('Configuration error');
   }
 }
@@ -53,7 +67,7 @@ async function getVehiclePricing() {
     const result = await docClient.send(command);
 
     if (!result.Items || result.Items.length === 0) {
-      console.log('No vehicle pricing found in DynamoDB, using fallback');
+      logger.warn({ event: 'pricing_fallback' }, 'No vehicle pricing in DynamoDB, using fallback');
       return getFallbackPricing();
     }
 
@@ -74,10 +88,15 @@ async function getVehiclePricing() {
 
     vehiclePricingCache = pricing;
     pricingCacheTime = Date.now();
+    logger.debug({ event: 'pricing_cache_updated', vehicleCount: Object.keys(pricing).length }, 'Vehicle pricing cached');
 
     return pricing;
   } catch (error) {
-    console.error('Failed to fetch vehicle pricing from DynamoDB:', error);
+    logger.error({
+      event: 'dynamodb_pricing_error',
+      tableName: PRICING_TABLE_NAME,
+      errorMessage: error.message,
+    }, 'Failed to fetch vehicle pricing from DynamoDB');
     return getFallbackPricing();
   }
 }
@@ -149,7 +168,11 @@ async function checkFixedRoute(originPlaceId, destinationPlaceId, vehicleId) {
 
     return null;
   } catch (error) {
-    console.error('Failed to check fixed routes:', error);
+    logger.error({
+      event: 'fixed_route_query_error',
+      tableName: FIXED_ROUTES_TABLE_NAME,
+      errorMessage: error.message,
+    }, 'Failed to check fixed routes');
     return null;
   }
 }
@@ -190,7 +213,10 @@ async function calculateDistance(origin, destination, apiKey) {
       },
     };
   } catch (error) {
-    console.error('Distance calculation failed:', error);
+    logger.error({
+      event: 'google_maps_distance_error',
+      errorMessage: error.message,
+    }, 'Distance Matrix API failed');
     throw new Error('Unable to calculate route');
   }
 }
@@ -199,29 +225,83 @@ async function calculateRouteWithWaypoints(origin, destination, waypoints, apiKe
   const url = 'https://maps.googleapis.com/maps/api/directions/json';
 
   try {
+    // Validate and clean waypoints before sending to Google
+    const validWaypoints = waypoints.filter(wp => {
+      const hasValidPlaceId = wp.placeId && typeof wp.placeId === 'string' && wp.placeId.trim() !== '';
+      const hasValidAddress = wp.address && typeof wp.address === 'string' && wp.address.trim() !== '';
+      return hasValidPlaceId || hasValidAddress;
+    });
+
+    logger.info({
+      event: 'waypoint_validation',
+      originalCount: waypoints.length,
+      validCount: validWaypoints.length,
+      waypoints: validWaypoints.map(wp => ({
+        hasPlaceId: !!wp.placeId,
+        hasAddress: !!wp.address,
+        addressLength: wp.address?.length || 0
+      }))
+    }, 'Validated waypoints for Google API');
+
+    if (validWaypoints.length === 0) {
+      throw new Error('No valid waypoints found - waypoints must have either a placeId or address');
+    }
+
     // Build waypoints parameter for Directions API
     // Format: optimize:false|place_id:ChIJ...|place_id:ChIJ...
-    const waypointsParam = waypoints
-      .filter(wp => wp.placeId || wp.address)
-      .map(wp => wp.placeId ? `place_id:${wp.placeId}` : wp.address)
+    const waypointsParam = validWaypoints
+      .map(wp => {
+        if (wp.placeId && wp.placeId.trim() !== '') {
+          return `place_id:${wp.placeId.trim()}`;
+        }
+        // URL encode address to handle special characters
+        return encodeURIComponent(wp.address.trim());
+      })
       .join('|');
 
+    // Format origin and destination - if they look like placeIds, prefix with place_id:
+    const formatLocation = (location) => {
+      if (location && location.startsWith('ChIJ')) {
+        return `place_id:${location}`;
+      }
+      return location;
+    };
+
+    const formattedOrigin = formatLocation(origin);
+    const formattedDestination = formatLocation(destination);
+
     const params = {
-      origin: origin,
-      destination: destination,
+      origin: formattedOrigin,
+      destination: formattedDestination,
+      waypoints: `optimize:false|${waypointsParam}`,
       key: apiKey,
       units: 'imperial',
     };
 
-    // Only add waypoints parameter if we have waypoints
-    if (waypointsParam) {
-      params.waypoints = `optimize:false|${waypointsParam}`;
-    }
+    logger.info({
+      event: 'google_directions_request',
+      origin: formattedOrigin,
+      destination: formattedDestination,
+      waypointCount: validWaypoints.length,
+      waypointsParam: waypointsParam.substring(0, 200) // Log first 200 chars
+    }, 'Calling Google Directions API');
 
     const response = await axios.get(url, { params });
 
+    logger.info({
+      event: 'google_directions_response',
+      status: response.data.status,
+      routeCount: response.data.routes?.length || 0
+    }, 'Google Directions API response');
+
     if (response.data.status !== 'OK') {
-      throw new Error(`Google Maps Directions API error: ${response.data.status}`);
+      logger.error({
+        event: 'google_directions_api_error',
+        status: response.data.status,
+        errorMessage: response.data.error_message || 'No error message',
+        availableRoutes: response.data.available_travel_modes
+      }, 'Google Directions API returned non-OK status');
+      throw new Error(`Google Maps Directions API error: ${response.data.status}${response.data.error_message ? ' - ' + response.data.error_message : ''}`);
     }
 
     if (!response.data.routes || response.data.routes.length === 0) {
@@ -254,7 +334,11 @@ async function calculateRouteWithWaypoints(origin, destination, waypoints, apiKe
       polyline: route.overview_polyline?.points || null,
     };
   } catch (error) {
-    console.error('Route calculation with waypoints failed:', error);
+    logger.error({
+      event: 'google_maps_directions_error',
+      errorMessage: error.message,
+      waypointCount: waypoints?.length || 0,
+    }, 'Directions API failed');
     throw new Error('Unable to calculate route with waypoints');
   }
 }
@@ -316,7 +400,10 @@ async function generateFriendlyQuoteId() {
 
     return `DTS${datePrefix}_${sequenceNumber}`;
   } catch (error) {
-    console.error('Failed to generate friendly quote ID, using fallback:', error);
+    logger.warn({
+      event: 'quote_id_generation_fallback',
+      errorMessage: error.message,
+    }, 'Failed to generate sequential quote ID, using UUID fallback');
     // Fallback to UUID-based ID if query fails
     return `DTS${datePrefix}_${randomUUID().slice(0, 3).toUpperCase()}`;
   }
@@ -343,21 +430,36 @@ async function storeQuote(quote) {
       Item: item,
     }));
   } catch (error) {
-    console.error('Failed to store quote:', error);
+    logger.error({
+      event: 'dynamodb_put_error',
+      tableName: TABLE_NAME,
+      quoteId: quote.quoteId,
+      errorMessage: error.message,
+    }, 'Failed to store quote in DynamoDB');
     throw new Error('Failed to save quote');
   }
 }
 
-export const handler = async (event) => {
-  console.log('Quote calculator invoked:', JSON.stringify(event, null, 2));
+export const handler = async (event, context) => {
+  const startTime = Date.now();
+  const logger = createLogger(event, context);
+
+  logger.info({
+    event: 'lambda_invocation',
+    httpMethod: event.httpMethod,
+    path: event.path,
+  }, 'Quote calculator invoked');
+
+  let validation; // Declare outside try block so it's accessible in catch
 
   try {
     const rawBody = JSON.parse(event.body || '{}');
 
     // Validate request with Zod
-    const validation = safeValidateQuoteRequest(rawBody);
+    validation = safeValidateQuoteRequest(rawBody);
 
     if (!validation.success) {
+      logValidationError(logger, validation.error);
       return {
         statusCode: 400,
         headers: {
@@ -376,6 +478,9 @@ export const handler = async (event) => {
     // Calculate total wait time from waypoints (in minutes)
     const totalWaitTime = waypoints.reduce((sum, wp) => sum + (wp.waitTime || 0), 0);
 
+    // Log quote calculation start
+    logQuoteCalculationStart(logger, body);
+
     // Check for fixed route first if placeIds are provided AND no waypoints
     // Fixed routes do not support waypoints
     let fixedRoute = null;
@@ -392,7 +497,11 @@ export const handler = async (event) => {
 
     if (fixedRoute) {
       // Use fixed route pricing
-      console.log('Using fixed route pricing:', fixedRoute.routeId);
+      logger.info({
+        event: 'fixed_route_selected',
+        routeId: fixedRoute.routeId,
+        price: fixedRoute.price,
+      }, 'Using fixed route pricing');
       isFixedRoute = true;
 
       route = {
@@ -434,26 +543,35 @@ export const handler = async (event) => {
       };
     } else {
       // Fallback to variable pricing calculation
-      console.log('Using variable pricing calculation');
+      logger.info({ event: 'variable_pricing_selected' }, 'Using variable pricing calculation');
       const apiKey = await getGoogleMapsApiKey();
 
       if (hasWaypoints) {
         // Use Directions API for routes with waypoints
-        console.log(`Calculating route with ${waypoints.length} waypoints, total wait time: ${totalWaitTime} minutes`);
+        logger.info({
+          event: 'route_calculation_waypoints',
+          waypointCount: waypoints.length,
+          totalWaitTime,
+        }, 'Calculating route with waypoints');
+
+        const apiStart = Date.now();
         route = await calculateRouteWithWaypoints(
           body.pickupLocation.placeId || body.pickupLocation.address,
           body.dropoffLocation.placeId || body.dropoffLocation.address,
           waypoints,
           apiKey
         );
+        logExternalApiCall(logger, 'directions', Date.now() - apiStart);
       } else {
         // Use Distance Matrix API for simple routes
-        console.log('Calculating simple route (no waypoints)');
+        logger.info({ event: 'route_calculation_simple' }, 'Calculating simple route');
+        const apiStart = Date.now();
         route = await calculateDistance(
           body.pickupLocation.address,
           body.dropoffLocation.address,
           apiKey
         );
+        logExternalApiCall(logger, 'distance_matrix', Date.now() - apiStart);
       }
 
       // Calculate pricing: baseFare + (distance × perMile) + (waitTime × perMinute)
@@ -494,6 +612,10 @@ export const handler = async (event) => {
 
     await storeQuote(quote);
 
+    // Log successful quote calculation
+    const duration = Date.now() - startTime;
+    logQuoteCalculationSuccess(logger, quote, duration);
+
     return {
       statusCode: 201,
       headers: {
@@ -503,7 +625,7 @@ export const handler = async (event) => {
       body: JSON.stringify(quote),
     };
   } catch (error) {
-    console.error('Error processing quote:', error);
+    logQuoteCalculationError(logger, error, validation?.data);
 
     return {
       statusCode: 500,

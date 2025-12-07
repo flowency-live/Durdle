@@ -3,6 +3,7 @@ import { DynamoDBDocumentClient, GetCommand, UpdateCommand } from '@aws-sdk/lib-
 import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { createLogger } from '/opt/nodejs/logger.mjs';
 
 const client = new DynamoDBClient({ region: 'eu-west-2' });
 const ddbDocClient = DynamoDBDocumentClient.from(client);
@@ -33,8 +34,14 @@ const getHeaders = (origin) => {
   };
 };
 
-export const handler = async (event) => {
-  console.log('Event:', JSON.stringify(event, null, 2));
+export const handler = async (event, context) => {
+  const logger = createLogger(event, context);
+
+  logger.info({
+    event: 'lambda_invocation',
+    httpMethod: event.httpMethod,
+    path: event.path,
+  }, 'Admin auth Lambda invoked');
 
   const origin = event.headers?.origin || event.headers?.Origin || '';
   const headers = getHeaders(origin);
@@ -50,26 +57,30 @@ export const handler = async (event) => {
       if (httpMethod !== 'POST') {
         return errorResponse(405, 'Method not allowed', null, headers);
       }
-      return await login(event.body, headers);
+      return await login(event.body, headers, logger);
     }
 
     if (path.includes('/logout')) {
       if (httpMethod !== 'POST') {
         return errorResponse(405, 'Method not allowed', null, headers);
       }
-      return await logout(headers);
+      return await logout(headers, logger);
     }
 
     if (path.includes('/session')) {
       if (httpMethod !== 'GET') {
         return errorResponse(405, 'Method not allowed', null, headers);
       }
-      return await verifySession(event.headers, headers);
+      return await verifySession(event.headers, headers, logger);
     }
 
     return errorResponse(404, 'Endpoint not found', null, headers);
   } catch (error) {
-    console.error('Error:', error);
+    logger.error({
+      event: 'lambda_error',
+      errorMessage: error.message,
+      errorStack: error.stack,
+    }, 'Unhandled error in admin auth Lambda');
     return errorResponse(500, 'Internal server error', error.message, headers);
   }
 };
@@ -88,21 +99,23 @@ async function getJwtSecret() {
     cachedJwtSecret = response.SecretString;
     return cachedJwtSecret;
   } catch (error) {
-    console.error('CRITICAL: Failed to fetch JWT secret from Secrets Manager', {
-      secretName: JWT_SECRET_NAME,
-      error: error.message
-    });
-    // Fail fast - no fallback secrets in production
+    // Note: logger not available in this context (called before handler creates logger)
+    // This error will be caught and logged by the caller
     throw new Error(`JWT secret unavailable: ${error.message}`);
   }
 }
 
-async function login(requestBody, headers) {
+async function login(requestBody, headers, logger) {
   const data = JSON.parse(requestBody);
 
   if (!data.username || !data.password) {
     return errorResponse(400, 'Missing username or password', null, headers);
   }
+
+  logger.info({
+    event: 'login_attempt',
+    username: data.username,
+  }, 'Login attempt');
 
   // Fetch user from DynamoDB
   const getCommand = new GetCommand({
@@ -116,7 +129,11 @@ async function login(requestBody, headers) {
   const result = await ddbDocClient.send(getCommand);
 
   if (!result.Item) {
-    console.log('User not found:', data.username);
+    logger.warn({
+      event: 'login_failure',
+      username: data.username,
+      reason: 'user_not_found',
+    }, 'Login failed: user not found');
     return errorResponse(401, 'Invalid username or password', null, headers);
   }
 
@@ -124,6 +141,11 @@ async function login(requestBody, headers) {
 
   // Check if user is active
   if (!user.active) {
+    logger.warn({
+      event: 'login_failure',
+      username: data.username,
+      reason: 'account_disabled',
+    }, 'Login failed: account disabled');
     return errorResponse(403, 'Account is disabled', null, headers);
   }
 
@@ -131,7 +153,11 @@ async function login(requestBody, headers) {
   const passwordMatch = await bcrypt.compare(data.password, user.passwordHash);
 
   if (!passwordMatch) {
-    console.log('Password mismatch for user:', data.username);
+    logger.warn({
+      event: 'login_failure',
+      username: data.username,
+      reason: 'invalid_password',
+    }, 'Login failed: invalid password');
     return errorResponse(401, 'Invalid username or password', null, headers);
   }
 
@@ -163,6 +189,12 @@ async function login(requestBody, headers) {
     { expiresIn: JWT_EXPIRY }
   );
 
+  logger.info({
+    event: 'login_success',
+    username: user.username,
+    role: user.role,
+  }, 'Login successful');
+
   // Set httpOnly cookie
   const cookieHeader = `sessionToken=${token}; HttpOnly; Secure; SameSite=Strict; Max-Age=${JWT_EXPIRY}; Path=/`;
 
@@ -186,7 +218,9 @@ async function login(requestBody, headers) {
   };
 }
 
-async function logout(headers) {
+async function logout(headers, logger) {
+  logger.info({ event: 'logout' }, 'User logged out');
+
   // Clear the session cookie
   const cookieHeader = 'sessionToken=; HttpOnly; Secure; SameSite=Strict; Max-Age=0; Path=/';
 
@@ -203,7 +237,7 @@ async function logout(headers) {
   };
 }
 
-async function verifySession(requestHeaders, headers) {
+async function verifySession(requestHeaders, headers, logger) {
   // Extract token from Authorization header or Cookie
   let token = null;
 
@@ -219,6 +253,7 @@ async function verifySession(requestHeaders, headers) {
   }
 
   if (!token) {
+    logger.warn({ event: 'session_verification_failure', reason: 'no_token' }, 'No session token provided');
     return errorResponse(401, 'No session token provided', null, headers);
   }
 
@@ -238,8 +273,18 @@ async function verifySession(requestHeaders, headers) {
     const result = await ddbDocClient.send(getCommand);
 
     if (!result.Item || !result.Item.active) {
+      logger.warn({
+        event: 'session_verification_failure',
+        username: decoded.username,
+        reason: 'account_disabled_or_not_found',
+      }, 'Session verification failed: account disabled or not found');
       return errorResponse(403, 'Account is disabled or not found', null, headers);
     }
+
+    logger.info({
+      event: 'session_verification_success',
+      username: result.Item.username,
+    }, 'Session verified successfully');
 
     return {
       statusCode: 200,
@@ -248,7 +293,7 @@ async function verifySession(requestHeaders, headers) {
         valid: true,
         user: {
           username: result.Item.username,
-          role: result.Item.role,
+          role: result.Item.username,
           email: result.Item.email,
           fullName: result.Item.fullName
         }
@@ -256,9 +301,11 @@ async function verifySession(requestHeaders, headers) {
     };
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
+      logger.warn({ event: 'session_expired' }, 'Session token expired');
       return errorResponse(401, 'Session expired', null, headers);
     }
     if (error.name === 'JsonWebTokenError') {
+      logger.warn({ event: 'invalid_token' }, 'Invalid session token');
       return errorResponse(401, 'Invalid session token', null, headers);
     }
     throw error;

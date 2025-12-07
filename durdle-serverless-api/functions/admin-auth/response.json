@@ -1,0 +1,1 @@
+{"statusCode":401,"headers":{"Content-Type":"application/json","Access-Control-Allow-Origin":"https://durdle.flowency.build","Access-Control-Allow-Headers":"Content-Type,Authorization","Access-Control-Allow-Methods":"GET,POST,OPTIONS","Access-Control-Allow-Credentials":"true"},"body":"{\"error\":\"Invalid session token\"}"}

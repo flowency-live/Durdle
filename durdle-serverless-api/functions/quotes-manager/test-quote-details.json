@@ -1,0 +1,16 @@
+{
+  "httpMethod": "GET",
+  "path": "/admin/quotes/QUOTE#abc123",
+  "resource": "/admin/quotes/{quoteId}",
+  "pathParameters": {
+    "quoteId": "QUOTE#abc123"
+  },
+  "requestContext": {
+    "authorizer": {
+      "claims": {
+        "sub": "test-admin-user",
+        "email": "admin@durdletransfers.co.uk"
+      }
+    }
+  }
+}

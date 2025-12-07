@@ -1,0 +1,17 @@
+{
+  "httpMethod": "GET",
+  "path": "/admin/quotes",
+  "resource": "/admin/quotes",
+  "queryStringParameters": {
+    "status": "all",
+    "limit": "10"
+  },
+  "requestContext": {
+    "authorizer": {
+      "claims": {
+        "sub": "test-admin-user",
+        "email": "admin@durdletransfers.co.uk"
+      }
+    }
+  }
+}

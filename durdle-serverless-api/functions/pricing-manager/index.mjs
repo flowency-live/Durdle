@@ -1,11 +1,45 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { randomUUID } from 'crypto';
+import { createLogger } from '/opt/nodejs/logger.mjs';
+import { z } from 'zod';
 
 const client = new DynamoDBClient({ region: 'eu-west-2' });
 const ddbDocClient = DynamoDBDocumentClient.from(client);
 
 const PRICING_TABLE_NAME = process.env.PRICING_TABLE_NAME || 'durdle-pricing-config-dev';
+
+// Zod schemas for vehicle validation
+const CreateVehicleSchema = z.object({
+  vehicleId: z.string().optional(),
+  name: z.string().min(1, 'Vehicle name is required'),
+  description: z.string().min(1, 'Description is required'),
+  capacity: z.number().int().min(1, 'Capacity must be at least 1'),
+  baseFare: z.number().int().min(0, 'Base fare cannot be negative'),
+  perMile: z.number().int().min(0, 'Per mile rate cannot be negative'),
+  perMinute: z.number().int().min(0, 'Per minute rate cannot be negative'),
+  features: z.array(z.string()).optional(),
+  active: z.boolean().optional(),
+  imageKey: z.string().optional(),
+  imageUrl: z.string().optional(),
+  updatedBy: z.string().optional(),
+});
+
+const UpdateVehicleSchema = z.object({
+  name: z.string().min(1).optional(),
+  description: z.string().min(1).optional(),
+  capacity: z.number().int().min(1, 'Capacity must be at least 1').optional(),
+  baseFare: z.number().int().min(0, 'Base fare cannot be negative').optional(),
+  perMile: z.number().int().min(0, 'Per mile rate cannot be negative').optional(),
+  perMinute: z.number().int().min(0, 'Per minute rate cannot be negative').optional(),
+  features: z.array(z.string()).optional(),
+  active: z.boolean().optional(),
+  imageKey: z.string().optional(),
+  imageUrl: z.string().optional(),
+  updatedBy: z.string().optional(),
+}).refine((data) => Object.keys(data).length > 0, {
+  message: 'At least one field must be provided for update',
+});
 
 const getAllowedOrigins = () => [
   'http://localhost:3000',
@@ -26,8 +60,14 @@ const getHeaders = (origin) => {
   };
 };
 
-export const handler = async (event) => {
-  console.log('Event:', JSON.stringify(event, null, 2));
+export const handler = async (event, context) => {
+  const logger = createLogger(event, context);
+
+  logger.info({
+    event: 'lambda_invocation',
+    httpMethod: event.httpMethod,
+    path: event.path,
+  }, 'Pricing manager Lambda invoked');
 
   const origin = event.headers?.origin || event.headers?.Origin || '';
   const headers = getHeaders(origin);
@@ -42,36 +82,52 @@ export const handler = async (event) => {
 
     switch (httpMethod) {
       case 'GET':
+        logger.info({ event: 'vehicle_operation', operation: 'GET', vehicleId }, 'Processing GET request');
         if (vehicleId) {
-          return await getVehicle(vehicleId, headers);
+          return await getVehicle(vehicleId, headers, logger);
         }
-        return await listVehicles(headers);
+        return await listVehicles(headers, logger);
 
       case 'POST':
-        return await createVehicle(requestBody, headers);
+        logger.info({ event: 'vehicle_operation', operation: 'POST' }, 'Processing POST request');
+        return await createVehicle(requestBody, headers, logger);
 
       case 'PUT':
+        logger.info({ event: 'vehicle_operation', operation: 'PUT', vehicleId }, 'Processing PUT request');
         if (!vehicleId) {
           return errorResponse(400, 'vehicleId is required', null, headers);
         }
-        return await updateVehicle(vehicleId, requestBody, headers);
+        return await updateVehicle(vehicleId, requestBody, headers, logger);
 
       case 'DELETE':
+        logger.info({ event: 'vehicle_operation', operation: 'DELETE', vehicleId }, 'Processing DELETE request');
         if (!vehicleId) {
           return errorResponse(400, 'vehicleId is required', null, headers);
         }
-        return await deleteVehicle(vehicleId, headers);
+        return await deleteVehicle(vehicleId, headers, logger);
 
       default:
         return errorResponse(405, 'Method not allowed', null, headers);
     }
   } catch (error) {
-    console.error('Error:', error);
+    logger.error({
+      event: 'lambda_error',
+      errorMessage: error.message,
+      errorStack: error.stack,
+    }, 'Unhandled error in pricing manager Lambda');
     return errorResponse(500, 'Internal server error', error.message, headers);
   }
 };
 
-async function listVehicles(headers) {
+async function listVehicles(headers, logger) {
+  logger.info({ event: 'vehicle_list_start' }, 'Fetching all vehicles');
+
+  logger.info({
+    event: 'dynamodb_operation',
+    operation: 'Scan',
+    tableName: PRICING_TABLE_NAME,
+  }, 'Querying DynamoDB for vehicles');
+
   const command = new ScanCommand({
     TableName: PRICING_TABLE_NAME,
     FilterExpression: 'begins_with(PK, :pkPrefix) AND SK = :sk',
@@ -100,6 +156,11 @@ async function listVehicles(headers) {
     updatedBy: item.updatedBy
   }));
 
+  logger.info({
+    event: 'vehicle_list_success',
+    count: vehicles.length,
+  }, 'Successfully retrieved vehicles');
+
   return {
     statusCode: 200,
     headers,
@@ -110,7 +171,16 @@ async function listVehicles(headers) {
   };
 }
 
-async function getVehicle(vehicleId, headers) {
+async function getVehicle(vehicleId, headers, logger) {
+  logger.info({ event: 'vehicle_get_start', vehicleId }, 'Fetching vehicle by ID');
+
+  logger.info({
+    event: 'dynamodb_operation',
+    operation: 'GetCommand',
+    tableName: PRICING_TABLE_NAME,
+    vehicleId,
+  }, 'Querying DynamoDB for vehicle');
+
   const command = new GetCommand({
     TableName: PRICING_TABLE_NAME,
     Key: {
@@ -122,6 +192,7 @@ async function getVehicle(vehicleId, headers) {
   const result = await ddbDocClient.send(command);
 
   if (!result.Item) {
+    logger.warn({ event: 'vehicle_get_not_found', vehicleId }, 'Vehicle not found');
     return errorResponse(404, 'Vehicle not found', null, headers);
   }
 
@@ -142,6 +213,8 @@ async function getVehicle(vehicleId, headers) {
     updatedBy: result.Item.updatedBy
   };
 
+  logger.info({ event: 'vehicle_get_success', vehicleId }, 'Successfully retrieved vehicle');
+
   return {
     statusCode: 200,
     headers,
@@ -149,25 +222,37 @@ async function getVehicle(vehicleId, headers) {
   };
 }
 
-async function createVehicle(requestBody, headers) {
-  const data = JSON.parse(requestBody);
+async function createVehicle(requestBody, headers, logger) {
+  logger.info({ event: 'vehicle_create_start' }, 'Creating new vehicle');
 
-  // Validate required fields
-  const requiredFields = ['name', 'description', 'capacity', 'baseFare', 'perMile', 'perMinute'];
-  for (const field of requiredFields) {
-    if (data[field] === undefined || data[field] === null) {
-      return errorResponse(400, `Missing required field: ${field}`, null, headers);
-    }
+  const rawData = JSON.parse(requestBody);
+
+  // Validate with Zod schema
+  const validation = CreateVehicleSchema.safeParse(rawData);
+
+  if (!validation.success) {
+    const errors = validation.error.errors.map(err => ({
+      field: err.path.join('.'),
+      message: err.message,
+      code: err.code
+    }));
+
+    logger.warn({
+      event: 'validation_error',
+      errors,
+    }, 'Vehicle creation validation failed');
+
+    return {
+      statusCode: 400,
+      headers,
+      body: JSON.stringify({
+        error: 'Validation failed',
+        details: errors
+      })
+    };
   }
 
-  // Validate numeric fields
-  if (data.capacity < 1) {
-    return errorResponse(400, 'Capacity must be at least 1', null, headers);
-  }
-  if (data.baseFare < 0 || data.perMile < 0 || data.perMinute < 0) {
-    return errorResponse(400, 'Pricing values cannot be negative', null, headers);
-  }
-
+  const data = validation.data;
   const vehicleId = data.vehicleId || randomUUID();
   const now = new Date().toISOString();
 
@@ -177,11 +262,11 @@ async function createVehicle(requestBody, headers) {
     vehicleId,
     name: data.name,
     description: data.description,
-    capacity: parseInt(data.capacity),
+    capacity: data.capacity,
     features: data.features || [],
-    baseFare: parseInt(data.baseFare),
-    perMile: parseInt(data.perMile),
-    perMinute: parseInt(data.perMinute),
+    baseFare: data.baseFare,
+    perMile: data.perMile,
+    perMinute: data.perMinute,
     active: data.active !== undefined ? data.active : true,
     imageKey: data.imageKey || '',
     imageUrl: data.imageUrl || '',
@@ -189,6 +274,13 @@ async function createVehicle(requestBody, headers) {
     updatedAt: now,
     updatedBy: data.updatedBy || 'admin'
   };
+
+  logger.info({
+    event: 'dynamodb_operation',
+    operation: 'PutCommand',
+    tableName: PRICING_TABLE_NAME,
+    vehicleId,
+  }, 'Creating vehicle in DynamoDB');
 
   const command = new PutCommand({
     TableName: PRICING_TABLE_NAME,
@@ -198,6 +290,11 @@ async function createVehicle(requestBody, headers) {
 
   try {
     await ddbDocClient.send(command);
+
+    logger.info({
+      event: 'vehicle_create_success',
+      vehicleId,
+    }, 'Vehicle created successfully');
 
     return {
       statusCode: 201,
@@ -225,16 +322,54 @@ async function createVehicle(requestBody, headers) {
     };
   } catch (error) {
     if (error.name === 'ConditionalCheckFailedException') {
+      logger.warn({ event: 'vehicle_create_conflict', vehicleId }, 'Vehicle already exists');
       return errorResponse(409, 'Vehicle already exists', null, headers);
     }
     throw error;
   }
 }
 
-async function updateVehicle(vehicleId, requestBody, headers) {
-  const data = JSON.parse(requestBody);
+async function updateVehicle(vehicleId, requestBody, headers, logger) {
+  logger.info({ event: 'vehicle_update_start', vehicleId }, 'Updating vehicle');
+
+  const rawData = JSON.parse(requestBody);
+
+  // Validate with Zod schema
+  const validation = UpdateVehicleSchema.safeParse(rawData);
+
+  if (!validation.success) {
+    const errors = validation.error.errors.map(err => ({
+      field: err.path.join('.') || 'root',
+      message: err.message,
+      code: err.code
+    }));
+
+    logger.warn({
+      event: 'validation_error',
+      vehicleId,
+      errors,
+    }, 'Vehicle update validation failed');
+
+    return {
+      statusCode: 400,
+      headers,
+      body: JSON.stringify({
+        error: 'Validation failed',
+        details: errors
+      })
+    };
+  }
+
+  const data = validation.data;
 
   // Check if vehicle exists
+  logger.info({
+    event: 'dynamodb_operation',
+    operation: 'GetCommand',
+    tableName: PRICING_TABLE_NAME,
+    vehicleId,
+  }, 'Checking if vehicle exists');
+
   const getCommand = new GetCommand({
     TableName: PRICING_TABLE_NAME,
     Key: {
@@ -245,6 +380,7 @@ async function updateVehicle(vehicleId, requestBody, headers) {
 
   const existingItem = await ddbDocClient.send(getCommand);
   if (!existingItem.Item) {
+    logger.warn({ event: 'vehicle_update_not_found', vehicleId }, 'Vehicle not found');
     return errorResponse(404, 'Vehicle not found', null, headers);
   }
 
@@ -265,12 +401,9 @@ async function updateVehicle(vehicleId, requestBody, headers) {
   }
 
   if (data.capacity !== undefined) {
-    if (data.capacity < 1) {
-      return errorResponse(400, 'Capacity must be at least 1', null, headers);
-    }
     updates.push('#capacity = :capacity');
     expressionAttributeNames['#capacity'] = 'capacity';
-    expressionAttributeValues[':capacity'] = parseInt(data.capacity);
+    expressionAttributeValues[':capacity'] = data.capacity;
   }
 
   if (data.features !== undefined) {
@@ -279,27 +412,18 @@ async function updateVehicle(vehicleId, requestBody, headers) {
   }
 
   if (data.baseFare !== undefined) {
-    if (data.baseFare < 0) {
-      return errorResponse(400, 'Base fare cannot be negative', null, headers);
-    }
     updates.push('baseFare = :baseFare');
-    expressionAttributeValues[':baseFare'] = parseInt(data.baseFare);
+    expressionAttributeValues[':baseFare'] = data.baseFare;
   }
 
   if (data.perMile !== undefined) {
-    if (data.perMile < 0) {
-      return errorResponse(400, 'Per mile rate cannot be negative', null, headers);
-    }
     updates.push('perMile = :perMile');
-    expressionAttributeValues[':perMile'] = parseInt(data.perMile);
+    expressionAttributeValues[':perMile'] = data.perMile;
   }
 
   if (data.perMinute !== undefined) {
-    if (data.perMinute < 0) {
-      return errorResponse(400, 'Per minute rate cannot be negative', null, headers);
-    }
     updates.push('perMinute = :perMinute');
-    expressionAttributeValues[':perMinute'] = parseInt(data.perMinute);
+    expressionAttributeValues[':perMinute'] = data.perMinute;
   }
 
   if (data.active !== undefined) {
@@ -317,14 +441,20 @@ async function updateVehicle(vehicleId, requestBody, headers) {
     expressionAttributeValues[':imageUrl'] = data.imageUrl;
   }
 
-  if (updates.length === 0) {
-    return errorResponse(400, 'No fields to update', null, headers);
-  }
-
   updates.push('updatedAt = :updatedAt');
   updates.push('updatedBy = :updatedBy');
   expressionAttributeValues[':updatedAt'] = new Date().toISOString();
   expressionAttributeValues[':updatedBy'] = data.updatedBy || 'admin';
+
+  const fieldsUpdated = Object.keys(data).length;
+
+  logger.info({
+    event: 'dynamodb_operation',
+    operation: 'UpdateCommand',
+    tableName: PRICING_TABLE_NAME,
+    vehicleId,
+    fieldsUpdated,
+  }, 'Updating vehicle in DynamoDB');
 
   const updateCommand = new UpdateCommand({
     TableName: PRICING_TABLE_NAME,
@@ -339,6 +469,12 @@ async function updateVehicle(vehicleId, requestBody, headers) {
   });
 
   const result = await ddbDocClient.send(updateCommand);
+
+  logger.info({
+    event: 'vehicle_update_success',
+    vehicleId,
+    fieldsUpdated,
+  }, 'Vehicle updated successfully');
 
   return {
     statusCode: 200,
@@ -365,8 +501,17 @@ async function updateVehicle(vehicleId, requestBody, headers) {
   };
 }
 
-async function deleteVehicle(vehicleId, headers) {
+async function deleteVehicle(vehicleId, headers, logger) {
+  logger.info({ event: 'vehicle_delete_start', vehicleId }, 'Deactivating vehicle');
+
   // Soft delete by setting active = false
+  logger.info({
+    event: 'dynamodb_operation',
+    operation: 'UpdateCommand',
+    tableName: PRICING_TABLE_NAME,
+    vehicleId,
+  }, 'Soft deleting vehicle in DynamoDB');
+
   const updateCommand = new UpdateCommand({
     TableName: PRICING_TABLE_NAME,
     Key: {
@@ -385,6 +530,11 @@ async function deleteVehicle(vehicleId, headers) {
   try {
     await ddbDocClient.send(updateCommand);
 
+    logger.info({
+      event: 'vehicle_delete_success',
+      vehicleId,
+    }, 'Vehicle deactivated successfully');
+
     return {
       statusCode: 200,
       headers,
@@ -395,6 +545,7 @@ async function deleteVehicle(vehicleId, headers) {
     };
   } catch (error) {
     if (error.name === 'ConditionalCheckFailedException') {
+      logger.warn({ event: 'vehicle_delete_not_found', vehicleId }, 'Vehicle not found');
       return errorResponse(404, 'Vehicle not found', null, headers);
     }
     throw error;

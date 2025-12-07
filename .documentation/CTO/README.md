@@ -19,6 +19,11 @@
 - **[TechnicalArchitecture.md](TechnicalArchitecture.md)** - System architecture overview
 - **[SecurityCompliance.md](SecurityCompliance.md)** - Security checklist (GDPR, PCI DSS)
 - **[Pricing_Engine_Logic.md](Pricing_Engine_Logic.md)** - Business logic for quote calculations
+- **[LAMBDA_DEPLOYMENT_GUIDE.md](LAMBDA_DEPLOYMENT_GUIDE.md)** - Backend team deployment commands and checklist
+
+## Future Architecture
+
+- **[MULTI_TENANT_ARCHITECTURE.md](MULTI_TENANT_ARCHITECTURE.md)** - Multi-tenancy design (6-month timeline, deferred until post-validation)
 
 ## Archive (Completed Features)
 

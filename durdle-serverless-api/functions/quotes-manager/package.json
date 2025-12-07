@@ -1,0 +1,26 @@
+{
+  "name": "quotes-manager",
+  "version": "1.0.0",
+  "description": "Lambda function for managing and querying quotes in the admin dashboard",
+  "type": "module",
+  "main": "index.mjs",
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+  },
+  "keywords": [
+    "lambda",
+    "quotes",
+    "admin",
+    "dynamodb"
+  ],
+  "author": "Durdle Platform",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.621.0",
+    "@aws-sdk/lib-dynamodb": "^3.621.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}

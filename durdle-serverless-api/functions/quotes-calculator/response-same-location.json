@@ -1,0 +1,1 @@
+{"statusCode":400,"headers":{"Content-Type":"application/json","Access-Control-Allow-Origin":"*"},"body":"{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"Invalid request data\",\"details\":[{\"field\":\"dropoffLocation\",\"message\":\"Pickup and dropoff locations must be different\",\"code\":\"custom\"}]}}"}

@@ -1,0 +1,9 @@
+{
+  "name": "durdle-common-layer",
+  "version": "1.0.0",
+  "description": "Shared utilities for Durdle Lambda functions - logger, CORS, error handling",
+  "type": "module",
+  "dependencies": {
+    "pino": "^10.1.0"
+  }
+}

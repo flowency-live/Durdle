@@ -1,0 +1,8 @@
+{
+  "httpMethod": "GET",
+  "path": "/v1/admin/auth/session",
+  "headers": {
+    "origin": "https://durdle.flowency.build",
+    "Authorization": "Bearer invalid-test-token"
+  }
+}

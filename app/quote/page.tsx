@@ -146,9 +146,14 @@ function QuotePageContent() {
     try {
       setLoading(true);
 
-      // Filter out empty waypoints - must have both address AND placeId
+      // Filter out empty waypoints - must have either valid placeId OR valid address
+      // Trim whitespace to catch edge cases like "   " (whitespace-only addresses)
       const filteredWaypoints: Waypoint[] = waypoints
-        .filter(w => w.address.trim() !== '' && w.placeId && w.placeId.trim() !== '');
+        .filter(w => {
+          const hasValidAddress = w.address && w.address.trim().length > 0;
+          const hasValidPlaceId = w.placeId && w.placeId.trim().length > 0;
+          return hasValidAddress && hasValidPlaceId; // Require BOTH for safety
+        });
 
       const request: QuoteRequest = {
         pickupLocation,
