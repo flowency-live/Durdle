@@ -1,9 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
+
 import adminApi from '../../../../lib/services/adminApi';
 
-export default function ExportButton({ filters }: any) {
+interface ExportButtonProps {
+  filters: Record<string, any>;
+}
+
+export default function ExportButton({ filters }: ExportButtonProps) {
   const [loading, setLoading] = useState(false);
 
   async function handleExport() {

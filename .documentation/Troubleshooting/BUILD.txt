@@ -1,0 +1,233 @@
+2025-12-07T12:51:27.047Z [INFO]: # Build environment configured with Standard build compute type: 8GiB Memory, 4vCPUs, 128GB Disk Space
+2025-12-07T12:51:27.669Z [INFO]: # Cloning repository: git@github.com:flowency-live/Durdle.git
+2025-12-07T12:51:28.638Z [INFO]: 
+2025-12-07T12:51:28.638Z [INFO]: Cloning into 'Durdle'...
+2025-12-07T12:51:28.639Z [INFO]: # Switching to commit: 504bf8e5f0536e87ed31907e18aa54ce3505e93b
+2025-12-07T12:51:28.702Z [INFO]: Note: switching to '504bf8e5f0536e87ed31907e18aa54ce3505e93b'.
+                                 You are in 'detached HEAD' state. You can look around, make experimental
+                                 changes and commit them, and you can discard any commits you make in this
+                                 state without impacting any branches by switching back to a branch.
+                                 If you want to create a new branch to retain commits you create, you may
+                                 do so (now or later) by using -c with the switch command. Example:
+                                 git switch -c <new-branch-name>
+                                 Or undo this operation with:
+                                 git switch -
+                                 Turn off this advice by setting config variable advice.detachedHead to false
+                                 HEAD is now at 504bf8e feat(admin): add Admin Quotes page, API service, hooks and components
+2025-12-07T12:51:28.717Z [INFO]: Successfully cleaned up Git credentials
+2025-12-07T12:51:28.717Z [INFO]: # Checking for Git submodules at: /codebuild/output/src1336091103/src/Durdle/.gitmodules
+2025-12-07T12:51:28.728Z [INFO]: # Retrieving environment cache...
+2025-12-07T12:51:28.777Z [WARNING]: ! Unable to write cache: {"code":"ERR_BAD_REQUEST","message":"Request failed with status code 404"})}
+2025-12-07T12:51:28.777Z [INFO]: ---- Setting Up SSM Secrets ----
+2025-12-07T12:51:28.777Z [INFO]: SSM params {"Path":"/amplify/djxh2dobdw1lk/main/","WithDecryption":true}
+2025-12-07T12:51:28.829Z [WARNING]: !Failed to set up process.env.secrets
+2025-12-07T12:51:29.548Z [INFO]: # No package override configuration found.
+2025-12-07T12:51:29.552Z [INFO]: # Retrieving cache...
+2025-12-07T12:51:37.566Z [INFO]: # Extracting cache...
+2025-12-07T12:51:47.595Z [INFO]: # Extraction completed
+2025-12-07T12:51:47.775Z [INFO]: # Retrieved cache
+2025-12-07T12:51:52.375Z [INFO]: ## Starting Backend Build
+                                 ## Checking for associated backend environment...
+                                 ## No backend environment association found, continuing...
+2025-12-07T12:51:52.380Z [INFO]: ## Completed Backend Build
+                                 {"backendDuration": 0}
+                                 ## Starting Frontend Build
+                                 # Starting phase: preBuild
+                                 # Executing command: npm ci
+2025-12-07T12:52:11.166Z [WARNING]: npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2025-12-07T12:52:11.515Z [WARNING]: npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+2025-12-07T12:52:11.521Z [WARNING]: npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+2025-12-07T12:52:11.525Z [WARNING]: npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+2025-12-07T12:52:11.557Z [WARNING]: npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
+2025-12-07T12:52:17.365Z [WARNING]: npm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+2025-12-07T12:52:23.483Z [INFO]: added 556 packages, and audited 557 packages in 27s
+2025-12-07T12:52:23.487Z [INFO]: 281 packages are looking for funding
+                                 run `npm fund` for details
+2025-12-07T12:52:23.525Z [INFO]: 3 high severity vulnerabilities
+                                 To address all issues (including breaking changes), run:
+                                 npm audit fix --force
+                                 Run `npm audit` for details.
+2025-12-07T12:52:23.551Z [INFO]: # Completed phase: preBuild
+                                 # Starting phase: build
+2025-12-07T12:52:23.551Z [INFO]: # Executing command: npm run build
+2025-12-07T12:52:23.652Z [INFO]: > durdle@0.1.0 build
+                                 > next build
+2025-12-07T12:52:24.274Z [INFO]: ▲ Next.js 14.2.33
+2025-12-07T12:52:24.274Z [INFO]: 
+2025-12-07T12:52:24.343Z [INFO]: Creating an optimized production build ...
+2025-12-07T12:52:44.831Z [INFO]: ✓ Compiled successfully
+2025-12-07T12:52:44.836Z [INFO]: Linting and checking validity of types ...
+2025-12-07T12:52:48.718Z [WARNING]: Failed to compile.
+                                    ./app/admin/documents/[slug]/page.tsx
+                                    4:1  Warning: `next/navigation` import should occur before import of `react`  import/order
+                                    5:1  Warning: `next/link` import should occur before import of `react`  import/order
+                                    6:1  Warning: `next/dynamic` import should occur before import of `react`  import/order
+                                    7:1  Warning: There should be at least one empty line between import groups  import/order
+                                    7:1  Warning: `lucide-react` import should occur before import of `react`  import/order
+                                    ./app/admin/documents/page.tsx
+                                    4:1  Warning: `next/link` import should occur before import of `react`  import/order
+                                    5:1  Warning: There should be at least one empty line between import groups  import/order
+                                    5:1  Warning: `lucide-react` import should occur before import of `react`  import/order
+                                    ./app/admin/feedback/page.tsx
+                                    4:1  Warning: `lucide-react` import should occur before import of `react`  import/order
+                                    ./app/admin/layout.tsx
+                                    5:1  Warning: `next/link` import should occur before import of `next/navigation`  import/order
+                                    6:1  Warning: There should be at least one empty line between import groups  import/order
+                                    6:1  Warning: `lucide-react` import should occur before import of `next/navigation`  import/order
+                                    ./app/admin/login/page.tsx
+                                    4:1  Warning: `next/navigation` import should occur before import of `react`  import/order
+                                    5:1  Warning: `lucide-react` import should occur before import of `react`  import/order
+                                    ./app/admin/quotes/components/ExportButton.tsx
+                                    3:1  Warning: There should be at least one empty line between import groups  import/order
+                                    6:51  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+                                    ./app/admin/quotes/components/QuoteDetailsModal.tsx
+                                    3:1  Warning: There should be at least one empty line between import groups  import/order
+                                    6:65  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+                                    7:33  Error: 'refetch' is assigned a value but never used. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+                                    31:59  Error: Expected '!==' and instead saw '!='.  eqeqeq
+                                    ./app/admin/quotes/components/QuotesFilters.tsx
+                                    5:62  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+                                    ./app/admin/quotes/components/QuotesTable.tsx
+                                    5:66  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+                                    26:27  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+                                    33:55  Error: Expected '!==' and instead saw '!='.  eqeqeq
+                                    ./app/admin/quotes/page.tsx
+                                    3:1  Warning: There should be at least one empty line between import groups  import/order
+                                    6:1  Warning: `./components/QuoteDetailsModal` import should occur before import of `./components/QuotesFilters`  import/order
+                                    7:1  Warning: There should be at least one empty line between import groups  import/order
+                                    7:1  Warning: `./components/ExportButton` import should occur before import of `./components/QuotesFilters`  import/order
+                                    8:1  Warning: `../../../lib/hooks/useQuotes` import should occur before import of `./components/QuotesFilters`  import/order
+                                    14:33  Error: 'refetch' is assigned a value but never used. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+                                    14:66  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+                                    28:54  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+                                    ./app/admin/vehicles/page.tsx
+                                    4:1  Warning: `next/image` import should occur before import of `react`  import/order
+                                    ./app/components/FeedbackButton.tsx
+                                    4:1  Warning: There should be at least one empty line between import groups  import/order
+                                    ./app/components/FeedbackModal.tsx
+                                    6:1  Warning: `next/navigation` import should occur before import of `react`  import/order
+                                    ./app/components/PWAInstallPrompt.tsx
+                                    4:1  Warning: `lucide-react` import should occur before import of `react`  import/order
+                                    ./app/error.tsx
+                                    3:1  Warning: There should be at least one empty line between import groups  import/order
+                                    ./app/layout.tsx
+                                    3:1  Warning: There should be at least one empty line between import groups  import/order
+                                    3:1  Warning: `next/font/google` import should occur before import of `next/font/local`  import/order
+                                    ./app/page.tsx
+                                    4:1  Warning: There should be at least one empty line between import groups  import/order
+                                    4:1  Warning: `lucide-react` import should occur before import of `react`  import/order
+                                    5:1  Warning: There should be at least one empty line between import groups  import/order
+                                    6:1  Warning: There should be at least one empty line between import groups  import/order
+                                    6:1  Warning: `next/image` import should occur before import of `react`  import/order
+                                    ./app/pricing/page.tsx
+                                    4:1  Warning: `next/link` import should occur before import of `react`  import/order
+                                    5:1  Warning: `next/image` import should occur before import of `react`  import/order
+                                    6:1  Warning: There should be at least one empty line between import groups  import/order
+                                    6:1  Warning: `lucide-react` import should occur before import of `react`  import/order
+                                    8:1  Warning: There should be at least one empty line between import groups  import/order
+                                    9:1  Warning: There should be at least one empty line between import groups  import/order
+                                    9:1  Warning: `@/components/ui/button` import should occur before import of `../quote/lib/api`  import/order
+                                    10:1  Warning: `../components/FeedbackButton` import should occur before import of `../quote/lib/api`  import/order
+                                    ./app/quote/components/BookingConfirmation.tsx
+                                    4:1  Warning: There should be at least one empty line between import groups  import/order
+                                    5:1  Warning: There should be at least one empty line between import groups  import/order
+                                    6:1  Warning: There should be at least one empty line between import groups  import/order
+                                    43:5  Warning: Unexpected console statement.  no-console
+                                    ./app/quote/components/ContactDetailsForm.tsx
+                                    4:1  Warning: There should be at least one empty line between import groups  import/order
+                                    4:1  Warning: `lucide-react` import should occur before import of `react`  import/order
+                                    ./app/quote/components/DateTimePicker.tsx
+                                    6:1  Warning: `lucide-react` import should occur before import of `react`  import/order
+                                    ./app/quote/components/LocationInput.tsx
+                                    4:1  Warning: `lucide-react` import should occur before import of `react`  import/order
+                                    ./app/quote/components/LocationStep.tsx
+                                    3:1  Warning: There should be at least one empty line between import groups  import/order
+                                    4:1  Warning: There should be at least one empty line between import groups  import/order
+                                    ./app/quote/components/MapPreview.tsx
+                                    3:1  Warning: There should be at least one empty line between import groups  import/order
+                                    4:1  Warning: There should be at least one empty line between import groups  import/order
+                                    5:1  Warning: `next/dynamic` import should occur before import of `react`  import/order
+                                    6:1  Warning: `react-leaflet` import should occur before import of `../lib/types`  import/order
+                                    52:22  Warning: Forbidden non-null assertion.  @typescript-eslint/no-non-null-assertion
+                                    52:39  Warning: Forbidden non-null assertion.  @typescript-eslint/no-non-null-assertion
+                                    166:37  Warning: Forbidden non-null assertion.  @typescript-eslint/no-non-null-assertion
+                                    167:37  Warning: Forbidden non-null assertion.  @typescript-eslint/no-non-null-assertion
+                                    216:42  Warning: Forbidden non-null assertion.  @typescript-eslint/no-non-null-assertion
+                                    216:59  Warning: Forbidden non-null assertion.  @typescript-eslint/no-non-null-assertion
+                                    230:48  Warning: Forbidden non-null assertion.  @typescript-eslint/no-non-null-assertion
+                                    230:65  Warning: Forbidden non-null assertion.  @typescript-eslint/no-non-null-assertion
+                                    ./app/quote/components/PaymentForm.tsx
+                                    4:1  Warning: There should be at least one empty line between import groups  import/order
+                                    4:1  Warning: `lucide-react` import should occur before import of `react`  import/order
+                                    ./app/quote/components/QuoteResult.tsx
+                                    3:1  Warning: There should be at least one empty line between import groups  import/order
+                                    4:1  Warning: There should be at least one empty line between import groups  import/order
+                                    5:1  Warning: There should be at least one empty line between import groups  import/order
+                                    5:1  Warning: `@/components/ui/button` import should occur before import of `../lib/types`  import/order
+                                    6:1  Warning: `react` import should occur before import of `../lib/types`  import/order
+                                    7:1  Warning: `next/link` import should occur before import of `../lib/types`  import/order
+                                    ./app/quote/components/VehicleSelector.tsx
+                                    4:1  Warning: There should be at least one empty line between import groups  import/order
+                                    4:1  Warning: `lucide-react` import should occur before import of `react`  import/order
+                                    6:1  Warning: `../lib/api` import should occur before import of `../lib/types`  import/order
+                                    ./app/quote/components/WaypointInput.tsx
+                                    4:1  Warning: There should be at least one empty line between import groups  import/order
+                                    4:1  Warning: `lucide-react` import should occur before import of `react`  import/order
+                                    5:1  Warning: There should be at least one empty line between import groups  import/order
+                                    6:1  Warning: `../lib/types` import should occur before import of `./LocationInput`  import/order
+                                    ./app/quote/error.tsx
+                                    3:1  Warning: There should be at least one empty line between import groups  import/order
+                                    ./app/quote/lib/api.ts
+                                    4:1  Warning: There should be at least one empty line between import groups  import/order
+                                    5:1  Warning: `@/lib/config/api` import should occur before import of `./types`  import/order
+                                    ./app/quote/page.tsx
+                                    4:1  Warning: `next/navigation` import should occur before import of `react`  import/order
+                                    5:1  Warning: `lucide-react` import should occur before import of `react`  import/order
+                                    6:1  Warning: `next/link` import should occur before import of `react`  import/order
+                                    7:1  Warning: There should be at least one empty line between import groups  import/order
+                                    7:1  Warning: `next/image` import should occur before import of `react`  import/order
+                                    8:1  Warning: There should be at least one empty line between import groups  import/order
+                                    10:1  Warning: `./components/DateTimeStep` import should occur before import of `./components/LocationStep`  import/order
+                                    13:1  Warning: `./components/PassengerCounter` import should occur before import of `./components/VehicleSelector`  import/order
+                                    14:1  Warning: `./components/LuggageCounter` import should occur before import of `./components/MapPreview`  import/order
+                                    15:1  Warning: `./components/LoadingState` import should occur before import of `./components/LocationStep`  import/order
+                                    16:1  Warning: `./components/QuoteResult` import should occur before import of `./components/VehicleSelector`  import/order
+                                    17:1  Warning: `./components/ContactDetailsForm` import should occur before import of `./components/LocationStep`  import/order
+                                    18:1  Warning: `./components/PaymentForm` import should occur before import of `./components/VehicleSelector`  import/order
+                                    19:1  Warning: `./components/BookingConfirmation` import should occur before import of `./components/LocationStep`  import/order
+                                    21:1  Warning: There should be at least one empty line between import groups  import/order
+                                    22:1  Warning: `../components/FeedbackButton` import should occur before import of `./components/LocationStep`  import/order
+                                    168:7  Warning: Unexpected console statement.  no-console
+                                    ./app/quoteQR/page.tsx
+                                    4:1  Warning: `lucide-react` import should occur before import of `qrcode.react`  import/order
+                                    ./app/v2/page.tsx
+                                    1:1  Warning: There should be at least one empty line between import groups  import/order
+                                    2:1  Warning: There should be at least one empty line between import groups  import/order
+                                    3:1  Warning: `next/image` import should occur before import of `@/components/ui/button`  import/order
+                                    ./components/ui/button.tsx
+                                    2:1  Warning: There should be at least one empty line between import groups  import/order
+                                    2:1  Warning: `class-variance-authority` import should occur before import of `react`  import/order
+                                    ./lib/hooks/useApi.ts
+                                    36:17  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+                                    63:6  Warning: React Hook useCallback was passed a dependency list that is not an array literal. This means we can't statically verify whether you've passed the correct dependencies.  react-hooks/exhaustive-deps
+                                    63:6  Warning: React Hook useCallback has missing dependencies: 'apiCall', 'onError', and 'onSuccess'. Either include them or remove the dependency array. If 'apiCall' changes too often, find the parent component that defines it and wrap that definition in useCallback.  react-hooks/exhaustive-deps
+                                    ./lib/hooks/useQuotes.ts
+                                    1:1  Warning: There should be at least one empty line between import groups  import/order
+                                    2:1  Warning: There should be at least one empty line between import groups  import/order
+                                    3:1  Warning: `../services/adminApi` import should occur before import of `./useApi`  import/order
+                                    19:11  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+                                    33:17  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+                                    ./lib/services/adminApi.ts
+                                    12:44  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+                                    48:58  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+                                    50:55  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+                                    56:55  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+                                    59:60  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+                                    68:1  Warning: Assign object to a variable before exporting as module default  import/no-anonymous-default-export
+                                    info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/basic-features/eslint#disabling-rules
+2025-12-07T12:52:48.809Z [ERROR]: !!! Build failed
+2025-12-07T12:52:48.809Z [INFO]: Please read more about Amplify Hosting's support for SSR frameworks to find if your build failure is related to an unsupported feature: https://docs.aws.amazon.com/amplify/latest/userguide/amplify-ssr-framework-support.html. You may also find this troubleshooting guide useful: https://docs.aws.amazon.com/amplify/latest/userguide/troubleshooting-ssr-deployment.html
+2025-12-07T12:52:48.809Z [ERROR]: !!! Error: Command failed with exit code 1
+2025-12-07T12:52:48.809Z [INFO]: # Starting environment caching...
+2025-12-07T12:52:48.809Z [INFO]: # Environment caching completed
+

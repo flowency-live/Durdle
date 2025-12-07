@@ -1,17 +1,19 @@
 'use client';
 
 import React, { useState } from 'react';
+
+import ExportButton from './components/ExportButton';
+import QuoteDetailsModal from './components/QuoteDetailsModal';
 import QuotesFilters from './components/QuotesFilters';
 import QuotesTable from './components/QuotesTable';
-import QuoteDetailsModal from './components/QuoteDetailsModal';
-import ExportButton from './components/ExportButton';
-import { useQuotes } from '../../../lib/hooks/useQuotes';
+
+import { useQuotes, QuoteFilters } from '../../../lib/hooks/useQuotes';
 
 export default function AdminQuotesPage() {
-  const [filters, setFilters] = useState({ status: 'all', limit: 50 });
+  const [filters, setFilters] = useState<QuoteFilters>({ status: 'all', limit: 50 });
   const [selected, setSelected] = useState<string | null>(null);
 
-  const { data, loading, error, refetch } = useQuotes(filters as any);
+  const { data, loading, error } = useQuotes(filters);
 
   return (
     <div>
@@ -25,7 +27,7 @@ export default function AdminQuotesPage() {
         </div>
       </div>
 
-      <QuotesFilters filters={filters} onChange={(f: any) => setFilters(f)} />
+      <QuotesFilters filters={filters} onChange={(f: QuoteFilters) => setFilters(f)} />
 
       {loading && <div className="p-6 bg-white rounded-lg shadow-sm">Loading…</div>}
       {error && <div className="p-6 bg-white rounded-lg shadow-sm text-red-600">{error.message}</div>}

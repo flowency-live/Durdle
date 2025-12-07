@@ -2,7 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 
-export default function QuotesFilters({ filters, onChange }: any) {
+interface QuotesFiltersProps {
+  filters: Record<string, any>;
+  onChange: (filters: Record<string, any>) => void;
+}
+
+export default function QuotesFilters({ filters, onChange }: QuotesFiltersProps) {
   const [local, setLocal] = useState(() => ({
     status: filters?.status || 'all',
     search: filters?.search || '',

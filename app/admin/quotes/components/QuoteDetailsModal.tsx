@@ -1,10 +1,16 @@
 'use client';
 
 import React from 'react';
+
 import { useQuoteDetails } from '../../../../lib/hooks/useQuotes';
 
-export default function QuoteDetailsModal({ quoteId, onClose }: any) {
-  const { data, loading, error, refetch } = useQuoteDetails(quoteId);
+interface QuoteDetailsModalProps {
+  quoteId?: string;
+  onClose: () => void;
+}
+
+export default function QuoteDetailsModal({ quoteId, onClose }: QuoteDetailsModalProps) {
+  const { data, loading, error } = useQuoteDetails(quoteId);
 
   if (!quoteId) return null;
 
@@ -24,11 +30,11 @@ export default function QuoteDetailsModal({ quoteId, onClose }: any) {
             <div><strong>Reference:</strong> {data.quoteId?.replace(/^QUOTE#/, '#')}</div>
             <div><strong>Status:</strong> {data.status}</div>
             <div><strong>Created:</strong> {new Date(data.createdAt).toString()}</div>
-            <div><strong>Expires:</strong> {data.expiresAt ? new Date(data.expiresAt).toString() : '—'}</div>
+            <div><strong>Expires:</strong> {data.expiresAt !== null ? new Date(data.expiresAt).toString() : '—'}</div>
             <div><strong>Customer:</strong> {data.customerEmail || 'Not provided'}</div>
             <div><strong>Pickup:</strong> {data.pickupLocation?.address}</div>
             <div><strong>Dropoff:</strong> {data.dropoffLocation?.address}</div>
-            <div><strong>Price:</strong> {data.totalPrice != null ? `£${(data.totalPrice/100).toFixed(2)}` : '—'}</div>
+            <div><strong>Price:</strong> {data.totalPrice !== null ? `£${(data.totalPrice/100).toFixed(2)}` : '—'}</div>
             <div className="pt-3">
               <details>
                 <summary className="cursor-pointer text-sm text-gray-600">Full JSON</summary>

@@ -9,7 +9,7 @@ function getToken(): string | null {
   return localStorage.getItem('durdle_admin_token');
 }
 
-function buildQuery(params: Record<string, any> = {}) {
+function buildQuery(params: Record<string, unknown> = {}) {
   const qs = new URLSearchParams();
   Object.entries(params).forEach(([k, v]) => {
     if (v === undefined || v === null) return;
@@ -23,7 +23,7 @@ function buildQuery(params: Record<string, any> = {}) {
   return s ? `?${s}` : '';
 }
 
-async function authFetch(inputUrl: string, opts: RequestInit = {}) {
+async function authFetch(inputUrl: string, opts: RequestInit = {}): Promise<Response | unknown> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(opts.headers as Record<string, string> | undefined),
@@ -45,20 +45,20 @@ async function authFetch(inputUrl: string, opts: RequestInit = {}) {
   return res;
 }
 
-export async function listQuotes(filters: Record<string, any> = {}) {
+export async function listQuotes(filters: Record<string, unknown> = {}): Promise<unknown> {
   const url = `${getApiUrl(API_ENDPOINTS.adminQuotes)}${buildQuery(filters)}`;
-  return authFetch(url, { method: 'GET' }) as Promise<any>;
+  return authFetch(url, { method: 'GET' });
 }
 
-export async function getQuoteDetails(quoteId: string) {
+export async function getQuoteDetails(quoteId: string): Promise<unknown> {
   const encoded = encodeURIComponent(quoteId);
-  const url = `${getApiUrl(`${API_ENDPOINTS.adminQuotes}/${encoded}`)}`;
-  return authFetch(url, { method: 'GET' }) as Promise<any>;
+  const url = `${getApiUrl(`${API_ENDPOINTS.adminQuotes}/${encoded}`)`}`;
+  return authFetch(url, { method: 'GET' });
 }
 
-export async function exportQuotes(filters: Record<string, any> = {}) {
+export async function exportQuotes(filters: Record<string, unknown> = {}): Promise<Blob> {
   const url = `${getApiUrl(API_ENDPOINTS.adminQuotesExport)}${buildQuery(filters)}`;
-  const res = await authFetch(url, { method: 'GET' }) as Promise<Response>;
+  const res = (await authFetch(url, { method: 'GET' })) as Response;
   // If authFetch returned parsed JSON, wrap; otherwise it's a Response
   if (res instanceof Response) return res.blob();
   // fallback: return blob from JSON (unlikely)

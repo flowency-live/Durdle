@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import { useApi } from './useApi';
+
 import adminApi from '../services/adminApi';
+import { useApi } from './useApi';
 
 export type QuoteFilters = {
   status?: 'all' | 'active' | 'expired' | 'converted';
@@ -20,8 +21,8 @@ export type QuotesListResponse = {
   pagination: { total: number; limit: number; cursor: string | null };
 };
 
-export function useQuotes(filters: QuoteFilters) {
-  const key = useMemo(() => JSON.stringify(filters || {}), [filters]);
+export function useQuotes(filters: QuoteFilters): ReturnType<typeof useApi<QuotesListResponse>> {
+  const key = useMemo(() => JSON.stringify(filters ?? {}), [filters]);
 
   return useApi<QuotesListResponse>(
     () => adminApi.listQuotes(filters),
@@ -29,9 +30,13 @@ export function useQuotes(filters: QuoteFilters) {
   );
 }
 
-export function useQuoteDetails(quoteId?: string) {
-  return useApi<any>(
-    () => (quoteId ? adminApi.getQuoteDetails(quoteId) : Promise.resolve(null)),
+interface QuoteDetails {
+  [key: string]: unknown;
+}
+
+export function useQuoteDetails(quoteId?: string): ReturnType<typeof useApi<QuoteDetails | null>> {
+  return useApi<QuoteDetails | null>(
+    () => (quoteId ? adminApi.getQuoteDetails(quoteId) as Promise<QuoteDetails> : Promise.resolve(null)),
     [quoteId],
     { immediate: !!quoteId }
   );
