@@ -329,11 +329,17 @@ Start at this document, then drill down:
 
 ```
 1. BACKEND_TEAM_START_HERE.md (you are here)
-   ├── 2. ADMIN_ENDPOINT_STANDARD.md (MANDATORY for /admin/* endpoints - CORS config)
-   ├── 3. functions/[lambda-name]/STRUCTURE.md (deployment guide per Lambda)
-   ├── 4. .documentation/CTO/LAMBDA_DEPLOYMENT_GUIDE.md (detailed deployment process)
-   └── 5. .documentation/CTO/CODE_AUDIT_AND_REMEDIATION.md (CTO tracking, optional reading)
+   ├── 2. LAMBDA_CODE_PATTERNS.md (COPY-PASTE code patterns - CORS, logging, templates)
+   ├── 3. ADMIN_ENDPOINT_STANDARD.md (MANDATORY for /admin/* endpoints - CORS rules)
+   ├── 4. functions/[lambda-name]/STRUCTURE.md (deployment guide per Lambda)
+   ├── 5. .documentation/CTO/LAMBDA_DEPLOYMENT_GUIDE.md (detailed deployment process)
+   └── 6. .documentation/CTO/CODE_AUDIT_AND_REMEDIATION.md (CTO tracking, optional reading)
 ```
+
+**When writing new Lambda code**:
+1. Read LAMBDA_CODE_PATTERNS.md FIRST
+2. Copy code blocks exactly from that document
+3. Do NOT improvise patterns - use the documented ones
 
 **When deploying**:
 1. Read this document first (overview)

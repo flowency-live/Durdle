@@ -52,7 +52,10 @@
       "Bash(aws apigateway create-deployment:*)",
       "Bash(aws apigateway update-integration-response:*)",
       "Bash(aws apigateway update-method-response:*)",
-      "Bash(aws apigateway get-integration-response:*)"
+      "Bash(aws apigateway get-integration-response:*)",
+      "Bash(aws apigateway get-authorizers:*)",
+      "Bash(aws apigateway get-method:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []
