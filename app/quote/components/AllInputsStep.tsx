@@ -204,17 +204,6 @@ export default function AllInputsStep({
         )}
       </div>
 
-      {/* Transport Details - Airport/Train Station */}
-      {pickupTransportType && (
-        <TransportDetails
-          transportType={pickupTransportType}
-          flightNumber={flightNumber}
-          trainNumber={trainNumber}
-          onFlightNumberChange={onFlightNumberChange}
-          onTrainNumberChange={onTrainNumberChange}
-        />
-      )}
-
       {/* Date & Time Card - Transfer modes */}
       {!isHourly && (
         <div className="bg-card rounded-2xl p-4 shadow-mobile border-2 border-sage-light">
@@ -242,6 +231,17 @@ export default function AllInputsStep({
             </div>
           )}
         </div>
+      )}
+
+      {/* Transport Details - Airport/Train Station (after date picker) */}
+      {!isHourly && pickupTransportType && (
+        <TransportDetails
+          transportType={pickupTransportType}
+          flightNumber={flightNumber}
+          trainNumber={trainNumber}
+          onFlightNumberChange={onFlightNumberChange}
+          onTrainNumberChange={onTrainNumberChange}
+        />
       )}
 
       {/* Hourly Time Selection - Start & End Time */}

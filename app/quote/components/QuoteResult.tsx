@@ -1,6 +1,7 @@
 'use client';
 
 import { MapPin, Clock, Calendar, Users, Car, Luggage, ArrowLeft, Edit2 } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -51,6 +52,18 @@ export default function QuoteResult({ quote, onNewQuote, onBack, onConfirmBookin
   return (
     <section className="pb-24">
       <div className="container px-4 mx-auto max-w-4xl">
+        {/* Letterhead Logo */}
+        <div className="flex justify-center mb-6 pt-6">
+          <Image
+            src="/dtc-letterhead-logo.png"
+            alt="The Dorset Transfer Company"
+            width={400}
+            height={100}
+            className="h-auto w-full max-w-[280px] md:max-w-[350px]"
+            priority
+          />
+        </div>
+
         {/* Navigation Header */}
         <div className="flex items-center mb-6">
           <Button

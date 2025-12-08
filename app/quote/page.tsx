@@ -349,18 +349,6 @@ function QuotePageContent() {
       {/* Form Content */}
       <section className="py-6 md:py-12 pb-28 md:pb-12">
         <div className="container px-4 mx-auto max-w-2xl">
-          {/* Letterhead Logo */}
-          <div className="flex justify-center mb-6">
-            <Image
-              src="/dtc-letterhead-logo.png"
-              alt="The Dorset Transfer Company"
-              width={400}
-              height={100}
-              className="h-auto w-full max-w-[300px] md:max-w-[400px]"
-              priority
-            />
-          </div>
-
           {/* Step 1: All Inputs */}
           {currentStep === 1 && (
             <AllInputsStep
