@@ -18,6 +18,7 @@ export default function FeedbackPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const fetchFeedback = async () => {
     setLoading(true);
@@ -223,7 +224,13 @@ export default function FeedbackPage() {
                       {item.page}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900 max-w-md">
-                      <div className="line-clamp-2">{item.description}</div>
+                      <div
+                        onClick={() => setExpandedId(expandedId === item.feedbackId ? null : item.feedbackId)}
+                        className={`cursor-pointer hover:bg-gray-100 rounded p-1 -m-1 ${expandedId === item.feedbackId ? '' : 'line-clamp-2'}`}
+                        title={expandedId === item.feedbackId ? 'Click to collapse' : 'Click to expand'}
+                      >
+                        {item.description}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <select
