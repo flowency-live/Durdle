@@ -20,8 +20,9 @@ If the layer is not attached, the Lambda WILL CRASH with "Cannot find module '/o
 
 ## ✅ Files to INCLUDE in Deployment ZIP
 
-### Source Files (1 file - REQUIRED)
+### Source Files (2 files - ALL REQUIRED)
 - ✅ `index.mjs` - Main Lambda handler (imports logger from LAYER)
+- ✅ `surge-rules.mjs` - Surge pricing rules CRUD operations
 
 ### Dependencies (3 files - ALL REQUIRED)
 - ✅ `package.json` - NPM dependencies manifest
@@ -42,6 +43,13 @@ If the layer is not attached, the Lambda WILL CRASH with "Cannot find module '/o
 
 ```
 index.mjs
+├── imports ./surge-rules.mjs (REQUIRED in deployment)
+├── imports @aws-sdk/client-dynamodb (from deployment node_modules)
+├── imports @aws-sdk/lib-dynamodb (from deployment node_modules)
+├── imports zod (from deployment node_modules)
+└── imports /opt/nodejs/logger.mjs (PROVIDED BY LAYER)
+
+surge-rules.mjs
 ├── imports @aws-sdk/client-dynamodb (from deployment node_modules)
 ├── imports @aws-sdk/lib-dynamodb (from deployment node_modules)
 ├── imports zod (from deployment node_modules)
@@ -53,6 +61,7 @@ index.mjs
 
 **Translation**:
 - index.mjs imports logger from `/opt/nodejs/logger.mjs` (the layer mount point)
+- index.mjs imports surge-rules.mjs for surge pricing operations
 - logger.mjs is NO LONGER in the deployment ZIP
 - The Lambda Layer MUST be attached or the function will crash
 
@@ -68,13 +77,13 @@ npm install
 
 ### 2. Create Deployment ZIP (NO LONGER INCLUDES logger.mjs)
 ```powershell
-powershell -Command "Compress-Archive -Path index.mjs,package.json,package-lock.json,node_modules -DestinationPath pricing-manager.zip -Force"
+powershell -Command "Compress-Archive -Path index.mjs,surge-rules.mjs,package.json,package-lock.json,node_modules -DestinationPath pricing-manager.zip -Force"
 ```
 
 **Important**:
 - This takes 15-30 seconds (node_modules has ~10K files)
 - logger.mjs is NO LONGER included (it's in the layer)
-- Only 1 .mjs file now: index
+- 2 .mjs files now: index, surge-rules
 
 ### 3. Verify Lambda Layer is Attached
 ```bash
@@ -150,7 +159,7 @@ Before deploying, verify:
 
 - [ ] Read this STRUCTURE.md file completely
 - [ ] Ran `npm install` to ensure node_modules is current
-- [ ] Created ZIP with 1 .mjs file (index) + package.json + package-lock.json + node_modules
+- [ ] Created ZIP with 2 .mjs files (index, surge-rules) + package.json + package-lock.json + node_modules
 - [ ] Did NOT include logger.mjs (it's in the layer)
 - [ ] Verified layer is attached: `aws lambda get-function-configuration --function-name pricing-manager-dev --query 'Layers[*].Arn'`
 - [ ] Deployed to pricing-manager-dev (not prod)
@@ -185,13 +194,14 @@ aws lambda update-function-configuration \
 
 ## Current Structure Status
 
-**Source Files in Deployment**: 1 .mjs file (index)
+**Source Files in Deployment**: 2 .mjs files (index, surge-rules)
 **Source Files in Layer**: 1 .mjs file (logger)
 **Lambda Layer**: durdle-common-layer:3 (365KB)
 **Layer ARN**: `arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:3`
 **Deployment Package Size**: ~4.2MB
 **Structured Logging**: ✅ Deployed via Lambda Layer (Pino + logger.mjs)
 **Input Validation**: ✅ Zod schemas for create/update operations
+**Surge Pricing**: ✅ CRUD operations for surge rules
 
 ---
 
@@ -237,6 +247,32 @@ These are NOT in the deployment package - they're configured in AWS Lambda:
 - Optional: vehicleId, features, active, imageKey, imageUrl, updatedBy
 - All pricing fields are validated as non-negative integers
 - Capacity must be at least 1
+
+---
+
+## Surge Pricing CRUD Operations
+
+**Endpoints**:
+- `GET /admin/pricing/surge` - List all surge rules
+- `GET /admin/pricing/surge/{ruleId}` - Get single surge rule
+- `POST /admin/pricing/surge` - Create surge rule
+- `PUT /admin/pricing/surge/{ruleId}` - Update surge rule
+- `DELETE /admin/pricing/surge/{ruleId}` - Delete surge rule
+- `GET /admin/pricing/surge/templates` - Get pre-defined templates
+- `POST /admin/pricing/surge/templates/{templateId}` - Apply a template
+
+**Rule Types**:
+- `specific_dates` - Specific dates (e.g., bank holidays)
+- `date_range` - Date range (e.g., school holidays)
+- `day_of_week` - Days of week (e.g., weekends)
+- `time_of_day` - Time ranges (e.g., night rates)
+
+**Surge Rule Schema**:
+- Required: name, ruleType, multiplier (1.0-3.0)
+- Type-specific: dates (specific_dates), startDate/endDate (date_range), daysOfWeek (day_of_week), startTime/endTime (time_of_day)
+- Optional: priority, isActive
+
+**Multiplier Stacking**: Rules multiply together, capped at 3.0x
 
 ---
 

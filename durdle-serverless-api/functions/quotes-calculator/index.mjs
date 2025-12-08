@@ -22,12 +22,16 @@ const secretsClient = new SecretsManagerClient({ region: process.env.AWS_REGION 
 const TABLE_NAME = process.env.TABLE_NAME;
 const FIXED_ROUTES_TABLE_NAME = process.env.FIXED_ROUTES_TABLE_NAME || 'durdle-fixed-routes-dev';
 const PRICING_TABLE_NAME = process.env.PRICING_TABLE_NAME || 'durdle-pricing-config-dev';
+const SURGE_TABLE_NAME = process.env.SURGE_TABLE_NAME || 'durdle-surge-rules-dev';
 const GOOGLE_MAPS_SECRET_NAME = 'durdle/google-maps-api-key';
 
 let cachedApiKey = null;
 let vehiclePricingCache = null;
 let pricingCacheTime = null;
+let surgeRulesCache = null;
+let surgeRulesCacheTime = null;
 const PRICING_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const SURGE_CACHE_DURATION = 1 * 60 * 1000; // 1 minute for surge (more responsive to admin changes)
 
 async function getGoogleMapsApiKey() {
   if (cachedApiKey) return cachedApiKey;
@@ -140,6 +144,135 @@ function getFallbackPricing() {
       features: ['Air Conditioning', 'WiFi', 'Extra Luggage Space'],
       imageUrl: ''
     }
+  };
+}
+
+// Check surge pricing for a specific pickup date/time
+async function checkSurgePricing(pickupDateTime) {
+  const pickupDate = new Date(pickupDateTime);
+  const dayOfWeek = pickupDate.toLocaleDateString('en-GB', { weekday: 'long' }).toLowerCase();
+  const dateString = pickupDate.toISOString().split('T')[0]; // "2025-12-25"
+  const timeString = pickupDate.toTimeString().slice(0, 5);  // "14:30"
+
+  // Use cache if available
+  if (surgeRulesCache && surgeRulesCacheTime && (Date.now() - surgeRulesCacheTime < SURGE_CACHE_DURATION)) {
+    return calculateSurge(surgeRulesCache, dateString, dayOfWeek, timeString);
+  }
+
+  try {
+    // Query all active surge rules
+    const command = new ScanCommand({
+      TableName: SURGE_TABLE_NAME,
+      FilterExpression: 'begins_with(PK, :pkPrefix) AND isActive = :active',
+      ExpressionAttributeValues: {
+        ':pkPrefix': 'SURGE_RULE#',
+        ':active': true,
+      }
+    });
+
+    const result = await docClient.send(command);
+    const rules = result.Items || [];
+
+    // Cache the rules
+    surgeRulesCache = rules;
+    surgeRulesCacheTime = Date.now();
+
+    logger.info({
+      event: 'surge_rules_fetched',
+      ruleCount: rules.length,
+      activeRules: rules.length,
+    }, 'Fetched surge pricing rules from DynamoDB');
+
+    return calculateSurge(rules, dateString, dayOfWeek, timeString);
+  } catch (error) {
+    logger.error({
+      event: 'surge_pricing_error',
+      errorMessage: error.message,
+    }, 'Failed to check surge pricing');
+    // Return no surge on error (fail open for customer benefit)
+    return {
+      combinedMultiplier: 1.0,
+      isPeakPricing: false,
+      appliedRules: [],
+      wasCapped: false,
+    };
+  }
+}
+
+// Calculate which surge rules apply to the given date/time
+function calculateSurge(rules, dateString, dayOfWeek, timeString) {
+  const appliedRules = [];
+  const MAX_MULTIPLIER = 3.0;
+
+  for (const rule of rules) {
+    let matches = false;
+
+    switch (rule.ruleType) {
+      case 'specific_dates':
+        matches = rule.dates && rule.dates.includes(dateString);
+        break;
+
+      case 'date_range':
+        matches = dateString >= rule.startDate && dateString <= rule.endDate;
+        break;
+
+      case 'day_of_week':
+        if (rule.daysOfWeek && rule.daysOfWeek.includes(dayOfWeek)) {
+          // Check optional date range constraint
+          if (rule.startDate && rule.endDate) {
+            matches = dateString >= rule.startDate && dateString <= rule.endDate;
+          } else {
+            matches = true;
+          }
+        }
+        break;
+
+      case 'time_of_day':
+        if (rule.startTime && rule.endTime) {
+          const timeMatches = timeString >= rule.startTime && timeString <= rule.endTime;
+          if (timeMatches) {
+            // Check optional day of week constraint
+            if (rule.daysOfWeek && rule.daysOfWeek.length > 0) {
+              matches = rule.daysOfWeek.includes(dayOfWeek);
+            } else {
+              matches = true;
+            }
+          }
+        }
+        break;
+    }
+
+    // Additional time constraint check for day_of_week rules
+    if (matches && rule.ruleType === 'day_of_week' && rule.startTime && rule.endTime) {
+      matches = timeString >= rule.startTime && timeString <= rule.endTime;
+    }
+
+    if (matches) {
+      appliedRules.push({
+        ruleId: rule.ruleId,
+        name: rule.name,
+        multiplier: rule.multiplier
+      });
+    }
+  }
+
+  // Calculate combined multiplier (STACK - multiply together)
+  let combinedMultiplier = appliedRules.reduce(
+    (acc, rule) => acc * rule.multiplier,
+    1.0
+  );
+
+  // Cap at 3.0x maximum
+  const wasCapped = combinedMultiplier > MAX_MULTIPLIER;
+  if (wasCapped) {
+    combinedMultiplier = MAX_MULTIPLIER;
+  }
+
+  return {
+    combinedMultiplier,
+    isPeakPricing: combinedMultiplier > 1.0,
+    appliedRules,
+    wasCapped,
   };
 }
 
@@ -639,6 +772,44 @@ export const handler = async (event, context) => {
         );
       }
     } // End of one-way journey else block
+
+    // Check surge pricing for pickup date/time (only for non-hourly, non-fixed routes)
+    let surgeResult = { combinedMultiplier: 1.0, isPeakPricing: false, appliedRules: [], wasCapped: false };
+
+    if (body.pickupTime && !isHourlyRate && !isFixedRoute) {
+      surgeResult = await checkSurgePricing(body.pickupTime);
+
+      if (surgeResult.isPeakPricing) {
+        logger.info({
+          event: 'surge_pricing_applied',
+          multiplier: surgeResult.combinedMultiplier,
+          ruleCount: surgeResult.appliedRules.length,
+          appliedRules: surgeResult.appliedRules.map(r => r.name),
+          wasCapped: surgeResult.wasCapped,
+        }, 'Surge pricing applied to quote');
+
+        // Store base price before surge
+        const basePriceBeforeSurge = pricing.breakdown.total;
+
+        // Apply surge multiplier to total
+        const surgedTotal = Math.round(basePriceBeforeSurge * surgeResult.combinedMultiplier);
+
+        // Update pricing with surge info
+        pricing = {
+          ...pricing,
+          breakdown: {
+            ...pricing.breakdown,
+            basePriceBeforeSurge,
+            surgeMultiplier: surgeResult.combinedMultiplier,
+            total: surgedTotal,
+          },
+          displayTotal: `£${(surgedTotal / 100).toFixed(2)}`,
+          isPeakPricing: true,
+          surgeMultiplier: surgeResult.combinedMultiplier,
+          appliedSurgeRules: surgeResult.appliedRules.map(r => ({ name: r.name, multiplier: r.multiplier })),
+        };
+      }
+    }
 
     // Handle compareMode - return pricing for ALL vehicle types
     if (compareMode) {

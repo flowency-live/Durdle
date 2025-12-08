@@ -3,6 +3,15 @@ import { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, UpdateComm
 import { randomUUID } from 'crypto';
 import { createLogger } from '/opt/nodejs/logger.mjs';
 import { z } from 'zod';
+import {
+  listSurgeRules,
+  getSurgeRule,
+  createSurgeRule,
+  updateSurgeRule,
+  deleteSurgeRule,
+  getTemplates,
+  applyTemplate,
+} from './surge-rules.mjs';
 
 const client = new DynamoDBClient({ region: 'eu-west-2' });
 const ddbDocClient = DynamoDBDocumentClient.from(client);
@@ -69,6 +78,7 @@ export const handler = async (event, context) => {
     event: 'lambda_invocation',
     httpMethod: event.httpMethod,
     path: event.path,
+    resource: event.resource,
   }, 'Pricing manager Lambda invoked');
 
   const origin = event.headers?.origin || event.headers?.Origin || '';
@@ -79,38 +89,17 @@ export const handler = async (event, context) => {
   }
 
   try {
-    const { httpMethod, pathParameters, body: requestBody } = event;
-    const vehicleId = pathParameters?.vehicleId;
+    const { httpMethod, pathParameters, body: requestBody, path, resource } = event;
 
-    switch (httpMethod) {
-      case 'GET':
-        logger.info({ event: 'vehicle_operation', operation: 'GET', vehicleId }, 'Processing GET request');
-        if (vehicleId) {
-          return await getVehicle(vehicleId, headers, logger);
-        }
-        return await listVehicles(headers, logger);
+    // Route based on path - check if surge pricing endpoint
+    const isSurgeRoute = path?.includes('/surge') || resource?.includes('/surge');
 
-      case 'POST':
-        logger.info({ event: 'vehicle_operation', operation: 'POST' }, 'Processing POST request');
-        return await createVehicle(requestBody, headers, logger);
-
-      case 'PUT':
-        logger.info({ event: 'vehicle_operation', operation: 'PUT', vehicleId }, 'Processing PUT request');
-        if (!vehicleId) {
-          return errorResponse(400, 'vehicleId is required', null, headers);
-        }
-        return await updateVehicle(vehicleId, requestBody, headers, logger);
-
-      case 'DELETE':
-        logger.info({ event: 'vehicle_operation', operation: 'DELETE', vehicleId }, 'Processing DELETE request');
-        if (!vehicleId) {
-          return errorResponse(400, 'vehicleId is required', null, headers);
-        }
-        return await deleteVehicle(vehicleId, headers, logger);
-
-      default:
-        return errorResponse(405, 'Method not allowed', null, headers);
+    if (isSurgeRoute) {
+      return await handleSurgeRoutes(httpMethod, pathParameters, requestBody, headers, logger, path);
     }
+
+    // Vehicle routes (existing functionality)
+    return await handleVehicleRoutes(httpMethod, pathParameters, requestBody, headers, logger);
   } catch (error) {
     logger.error({
       event: 'lambda_error',
@@ -120,6 +109,92 @@ export const handler = async (event, context) => {
     return errorResponse(500, 'Internal server error', error.message, headers);
   }
 };
+
+// Handle surge pricing routes
+async function handleSurgeRoutes(httpMethod, pathParameters, requestBody, headers, logger, path) {
+  const ruleId = pathParameters?.ruleId;
+  const templateId = pathParameters?.templateId;
+
+  logger.info({
+    event: 'surge_route',
+    httpMethod,
+    ruleId,
+    templateId,
+    path,
+  }, 'Routing to surge pricing handler');
+
+  // GET /admin/pricing/surge/templates - List templates
+  if (httpMethod === 'GET' && templateId === undefined && ruleId === undefined) {
+    // Check if path contains 'templates'
+    if (path?.includes('/templates')) {
+      return await getTemplates(headers, logger);
+    }
+    // GET /admin/pricing/surge - List all rules
+    return await listSurgeRules(headers, logger);
+  }
+
+  // GET /admin/pricing/surge/{ruleId} - Get single rule
+  if (httpMethod === 'GET' && ruleId) {
+    return await getSurgeRule(ruleId, headers, logger);
+  }
+
+  // POST /admin/pricing/surge - Create new rule
+  if (httpMethod === 'POST' && !ruleId && !templateId) {
+    return await createSurgeRule(requestBody, headers, logger);
+  }
+
+  // POST /admin/pricing/surge/templates/{templateId} - Apply template
+  if (httpMethod === 'POST' && templateId) {
+    return await applyTemplate(templateId, requestBody, headers, logger);
+  }
+
+  // PUT /admin/pricing/surge/{ruleId} - Update rule
+  if (httpMethod === 'PUT' && ruleId) {
+    return await updateSurgeRule(ruleId, requestBody, headers, logger);
+  }
+
+  // DELETE /admin/pricing/surge/{ruleId} - Delete rule
+  if (httpMethod === 'DELETE' && ruleId) {
+    return await deleteSurgeRule(ruleId, headers, logger);
+  }
+
+  return errorResponse(405, 'Method not allowed', null, headers);
+}
+
+// Handle vehicle routes (existing functionality)
+async function handleVehicleRoutes(httpMethod, pathParameters, requestBody, headers, logger) {
+  const vehicleId = pathParameters?.vehicleId;
+
+  switch (httpMethod) {
+    case 'GET':
+      logger.info({ event: 'vehicle_operation', operation: 'GET', vehicleId }, 'Processing GET request');
+      if (vehicleId) {
+        return await getVehicle(vehicleId, headers, logger);
+      }
+      return await listVehicles(headers, logger);
+
+    case 'POST':
+      logger.info({ event: 'vehicle_operation', operation: 'POST' }, 'Processing POST request');
+      return await createVehicle(requestBody, headers, logger);
+
+    case 'PUT':
+      logger.info({ event: 'vehicle_operation', operation: 'PUT', vehicleId }, 'Processing PUT request');
+      if (!vehicleId) {
+        return errorResponse(400, 'vehicleId is required', null, headers);
+      }
+      return await updateVehicle(vehicleId, requestBody, headers, logger);
+
+    case 'DELETE':
+      logger.info({ event: 'vehicle_operation', operation: 'DELETE', vehicleId }, 'Processing DELETE request');
+      if (!vehicleId) {
+        return errorResponse(400, 'vehicleId is required', null, headers);
+      }
+      return await deleteVehicle(vehicleId, headers, logger);
+
+    default:
+      return errorResponse(405, 'Method not allowed', null, headers);
+  }
+}
 
 async function listVehicles(headers, logger) {
   logger.info({ event: 'vehicle_list_start' }, 'Fetching all vehicles');
