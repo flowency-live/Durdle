@@ -1,8 +1,11 @@
 // Quote Wizard TypeScript Types
 // Based on QUOTE_WIZARD_IMPLEMENTATION_SPEC.md
 
-// Journey Type (one-way vs hourly)
-export type JourneyType = 'one-way' | 'hourly';
+// Journey Type
+// - 'one-way': Single journey from A to B
+// - 'round-trip': Journey A to B with return trip on specified date/time
+// - 'hourly': Hire by the hour from pickup location
+export type JourneyType = 'one-way' | 'round-trip' | 'hourly';
 
 // Optional Extras
 export interface Extras {

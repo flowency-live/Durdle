@@ -9,13 +9,25 @@ interface DateTimePickerMobileProps {
   selectedDate: Date | null;
   onChange: (date: Date) => void;
   error?: string;
+  label?: string;
+  minDate?: Date;
 }
 
-export default function DateTimePickerMobile({ selectedDate, onChange, error }: DateTimePickerMobileProps) {
+export default function DateTimePickerMobile({
+  selectedDate,
+  onChange,
+  error,
+  label = 'Pickup Date & Time',
+  minDate: propMinDate,
+}: DateTimePickerMobileProps) {
   const inputRef = useRef<DatePicker>(null);
 
-  const minDate = new Date();
-  minDate.setHours(minDate.getHours() + 24);
+  // Default minimum is 24 hours from now
+  const defaultMinDate = new Date();
+  defaultMinDate.setHours(defaultMinDate.getHours() + 24);
+
+  // Use prop minDate if provided, otherwise use default (24h from now)
+  const minDate = propMinDate || defaultMinDate;
 
   const maxDate = new Date();
   maxDate.setMonth(maxDate.getMonth() + 6);
@@ -52,7 +64,7 @@ export default function DateTimePickerMobile({ selectedDate, onChange, error }: 
   return (
     <div className="space-y-2">
       <label className="block text-sm font-medium text-foreground">
-        Pickup Date & Time *
+        {label} *
       </label>
       <div className="relative">
         <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none z-10">

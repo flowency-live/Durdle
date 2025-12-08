@@ -29,6 +29,7 @@ function Quote2PageContent() {
   const [dropoffLocation, setDropoffLocation] = useState<Location | null>(null);
   const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
   const [pickupDate, setPickupDate] = useState<Date | null>(null);
+  const [returnDate, setReturnDate] = useState<Date | null>(null);
   const [passengers, setPassengers] = useState(2);
   const [luggage, setLuggage] = useState(0);
 
@@ -54,10 +55,19 @@ function Quote2PageContent() {
   // Validation for Step 1
   const canProceedFromStep1 = () => {
     // For hourly: only pickup and date required
-    // For one-way: pickup, dropoff, and date required
     if (journeyType === 'hourly') {
       return pickupLocation?.address.trim() !== '' && pickupDate !== null;
     }
+    // For round-trip: also require return date
+    if (journeyType === 'round-trip') {
+      return (
+        pickupLocation?.address.trim() !== '' &&
+        dropoffLocation?.address.trim() !== '' &&
+        pickupDate !== null &&
+        returnDate !== null
+      );
+    }
+    // For one-way: pickup, dropoff, and date required
     return (
       pickupLocation?.address.trim() !== '' &&
       dropoffLocation?.address.trim() !== '' &&
@@ -177,6 +187,7 @@ function Quote2PageContent() {
     setDropoffLocation(null);
     setWaypoints([]);
     setPickupDate(null);
+    setReturnDate(null);
     setPassengers(2);
     setLuggage(0);
     setJourneyType('one-way');
@@ -332,6 +343,7 @@ function Quote2PageContent() {
               dropoff={dropoffLocation}
               waypoints={waypoints}
               pickupDate={pickupDate}
+              returnDate={returnDate}
               passengers={passengers}
               luggage={luggage}
               journeyType={journeyType}
@@ -341,6 +353,7 @@ function Quote2PageContent() {
               onDropoffChange={setDropoffLocation}
               onWaypointsChange={setWaypoints}
               onDateChange={setPickupDate}
+              onReturnDateChange={setReturnDate}
               onPassengersChange={setPassengers}
               onLuggageChange={setLuggage}
               onJourneyTypeChange={setJourneyType}

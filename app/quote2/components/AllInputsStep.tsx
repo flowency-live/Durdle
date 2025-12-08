@@ -5,10 +5,9 @@ import { Plus } from 'lucide-react';
 import DurationSelector from '../../quote/components/DurationSelector';
 import JourneyTypeTabs from '../../quote/components/JourneyTypeTabs';
 import LocationInput from '../../quote/components/LocationInput';
-import LuggageCounter from '../../quote/components/LuggageCounter';
 import MapPreview from '../../quote/components/MapPreview';
 import OptionalExtras from '../../quote/components/OptionalExtras';
-import PassengerCounter from '../../quote/components/PassengerCounter';
+import PassengerLuggageRow from '../../quote/components/PassengerLuggageRow';
 import WaypointInput from '../../quote/components/WaypointInput';
 import { Extras, JourneyType, Location, Waypoint } from '../../quote/lib/types';
 
@@ -19,6 +18,7 @@ interface AllInputsStepProps {
   dropoff: Location | null;
   waypoints: Waypoint[];
   pickupDate: Date | null;
+  returnDate: Date | null;
   passengers: number;
   luggage: number;
   journeyType: JourneyType;
@@ -28,6 +28,7 @@ interface AllInputsStepProps {
   onDropoffChange: (location: Location) => void;
   onWaypointsChange: (waypoints: Waypoint[]) => void;
   onDateChange: (date: Date) => void;
+  onReturnDateChange: (date: Date) => void;
   onPassengersChange: (count: number) => void;
   onLuggageChange: (count: number) => void;
   onJourneyTypeChange: (type: JourneyType) => void;
@@ -40,6 +41,7 @@ export default function AllInputsStep({
   dropoff,
   waypoints,
   pickupDate,
+  returnDate,
   passengers,
   luggage,
   journeyType,
@@ -49,6 +51,7 @@ export default function AllInputsStep({
   onDropoffChange,
   onWaypointsChange,
   onDateChange,
+  onReturnDateChange,
   onPassengersChange,
   onLuggageChange,
   onJourneyTypeChange,
@@ -56,6 +59,8 @@ export default function AllInputsStep({
   onExtrasChange,
 }: AllInputsStepProps) {
   const isHourly = journeyType === 'hourly';
+  const isRoundTrip = journeyType === 'round-trip';
+  const isJourneyPlan = journeyType === 'one-way' || journeyType === 'round-trip';
 
   const handlePickupSelect = (address: string, placeId: string) => {
     onPickupChange({ address, placeId });
@@ -92,8 +97,8 @@ export default function AllInputsStep({
         />
       </div>
 
-      {/* Map Preview - Shows when locations are selected (one-way only) */}
-      {!isHourly && pickup && dropoff && (
+      {/* Map Preview - Shows when locations are selected (journey plan only) */}
+      {isJourneyPlan && pickup && dropoff && (
         <div className="animate-fade-up">
           <MapPreview
             pickup={pickup}
@@ -118,13 +123,13 @@ export default function AllInputsStep({
             <LocationInput
               value={pickup?.address || ''}
               onSelect={handlePickupSelect}
-              placeholder={isHourly ? 'Pickup location' : 'Pickup location'}
+              placeholder="Pickup location"
               hideCurrentLocation={!!(pickup && dropoff)}
             />
           </div>
 
-          {/* One-way mode: Show dropoff and waypoints */}
-          {!isHourly && (
+          {/* Journey plan mode: Show dropoff and waypoints */}
+          {isJourneyPlan && (
             <>
               {pickup && <div className="border-b border-border my-2"></div>}
 
@@ -161,8 +166,8 @@ export default function AllInputsStep({
           )}
         </div>
 
-        {/* Add Waypoint Button - One-way only */}
-        {!isHourly && pickup && dropoff && waypoints.length < 3 && (
+        {/* Add Waypoint Button - Journey plan only */}
+        {isJourneyPlan && pickup && dropoff && waypoints.length < 3 && (
           <>
             {waypoints.length > 0 && <div className="border-b border-border my-2"></div>}
             <button
@@ -176,7 +181,7 @@ export default function AllInputsStep({
           </>
         )}
 
-        {!isHourly && waypoints.length === 3 && (
+        {isJourneyPlan && waypoints.length === 3 && (
           <p className="mt-2 text-xs text-muted-foreground">
             Maximum 3 stops allowed
           </p>
@@ -196,27 +201,38 @@ export default function AllInputsStep({
       {/* Date & Time Card */}
       <div className="bg-card rounded-2xl p-4 shadow-mobile border-2 border-sage-light">
         <div className="mb-3">
-          <h3 className="text-sm font-semibold text-foreground">When do you need pickup?</h3>
+          <h3 className="text-sm font-semibold text-foreground">
+            {isRoundTrip ? 'Outbound Journey' : 'When do you need pickup?'}
+          </h3>
         </div>
         <DateTimePickerMobile
           selectedDate={pickupDate}
           onChange={onDateChange}
+          label="Pickup Date & Time"
         />
+
+        {/* Return Date/Time - Round trip only */}
+        {isRoundTrip && (
+          <div className="mt-4 pt-4 border-t border-border animate-fade-up">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Return Journey</h3>
+            <DateTimePickerMobile
+              selectedDate={returnDate}
+              onChange={onReturnDateChange}
+              label="Return Date & Time"
+              minDate={pickupDate || undefined}
+            />
+          </div>
+        )}
       </div>
 
-      {/* Passengers & Luggage Card */}
-      <div className="bg-card rounded-2xl p-4 shadow-mobile border-2 border-sage-light space-y-6">
-        <PassengerCounter
-          count={passengers}
-          onChange={onPassengersChange}
+      {/* Passengers & Luggage Card - Compact Row */}
+      <div className="bg-card rounded-2xl p-4 shadow-mobile border-2 border-sage-light">
+        <PassengerLuggageRow
+          passengers={passengers}
+          luggage={luggage}
+          onPassengersChange={onPassengersChange}
+          onLuggageChange={onLuggageChange}
         />
-
-        <div className="border-t border-border pt-6">
-          <LuggageCounter
-            count={luggage}
-            onChange={onLuggageChange}
-          />
-        </div>
       </div>
 
       {/* Optional Extras */}
