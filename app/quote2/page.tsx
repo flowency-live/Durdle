@@ -30,13 +30,18 @@ function Quote2PageContent() {
   const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
   const [pickupDate, setPickupDate] = useState<Date | null>(null);
   const [returnDate, setReturnDate] = useState<Date | null>(null);
+  const [endTime, setEndTime] = useState<Date | null>(null);
   const [passengers, setPassengers] = useState(2);
   const [luggage, setLuggage] = useState(0);
 
   // Journey type & extras state
   const [journeyType, setJourneyType] = useState<JourneyType>('one-way');
-  const [duration, setDuration] = useState(2);
+  const [duration, setDuration] = useState(5); // Default to minimum 5 hours
   const [extras, setExtras] = useState<Extras>({ babySeats: 0, childSeats: 0 });
+
+  // Transport details (airport/train station)
+  const [flightNumber, setFlightNumber] = useState('');
+  const [trainNumber, setTrainNumber] = useState('');
 
   // Step 2 state - multi-vehicle quote
   const [multiQuote, setMultiQuote] = useState<MultiVehicleQuoteResponse | null>(null);
@@ -54,9 +59,14 @@ function Quote2PageContent() {
 
   // Validation for Step 1
   const canProceedFromStep1 = () => {
-    // For hourly: only pickup and date required
+    // For hourly: pickup, start time, end time, and minimum 5 hours required
     if (journeyType === 'hourly') {
-      return pickupLocation?.address.trim() !== '' && pickupDate !== null;
+      return (
+        pickupLocation?.address.trim() !== '' &&
+        pickupDate !== null &&
+        endTime !== null &&
+        duration >= 5
+      );
     }
     // For round-trip: also require return date
     if (journeyType === 'round-trip') {
@@ -188,11 +198,14 @@ function Quote2PageContent() {
     setWaypoints([]);
     setPickupDate(null);
     setReturnDate(null);
+    setEndTime(null);
     setPassengers(2);
     setLuggage(0);
     setJourneyType('one-way');
-    setDuration(2);
+    setDuration(5);
     setExtras({ babySeats: 0, childSeats: 0 });
+    setFlightNumber('');
+    setTrainNumber('');
     setMultiQuote(null);
     setError(null);
     setBookingStage('quote');
@@ -344,21 +357,27 @@ function Quote2PageContent() {
               waypoints={waypoints}
               pickupDate={pickupDate}
               returnDate={returnDate}
+              endTime={endTime}
               passengers={passengers}
               luggage={luggage}
               journeyType={journeyType}
               duration={duration}
               extras={extras}
+              flightNumber={flightNumber}
+              trainNumber={trainNumber}
               onPickupChange={setPickupLocation}
               onDropoffChange={setDropoffLocation}
               onWaypointsChange={setWaypoints}
               onDateChange={setPickupDate}
               onReturnDateChange={setReturnDate}
+              onEndTimeChange={setEndTime}
               onPassengersChange={setPassengers}
               onLuggageChange={setLuggage}
               onJourneyTypeChange={setJourneyType}
               onDurationChange={setDuration}
               onExtrasChange={setExtras}
+              onFlightNumberChange={setFlightNumber}
+              onTrainNumberChange={setTrainNumber}
             />
           )}
 

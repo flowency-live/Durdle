@@ -62,7 +62,7 @@ export default function JourneyTypeTabs({ selected, onChange }: JourneyTypeTabsP
             }`}>
               {selected === 'one-way' && <div className="w-2 h-2 bg-white rounded-full" />}
             </div>
-            <span className="text-sm font-medium text-foreground">One Way</span>
+            <span className="text-sm font-medium text-foreground">Transfer</span>
             <input
               type="radio"
               name="journeyDirection"

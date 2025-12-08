@@ -84,7 +84,7 @@ export default function Home() {
                 About
               </a>
               <a
-                href="/quoteQR"
+                href="/contact"
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 Contact
@@ -101,8 +101,8 @@ export default function Home() {
               >
                 <KeyRound className="w-5 h-5" />
               </a>
-              <a href="/quote" className={buttonVariants({ variant: "hero-golden", size: "default" })}>
-                Get Quote
+              <a href="/quote2" className={buttonVariants({ variant: "hero-golden", size: "default" })}>
+                Get a Quote
               </a>
             </div>
 
@@ -147,15 +147,15 @@ export default function Home() {
                   About
                 </a>
                 <a
-                  href="/quoteQR"
+                  href="/contact"
                   onClick={() => setMobileMenuOpen(false)}
                   className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
                 >
                   Contact
                 </a>
                 <div className="border-t border-border pt-4 mt-2 flex flex-col gap-3">
-                  <a href="/quote" className={buttonVariants({ variant: "hero-golden", size: "xl", className: "w-full" })}>
-                    Get Quote
+                  <a href="/quote2" className={buttonVariants({ variant: "hero-golden", size: "xl", className: "w-full" })}>
+                    Get a Quote
                   </a>
                   <a
                     href="/admin/login"
@@ -210,11 +210,11 @@ export default function Home() {
               </p>
 
               <div className="animate-fade-up-delay-3 flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="/quote" className={buttonVariants({ variant: "hero-golden", size: "xl" })}>
+                <a href="/quote2" className={buttonVariants({ variant: "hero-golden", size: "xl" })}>
                   Get a Quote
                 </a>
-                <a href="/quote2" className={buttonVariants({ variant: "hero-outline", size: "xl" })}>
-                  Quote V2
+                <a href="/contact" className={buttonVariants({ variant: "hero-outline", size: "xl" })}>
+                  Contact Us
                 </a>
               </div>
               <div className="animate-fade-up-delay-3 mt-4">
@@ -448,7 +448,7 @@ export default function Home() {
                 Get an instant quote in seconds. No hidden fees, no surprises - just reliable
                 transport when you need it.
               </p>
-              <a href="/quote" className={buttonVariants({ variant: "hero-golden", size: "xl", className: "group" })}>
+              <a href="/quote2" className={buttonVariants({ variant: "hero-golden", size: "xl", className: "group" })}>
                 Get Your Quote
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </a>

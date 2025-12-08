@@ -2,16 +2,17 @@
 
 import { Plus } from 'lucide-react';
 
-import DurationSelector from '../../quote/components/DurationSelector';
 import JourneyTypeTabs from '../../quote/components/JourneyTypeTabs';
 import LocationInput from '../../quote/components/LocationInput';
 import MapPreview from '../../quote/components/MapPreview';
 import OptionalExtras from '../../quote/components/OptionalExtras';
 import PassengerLuggageRow from '../../quote/components/PassengerLuggageRow';
 import WaypointInput from '../../quote/components/WaypointInput';
-import { Extras, JourneyType, Location, Waypoint } from '../../quote/lib/types';
+import { Extras, JourneyType, Location, LocationType, Waypoint } from '../../quote/lib/types';
 
 import DateTimePickerMobile from './DateTimePickerMobile';
+import HourlyTimeSelector, { calculateHourlyDuration } from './HourlyTimeSelector';
+import TransportDetails, { locationTypeToTransportType } from './TransportDetails';
 
 interface AllInputsStepProps {
   pickup: Location | null;
@@ -19,21 +20,27 @@ interface AllInputsStepProps {
   waypoints: Waypoint[];
   pickupDate: Date | null;
   returnDate: Date | null;
+  endTime: Date | null;
   passengers: number;
   luggage: number;
   journeyType: JourneyType;
   duration: number;
   extras: Extras;
+  flightNumber: string;
+  trainNumber: string;
   onPickupChange: (location: Location) => void;
   onDropoffChange: (location: Location) => void;
   onWaypointsChange: (waypoints: Waypoint[]) => void;
   onDateChange: (date: Date) => void;
   onReturnDateChange: (date: Date) => void;
+  onEndTimeChange: (date: Date) => void;
   onPassengersChange: (count: number) => void;
   onLuggageChange: (count: number) => void;
   onJourneyTypeChange: (type: JourneyType) => void;
   onDurationChange: (hours: number) => void;
   onExtrasChange: (extras: Extras) => void;
+  onFlightNumberChange: (value: string) => void;
+  onTrainNumberChange: (value: string) => void;
 }
 
 export default function AllInputsStep({
@@ -42,33 +49,42 @@ export default function AllInputsStep({
   waypoints,
   pickupDate,
   returnDate,
+  endTime,
   passengers,
   luggage,
   journeyType,
   duration,
   extras,
+  flightNumber,
+  trainNumber,
   onPickupChange,
   onDropoffChange,
   onWaypointsChange,
   onDateChange,
   onReturnDateChange,
+  onEndTimeChange,
   onPassengersChange,
   onLuggageChange,
   onJourneyTypeChange,
   onDurationChange,
   onExtrasChange,
+  onFlightNumberChange,
+  onTrainNumberChange,
 }: AllInputsStepProps) {
   const isHourly = journeyType === 'hourly';
   const isRoundTrip = journeyType === 'round-trip';
   const isJourneyPlan = journeyType === 'one-way' || journeyType === 'round-trip';
 
-  const handlePickupSelect = (address: string, placeId: string) => {
-    onPickupChange({ address, placeId });
+  const handlePickupSelect = (address: string, placeId: string, locationType?: LocationType) => {
+    onPickupChange({ address, placeId, locationType });
   };
 
-  const handleDropoffSelect = (address: string, placeId: string) => {
-    onDropoffChange({ address, placeId });
+  const handleDropoffSelect = (address: string, placeId: string, locationType?: LocationType) => {
+    onDropoffChange({ address, placeId, locationType });
   };
+
+  // Get transport type from pickup location
+  const pickupTransportType = locationTypeToTransportType(pickup?.locationType);
 
   const handleWaypointChange = (index: number, waypoint: Waypoint) => {
     const newWaypoints = [...waypoints];
@@ -188,42 +204,75 @@ export default function AllInputsStep({
         )}
       </div>
 
-      {/* Duration Selector - Hourly only */}
-      {isHourly && pickup && (
-        <div className="bg-card rounded-2xl p-4 shadow-mobile border-2 border-sage-light animate-fade-up">
-          <DurationSelector
-            duration={duration}
-            onChange={onDurationChange}
+      {/* Transport Details - Airport/Train Station */}
+      {pickupTransportType && (
+        <TransportDetails
+          transportType={pickupTransportType}
+          flightNumber={flightNumber}
+          trainNumber={trainNumber}
+          onFlightNumberChange={onFlightNumberChange}
+          onTrainNumberChange={onTrainNumberChange}
+        />
+      )}
+
+      {/* Date & Time Card - Transfer modes */}
+      {!isHourly && (
+        <div className="bg-card rounded-2xl p-4 shadow-mobile border-2 border-sage-light">
+          <div className="mb-3">
+            <h3 className="text-sm font-semibold text-foreground">
+              {isRoundTrip ? 'Outbound Journey' : 'When do you need pickup?'}
+            </h3>
+          </div>
+          <DateTimePickerMobile
+            selectedDate={pickupDate}
+            onChange={onDateChange}
+            label="Pickup Date & Time"
           />
+
+          {/* Return Date/Time - Round trip only */}
+          {isRoundTrip && (
+            <div className="mt-4 pt-4 border-t border-border animate-fade-up">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Return Journey</h3>
+              <DateTimePickerMobile
+                selectedDate={returnDate}
+                onChange={onReturnDateChange}
+                label="Return Date & Time"
+                minDate={pickupDate || undefined}
+              />
+            </div>
+          )}
         </div>
       )}
 
-      {/* Date & Time Card */}
-      <div className="bg-card rounded-2xl p-4 shadow-mobile border-2 border-sage-light">
-        <div className="mb-3">
-          <h3 className="text-sm font-semibold text-foreground">
-            {isRoundTrip ? 'Outbound Journey' : 'When do you need pickup?'}
-          </h3>
-        </div>
-        <DateTimePickerMobile
-          selectedDate={pickupDate}
-          onChange={onDateChange}
-          label="Pickup Date & Time"
-        />
-
-        {/* Return Date/Time - Round trip only */}
-        {isRoundTrip && (
-          <div className="mt-4 pt-4 border-t border-border animate-fade-up">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Return Journey</h3>
-            <DateTimePickerMobile
-              selectedDate={returnDate}
-              onChange={onReturnDateChange}
-              label="Return Date & Time"
-              minDate={pickupDate || undefined}
-            />
+      {/* Hourly Time Selection - Start & End Time */}
+      {isHourly && pickup && (
+        <div className="bg-card rounded-2xl p-4 shadow-mobile border-2 border-sage-light animate-fade-up">
+          <div className="mb-3">
+            <h3 className="text-sm font-semibold text-foreground">When do you need the vehicle?</h3>
           </div>
-        )}
-      </div>
+          <HourlyTimeSelector
+            startTime={pickupDate}
+            endTime={endTime}
+            onStartTimeChange={(date) => {
+              onDateChange(date);
+              // Auto-calculate duration when times change
+              if (endTime) {
+                const hours = calculateHourlyDuration(date, endTime);
+                onDurationChange(hours);
+              }
+            }}
+            onEndTimeChange={(date) => {
+              onEndTimeChange(date);
+              // Auto-calculate duration when times change
+              if (pickupDate) {
+                const hours = calculateHourlyDuration(pickupDate, date);
+                onDurationChange(hours);
+              }
+            }}
+            calculatedHours={duration}
+          />
+        </div>
+      )}
 
       {/* Passengers & Luggage Card - Compact Row */}
       <div className="bg-card rounded-2xl p-4 shadow-mobile border-2 border-sage-light">

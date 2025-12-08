@@ -3,10 +3,12 @@
 import { MapPin, Loader2, Crosshair } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 
+import { LocationType } from '../lib/types';
+
 interface LocationInputProps {
   label?: string;
   value: string;
-  onSelect: (address: string, placeId: string) => void;
+  onSelect: (address: string, placeId: string, locationType?: LocationType) => void;
   placeholder?: string;
   error?: string;
   autoFocus?: boolean;
@@ -16,6 +18,7 @@ interface LocationInputProps {
 interface Prediction {
   description: string;
   place_id: string;
+  locationType?: LocationType;
 }
 
 export default function LocationInput({
@@ -96,7 +99,7 @@ export default function LocationInput({
   const handleSelectSuggestion = (prediction: Prediction) => {
     isSelectingRef.current = true;
     setInput(prediction.description);
-    onSelect(prediction.description, prediction.place_id);
+    onSelect(prediction.description, prediction.place_id, prediction.locationType);
     setShowSuggestions(false);
     setSuggestions([]);
   };
@@ -127,7 +130,7 @@ export default function LocationInput({
           if (data.address && data.place_id) {
             isSelectingRef.current = true;
             setInput(data.address);
-            onSelect(data.address, data.place_id);
+            onSelect(data.address, data.place_id, data.locationType);
           } else {
             throw new Error('Invalid response from geocoding service');
           }

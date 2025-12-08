@@ -28,9 +28,12 @@ export interface Vehicle {
 }
 
 // Location Type
+export type LocationType = 'airport' | 'train_station' | 'standard';
+
 export interface Location {
   address: string;
   placeId?: string;
+  locationType?: LocationType;
 }
 
 // Waypoint Type (extends Location with wait time)
