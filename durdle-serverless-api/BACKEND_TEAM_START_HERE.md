@@ -70,6 +70,7 @@ All functions are in `durdle-serverless-api/functions/`:
 
 | Function | Description | Uses Layer? | STRUCTURE.md |
 |----------|-------------|-------------|--------------|
+| api-gateway-authorizer | JWT validation for API Gateway | No | [STRUCTURE.md](functions/api-gateway-authorizer/STRUCTURE.md) |
 | quotes-calculator | Calculate transfer quotes | ✅ Yes (v3) | [STRUCTURE.md](functions/quotes-calculator/STRUCTURE.md) |
 | admin-auth | Admin authentication (JWT) | ✅ Yes (v3) | [STRUCTURE.md](functions/admin-auth/STRUCTURE.md) |
 | pricing-manager | Manage pricing config | ✅ Yes (v3) | [STRUCTURE.md](functions/pricing-manager/STRUCTURE.md) |
@@ -81,6 +82,7 @@ All functions are in `durdle-serverless-api/functions/`:
 | fixed-routes-manager | Fixed route pricing | ✅ Yes (v3) | Not yet created |
 
 **Deployment Status**:
+- ✅ **api-gateway-authorizer**: Fully documented, validates JWT for all admin routes
 - ✅ **quotes-calculator**: Fully documented, layer attached, structured logging (14 log events), Zod validation, 32 tests
 - ✅ **admin-auth**: Fully documented, layer attached, structured logging (security audit trails)
 - ✅ **pricing-manager**: Fully documented, layer attached, structured logging (19 log events), Zod validation
@@ -91,7 +93,7 @@ All functions are in `durdle-serverless-api/functions/`:
 - ⚠️ **document-comments**: Layer attached, structured logging deployed (23 log events) - No STRUCTURE.md yet
 - ⚠️ **fixed-routes-manager**: Layer attached, structured logging deployed (43 log events) - No STRUCTURE.md yet
 
-**Summary**: 9/9 Lambdas have Layer v3 attached | 5/9 have STRUCTURE.md documentation | 9/9 have structured logging (130+ total log events)
+**Summary**: 10 Lambdas total | 9/9 data Lambdas have Layer v3 | 6/10 have STRUCTURE.md | API Gateway authorizer active
 
 ---
 
@@ -285,6 +287,25 @@ aws lambda update-function-configuration \
 4. Always use specific origin matching: `allowedOrigins.includes(origin) ? origin : allowedOrigins[0]`
 5. Always include `'Access-Control-Allow-Credentials': 'true'`
 
+### Error: 401 Unauthorized on admin endpoint
+
+**Cause**: API Gateway JWT authorizer rejected the request
+
+**Possible reasons**:
+- No `Authorization: Bearer <token>` header sent
+- Token is expired (8 hour expiry)
+- Token signature invalid (wrong secret)
+- Token malformed
+
+**Fix**:
+1. Check frontend is sending Authorization header
+2. Verify user is logged in (check localStorage for `durdle_admin_token`)
+3. If token expired, user needs to re-login
+4. Test with curl: `curl -H "Authorization: Bearer TOKEN" URL`
+5. Check authorizer logs: `aws logs tail /aws/lambda/durdle-api-gateway-authorizer-dev --since 5m`
+
+**Note**: This is NOT a Lambda error - it happens BEFORE your Lambda is invoked.
+
 ---
 
 ## Best Practices
@@ -316,10 +337,55 @@ Lambda environment variables are set in AWS console. Don't change without consul
 | Resource | Value | Purpose |
 |----------|-------|---------|
 | Region | eu-west-2 | London data center |
-| API Gateway ID | qry0k6pmd0 | API endpoint |
+| API Gateway ID | qcfd5p4514 | API endpoint |
+| API Gateway Authorizer | durdle-jwt-authorizer (c4xm5e) | JWT validation for admin routes |
 | DynamoDB Tables | durdle-*-dev | All dev tables |
 | Lambda Execution Role | durdle-lambda-execution-role-dev | IAM role for Lambdas |
 | Lambda Layer | durdle-common-layer:3 | Shared logger utility |
+
+---
+
+## API Gateway Authorization (CRITICAL)
+
+**All `/admin/*` routes (except `/admin/auth/login`) require JWT authentication.**
+
+The API Gateway validates tokens BEFORE your Lambda is invoked:
+
+```
+Request → API Gateway → JWT Authorizer → Your Lambda
+                            ↓
+                  Validates Authorization header
+                  against durdle/jwt-secret
+```
+
+### Testing Admin Endpoints
+
+**With valid token** (frontend handles this automatically):
+```bash
+curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  "https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev/admin/quotes"
+```
+
+**Without token** (returns 401):
+```bash
+curl "https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev/admin/quotes"
+# Returns: {"message":"Unauthorized"}
+```
+
+### Troubleshooting 401 Errors
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| 401 on all requests | No Authorization header | Frontend must send `Authorization: Bearer <token>` |
+| 401 with valid token | Token expired | User needs to re-login |
+| 401 "Invalid token" | Token signature mismatch | Check JWT secret in Secrets Manager |
+
+### Authorizer Lambda
+
+**Function**: `durdle-api-gateway-authorizer-dev`
+**STRUCTURE.md**: [functions/api-gateway-authorizer/STRUCTURE.md](functions/api-gateway-authorizer/STRUCTURE.md)
+
+This Lambda validates JWTs against the `durdle/jwt-secret` in Secrets Manager. Do NOT modify unless CTO-approved.
 
 ---
 
@@ -407,6 +473,7 @@ All Lambdas now have optimized packages with Pino removed:
 
 | Lambda | Package Size | Key Dependencies |
 |--------|--------------|------------------|
+| api-gateway-authorizer | 2.5 MB | AWS SDK, jsonwebtoken |
 | quotes-calculator | 13.4 MB | AWS SDK, Zod, Axios |
 | admin-auth | 3.2 MB | AWS SDK, bcryptjs, jsonwebtoken |
 | pricing-manager | 3.7 MB | AWS SDK, Zod |
@@ -451,15 +518,15 @@ aws lambda list-functions --region eu-west-2 --query 'Functions[?starts_with(Fun
 ---
 
 **Document Owner**: CTO
-**Last Updated**: December 8, 2025 (ADMIN_ENDPOINT_STANDARD.md added)
+**Last Updated**: December 8, 2025 (API Gateway JWT Authorizer deployed)
 **Next Review**: After remaining 4 Lambdas have STRUCTURE.md files
 
 **Backend Foundation Status**:
-- ✅ 9/9 Lambdas with Lambda Layer v3 (includes logger.log() backward compatibility fix)
-- ✅ 9/9 Lambdas with structured logging (130+ log events)
-- ✅ 5/9 Lambdas with STRUCTURE.md deployment documentation
-- ✅ Pino optimization complete (removed duplication, ~3.6 MB saved across all Lambdas)
-- ✅ ADMIN_ENDPOINT_STANDARD.md created (CORS configuration for admin endpoints)
+- ✅ API Gateway JWT Authorizer active for all admin routes
+- ✅ 9/9 data Lambdas with Lambda Layer v3 (structured logging)
+- ✅ 6/10 Lambdas with STRUCTURE.md deployment documentation
+- ✅ ADMIN_ENDPOINT_STANDARD.md + LAMBDA_CODE_PATTERNS.md created
+- ✅ CORS, auth, and logging patterns fully documented
 - ⏭️ Next: Create STRUCTURE.md for locations-lookup, uploads-presigned, document-comments, fixed-routes-manager
 
 **Questions?** Consult CTO before deploying if anything is unclear.
