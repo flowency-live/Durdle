@@ -13,8 +13,8 @@ import ContactDetailsForm, { ContactDetails } from '../quote/components/ContactD
 import LoadingState from '../quote/components/LoadingState';
 import PaymentForm, { PaymentDetails } from '../quote/components/PaymentForm';
 import QuoteResult from '../quote/components/QuoteResult';
-import { calculateQuote, getVehicles } from '../quote/lib/api';
-import { Extras, JourneyType, QuoteResponse, Location, Waypoint, Vehicle } from '../quote/lib/types';
+import { calculateMultiVehicleQuote } from '../quote/lib/api';
+import { Extras, JourneyType, QuoteResponse, Location, Waypoint, MultiVehicleQuoteResponse } from '../quote/lib/types';
 
 import AllInputsStep from './components/AllInputsStep';
 import VehicleComparisonGrid from './components/VehicleComparisonGrid';
@@ -37,9 +37,8 @@ function Quote2PageContent() {
   const [duration, setDuration] = useState(2);
   const [extras, setExtras] = useState<Extras>({ babySeats: 0, childSeats: 0 });
 
-  // Step 2 state - vehicle quotes
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [vehicleQuotes, setVehicleQuotes] = useState<Map<string, QuoteResponse>>(new Map());
+  // Step 2 state - multi-vehicle quote
+  const [multiQuote, setMultiQuote] = useState<MultiVehicleQuoteResponse | null>(null);
   const [loadingQuotes, setLoadingQuotes] = useState(false);
 
   // UI state
@@ -80,13 +79,6 @@ function Quote2PageContent() {
     }
   };
 
-  // Hourly rates in pence per hour (used for client-side calculation)
-  const HOURLY_RATES: Record<string, number> = {
-    standard: 3500,   // £35/hour
-    executive: 5000,  // £50/hour
-    minibus: 7000,    // £70/hour
-  };
-
   const fetchAllQuotes = async () => {
     const isHourly = journeyType === 'hourly';
 
@@ -98,100 +90,29 @@ function Quote2PageContent() {
     setError(null);
 
     try {
-      // First, get all available vehicles
-      const allVehicles = await getVehicles();
-      setVehicles(allVehicles);
+      // Filter out empty waypoints
+      const filteredWaypoints: Waypoint[] = waypoints.filter(w => {
+        const hasValidAddress = w.address && w.address.trim().length > 0;
+        const hasValidPlaceId = w.placeId && w.placeId.trim().length > 0;
+        return hasValidAddress && hasValidPlaceId;
+      });
 
-      if (isHourly) {
-        // For hourly journeys, calculate prices client-side
-        const quotesMap = new Map<string, QuoteResponse>();
-        const now = new Date().toISOString();
+      // Use compareMode API to get all vehicle prices in one call
+      const response = await calculateMultiVehicleQuote({
+        pickupLocation,
+        dropoffLocation: isHourly ? undefined : dropoffLocation!,
+        waypoints: filteredWaypoints.length > 0 ? filteredWaypoints : undefined,
+        pickupTime: pickupDate.toISOString(),
+        passengers,
+        luggage,
+        journeyType,
+        durationHours: isHourly ? duration : undefined,
+        extras: (extras.babySeats > 0 || extras.childSeats > 0) ? extras : undefined,
+        compareMode: true,
+      });
 
-        allVehicles.forEach(vehicle => {
-          const hourlyRate = HOURLY_RATES[vehicle.vehicleId] || 3500;
-          const total = hourlyRate * duration;
-
-          // Create a mock quote response for hourly
-          const hourlyQuote: QuoteResponse = {
-            quoteId: `hourly-${vehicle.vehicleId}-${Date.now()}`,
-            status: 'valid',
-            expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-            journey: {
-              distance: { meters: 0, miles: '0', text: 'N/A' },
-              duration: { seconds: duration * 3600, minutes: duration * 60, text: `${duration} hours` },
-              route: { polyline: null },
-            },
-            pricing: {
-              currency: 'GBP',
-              breakdown: {
-                baseFare: total,
-                distanceCharge: 0,
-                waitTimeCharge: 0,
-                subtotal: total,
-                tax: 0,
-                total: total,
-              },
-              displayTotal: `£${(total / 100).toFixed(2)}`,
-            },
-            vehicleType: vehicle.vehicleId,
-            pickupLocation,
-            dropoffLocation: pickupLocation, // Same as pickup for hourly
-            pickupTime: pickupDate.toISOString(),
-            passengers,
-            luggage,
-            returnJourney: false,
-            journeyType: 'hourly',
-            durationHours: duration,
-            createdAt: now,
-          };
-
-          quotesMap.set(vehicle.vehicleId, hourlyQuote);
-        });
-
-        setVehicleQuotes(quotesMap);
-        setCurrentStep(2);
-      } else {
-        // For one-way journeys, fetch from API
-        // Filter out empty waypoints
-        const filteredWaypoints: Waypoint[] = waypoints.filter(w => {
-          const hasValidAddress = w.address && w.address.trim().length > 0;
-          const hasValidPlaceId = w.placeId && w.placeId.trim().length > 0;
-          return hasValidAddress && hasValidPlaceId;
-        });
-
-        // Fetch quotes for all vehicles in parallel
-        const quotePromises = allVehicles.map(async (vehicle) => {
-          try {
-            const response = await calculateQuote({
-              pickupLocation,
-              dropoffLocation: dropoffLocation!,
-              waypoints: filteredWaypoints.length > 0 ? filteredWaypoints : undefined,
-              pickupTime: pickupDate.toISOString(),
-              passengers,
-              luggage,
-              vehicleType: vehicle.vehicleId as 'standard' | 'executive' | 'minibus',
-              journeyType: 'one-way',
-              extras: (extras.babySeats > 0 || extras.childSeats > 0) ? extras : undefined,
-            });
-            return { vehicleId: vehicle.vehicleId, quote: response };
-          } catch (err) {
-            console.error(`Failed to get quote for ${vehicle.vehicleId}:`, err);
-            return null;
-          }
-        });
-
-        const results = await Promise.all(quotePromises);
-        const quotesMap = new Map<string, QuoteResponse>();
-
-        results.forEach(result => {
-          if (result) {
-            quotesMap.set(result.vehicleId, result.quote);
-          }
-        });
-
-        setVehicleQuotes(quotesMap);
-        setCurrentStep(2);
-      }
+      setMultiQuote(response);
+      setCurrentStep(2);
     } catch (err) {
       console.error('Error fetching quotes:', err);
       setError(err instanceof Error ? err.message : 'Failed to calculate quotes');
@@ -206,24 +127,41 @@ function Quote2PageContent() {
   };
 
   const handleVehicleSelect = (vehicleId: string, isReturn: boolean) => {
-    const vehicleQuote = vehicleQuotes.get(vehicleId);
-    if (!vehicleQuote) return;
+    if (!multiQuote) return;
 
-    const oneWayPrice = vehicleQuote.pricing.breakdown.total;
-    const returnPrice = Math.round(oneWayPrice * 2 * 0.9); // 10% discount on return
+    const vehiclePricing = multiQuote.vehicles[vehicleId as keyof typeof multiQuote.vehicles];
+    if (!vehiclePricing) return;
 
-    // Create the final quote with adjusted pricing for return
+    const priceInPence = isReturn ? vehiclePricing.return : vehiclePricing.oneWay;
+    const displayPrice = isReturn ? vehiclePricing.displayReturn : vehiclePricing.displayOneWay;
+
+    // Create the final quote response for the booking flow
     const finalQuote: QuoteResponse = {
-      ...vehicleQuote,
-      returnJourney: isReturn,
+      quoteId: multiQuote.quoteId,
+      status: multiQuote.status,
+      expiresAt: multiQuote.expiresAt,
+      journey: multiQuote.journey,
       pricing: {
-        ...vehicleQuote.pricing,
+        currency: 'GBP',
         breakdown: {
-          ...vehicleQuote.pricing.breakdown,
-          total: isReturn ? returnPrice : oneWayPrice,
+          baseFare: priceInPence,
+          distanceCharge: 0,
+          waitTimeCharge: 0,
+          subtotal: priceInPence,
+          tax: 0,
+          total: priceInPence,
         },
-        displayTotal: `£${((isReturn ? returnPrice : oneWayPrice) / 100).toFixed(2)}`,
+        displayTotal: displayPrice,
       },
+      vehicleType: vehicleId,
+      pickupLocation: multiQuote.pickupLocation,
+      dropoffLocation: multiQuote.dropoffLocation || multiQuote.pickupLocation,
+      waypoints: multiQuote.waypoints,
+      pickupTime: multiQuote.pickupTime,
+      passengers: multiQuote.passengers,
+      luggage: multiQuote.luggage,
+      returnJourney: isReturn,
+      createdAt: multiQuote.createdAt,
     };
 
     setQuote(finalQuote);
@@ -241,8 +179,7 @@ function Quote2PageContent() {
     setJourneyType('one-way');
     setDuration(2);
     setExtras({ babySeats: 0, childSeats: 0 });
-    setVehicles([]);
-    setVehicleQuotes(new Map());
+    setMultiQuote(null);
     setError(null);
     setBookingStage('quote');
     setContactDetails(null);
@@ -410,10 +347,9 @@ function Quote2PageContent() {
           )}
 
           {/* Step 2: Vehicle Selection */}
-          {currentStep === 2 && (
+          {currentStep === 2 && multiQuote && (
             <VehicleComparisonGrid
-              vehicles={vehicles}
-              vehicleQuotes={vehicleQuotes}
+              multiQuote={multiQuote}
               passengers={passengers}
               onSelect={handleVehicleSelect}
             />
