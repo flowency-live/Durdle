@@ -132,15 +132,18 @@ function Quote2PageContent() {
     const vehiclePricing = multiQuote.vehicles[vehicleId as keyof typeof multiQuote.vehicles];
     if (!vehiclePricing) return;
 
-    const priceInPence = isReturn ? vehiclePricing.return : vehiclePricing.oneWay;
-    const displayPrice = isReturn ? vehiclePricing.displayReturn : vehiclePricing.displayOneWay;
+    const priceInPence = isReturn ? vehiclePricing.return.price : vehiclePricing.oneWay.price;
+    const displayPrice = isReturn ? vehiclePricing.return.displayPrice : vehiclePricing.oneWay.displayPrice;
 
     // Create the final quote response for the booking flow
     const finalQuote: QuoteResponse = {
-      quoteId: multiQuote.quoteId,
-      status: multiQuote.status,
-      expiresAt: multiQuote.expiresAt,
-      journey: multiQuote.journey,
+      quoteId: multiQuote.quoteId || `quote-${Date.now()}`,
+      status: multiQuote.status || 'valid',
+      expiresAt: multiQuote.expiresAt || new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+      journey: {
+        ...multiQuote.journey,
+        route: { polyline: null },
+      },
       pricing: {
         currency: 'GBP',
         breakdown: {

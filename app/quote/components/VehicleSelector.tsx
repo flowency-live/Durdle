@@ -30,7 +30,7 @@ export default function VehicleSelector({
 
   // Filter vehicles that can accommodate the passenger count
   const availableVehicles = vehicleTypes.filter(
-    type => vehiclePrices[type].vehicle.capacity >= passengers
+    type => vehiclePrices[type].capacity >= passengers
   );
 
   return (
@@ -65,11 +65,10 @@ export default function VehicleSelector({
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {availableVehicles.map((type) => {
           const pricing = vehiclePrices[type];
-          const vehicle = pricing.vehicle;
           const isSelected = selected === type;
           const displayPrice = returnJourney
-            ? pricing.displayReturn
-            : pricing.displayOneWay;
+            ? pricing.return.displayPrice
+            : pricing.oneWay.displayPrice;
 
           return (
             <button
@@ -92,11 +91,11 @@ export default function VehicleSelector({
               </div>
 
               {/* Vehicle Image */}
-              {vehicle.imageUrl ? (
+              {pricing.imageUrl ? (
                 <div className="relative w-full h-20 mb-2">
                   <Image
-                    src={vehicle.imageUrl}
-                    alt={vehicle.name}
+                    src={pricing.imageUrl}
+                    alt={pricing.name}
                     fill
                     className="object-contain"
                     unoptimized
@@ -110,12 +109,12 @@ export default function VehicleSelector({
 
               {/* Vehicle Name */}
               <h3 className="text-sm font-semibold text-foreground mb-1 pr-6">
-                {vehicle.name}
+                {pricing.name}
               </h3>
 
               {/* Capacity */}
               <p className="text-xs text-muted-foreground mb-2">
-                Up to {vehicle.capacity} passengers
+                Up to {pricing.capacity} passengers
               </p>
 
               {/* Price - prominent */}

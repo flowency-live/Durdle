@@ -153,31 +153,56 @@ export interface FixedRoutesResponse {
   count: number;
 }
 
-// Vehicle pricing from compareMode response
+// Vehicle pricing from compareMode response (matches backend response)
 export interface VehiclePricing {
-  oneWay: number;           // pence
-  return: number;           // pence
-  displayOneWay: string;    // "£35.00"
-  displayReturn: string;    // "£70.00"
-  vehicle: {
-    vehicleId: string;
-    name: string;
-    description: string;
-    capacity: number;
-    features: string[];
-    imageUrl: string;
+  // Vehicle info (flat, not nested)
+  name: string;
+  description: string;
+  capacity: number;
+  features: string[];
+  imageUrl: string;
+  // Pricing
+  oneWay: {
+    price: number;          // pence
+    displayPrice: string;   // "£35.00"
+    breakdown: {
+      baseFare: number;
+      distanceCharge: number;
+      waitTimeCharge: number;
+      subtotal: number;
+      tax: number;
+      total: number;
+      hourlyCharge?: number;
+      durationHours?: number;
+    };
+  };
+  return: {
+    price: number;          // pence
+    displayPrice: string;   // "£70.00"
+    discount: {
+      percentage: number;
+      amount: number;
+    };
+    breakdown: {
+      baseFare: number;
+      distanceCharge: number;
+      waitTimeCharge: number;
+      subtotal: number;
+      discount: number;
+      tax: number;
+      total: number;
+      hourlyCharge?: number;
+    };
   };
 }
 
 // Multi-vehicle quote response (compareMode: true)
 export interface MultiVehicleQuoteResponse {
-  quoteId: string;
-  status: 'valid' | 'expired';
-  expiresAt: string;
+  compareMode: true;
+  journeyType: JourneyType;
   journey: {
     distance: { meters: number; miles: string; text: string };
     duration: { seconds: number; minutes: number; text: string };
-    route: { polyline: string | null };
   };
   vehicles: {
     standard: VehiclePricing;
@@ -186,10 +211,15 @@ export interface MultiVehicleQuoteResponse {
   };
   pickupLocation: Location;
   dropoffLocation?: Location;
-  waypoints?: Waypoint[];
+  durationHours?: number;
   pickupTime: string;
   passengers: number;
   luggage?: number;
   extras?: Extras;
   createdAt: string;
+  // Optional fields (not in backend response but may be needed by frontend)
+  quoteId?: string;
+  status?: 'valid' | 'expired';
+  expiresAt?: string;
+  waypoints?: Waypoint[];
 }

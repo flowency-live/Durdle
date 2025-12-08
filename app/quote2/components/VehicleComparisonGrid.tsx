@@ -3,7 +3,7 @@
 import { Car, MapPin, Clock } from 'lucide-react';
 import Image from 'next/image';
 
-import { MultiVehicleQuoteResponse, VehiclePricing } from '../../quote/lib/types';
+import { MultiVehicleQuoteResponse } from '../../quote/lib/types';
 
 interface VehicleComparisonGridProps {
   multiQuote: MultiVehicleQuoteResponse;
@@ -20,7 +20,7 @@ export default function VehicleComparisonGrid({
 
   // Filter vehicles by capacity
   const availableVehicles = vehicleTypes.filter(
-    type => multiQuote.vehicles[type].vehicle.capacity >= passengers
+    type => multiQuote.vehicles[type].capacity >= passengers
   );
 
   return (
@@ -63,8 +63,7 @@ export default function VehicleComparisonGrid({
         <h3 className="text-sm font-semibold text-foreground px-1">Select your vehicle & journey type</h3>
 
         {availableVehicles.map((type) => {
-          const pricing: VehiclePricing = multiQuote.vehicles[type];
-          const vehicle = pricing.vehicle;
+          const pricing = multiQuote.vehicles[type];
 
           return (
             <div
@@ -74,11 +73,11 @@ export default function VehicleComparisonGrid({
               {/* Vehicle Header with Image */}
               <div className="flex items-start gap-3 mb-4">
                 {/* Vehicle Image */}
-                {vehicle.imageUrl ? (
+                {pricing.imageUrl ? (
                   <div className="relative w-20 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-muted">
                     <Image
-                      src={vehicle.imageUrl}
-                      alt={vehicle.name}
+                      src={pricing.imageUrl}
+                      alt={pricing.name}
                       fill
                       className="object-contain"
                       unoptimized
@@ -90,15 +89,15 @@ export default function VehicleComparisonGrid({
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-lg font-semibold text-foreground">{vehicle.name}</h4>
-                  <p className="text-sm text-muted-foreground">Up to {vehicle.capacity} passengers</p>
+                  <h4 className="text-lg font-semibold text-foreground">{pricing.name}</h4>
+                  <p className="text-sm text-muted-foreground">Up to {pricing.capacity} passengers</p>
                 </div>
               </div>
 
               {/* Features */}
-              {vehicle.features && vehicle.features.length > 0 && (
+              {pricing.features && pricing.features.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {vehicle.features.slice(0, 3).map((feature, idx) => (
+                  {pricing.features.slice(0, 3).map((feature, idx) => (
                     <span
                       key={idx}
                       className="text-xs px-2 py-1 bg-muted rounded-full text-muted-foreground"
@@ -119,7 +118,7 @@ export default function VehicleComparisonGrid({
                 >
                   <span className="text-xs text-muted-foreground mb-1">One-Way</span>
                   <span className="text-2xl font-bold text-foreground">
-                    {pricing.displayOneWay}
+                    {pricing.oneWay.displayPrice}
                   </span>
                 </button>
 
@@ -129,20 +128,20 @@ export default function VehicleComparisonGrid({
                   onClick={() => onSelect(type, true)}
                   className="flex flex-col items-center p-4 rounded-xl border-2 border-sage-dark bg-sage-dark/5 hover:bg-sage-dark/10 transition-all active:scale-[0.98] relative"
                 >
-                  {/* Discount Badge - only show if return is less than 2x one-way */}
-                  {pricing.return < pricing.oneWay * 2 && (
+                  {/* Discount Badge - only show if there's a discount */}
+                  {pricing.return.discount.percentage > 0 && (
                     <span className="absolute -top-2 -right-2 px-2 py-0.5 bg-sage-dark text-white text-xs font-semibold rounded-full">
-                      Save {Math.round((1 - pricing.return / (pricing.oneWay * 2)) * 100)}%
+                      Save {pricing.return.discount.percentage}%
                     </span>
                   )}
                   <span className="text-xs text-muted-foreground mb-1">Return</span>
                   <span className="text-2xl font-bold text-sage-dark">
-                    {pricing.displayReturn}
+                    {pricing.return.displayPrice}
                   </span>
                   {/* Show original price if discounted */}
-                  {pricing.return < pricing.oneWay * 2 && (
+                  {pricing.return.discount.percentage > 0 && (
                     <span className="text-xs text-muted-foreground line-through">
-                      {`£${((pricing.oneWay * 2) / 100).toFixed(2)}`}
+                      {`£${((pricing.oneWay.price * 2) / 100).toFixed(2)}`}
                     </span>
                   )}
                 </button>
