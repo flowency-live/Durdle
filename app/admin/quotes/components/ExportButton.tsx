@@ -2,10 +2,11 @@
 
 import React, { useState } from 'react';
 
+import { QuoteFilters } from '../../../../lib/types/quotes';
 import adminApi from '../../../../lib/services/adminApi';
 
 interface ExportButtonProps {
-  filters: Record<string, any>;
+  filters: QuoteFilters;
 }
 
 export default function ExportButton({ filters }: ExportButtonProps) {
@@ -24,6 +25,7 @@ export default function ExportButton({ filters }: ExportButtonProps) {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('Export failed', err);
       alert('Export failed');
     } finally {
@@ -33,7 +35,7 @@ export default function ExportButton({ filters }: ExportButtonProps) {
 
   return (
     <button onClick={handleExport} disabled={loading} className="ml-auto inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md">
-      {loading ? 'Exporting…' : 'Export CSV'}
+      {loading ? 'Exporting...' : 'Export CSV'}
     </button>
   );
 }

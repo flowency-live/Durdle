@@ -2,15 +2,7 @@
 
 import React from 'react';
 
-interface Quote {
-  quoteId: string;
-  createdAt: string;
-  customerEmail?: string;
-  pickupLocation?: { address: string };
-  dropoffLocation?: { address: string };
-  totalPrice?: number;
-  status: string;
-}
+import { Quote } from '../../../../lib/types/quotes';
 
 interface QuotesTableProps {
   quotes: Quote[];
@@ -32,8 +24,13 @@ export default function QuotesTable({
   }
 
   function renderSortIcon(column: 'date' | 'price') {
-    if (sortBy !== column) return <span className="text-gray-300">↕</span>;
-    return sortOrder === 'asc' ? <span>▲</span> : <span>▼</span>;
+    if (sortBy !== column) return <span className="text-gray-300">-</span>;
+    return sortOrder === 'asc' ? <span>^</span> : <span>v</span>;
+  }
+
+  function formatPrice(price: number | undefined): string {
+    if (price === undefined || price === null) return '-';
+    return `GBP ${(price / 100).toFixed(2)}`;
   }
 
   return (
@@ -70,10 +67,10 @@ export default function QuotesTable({
             <tr key={q.quoteId} className="hover:bg-gray-50 cursor-pointer" onClick={() => onRowClick(q.quoteId)}>
               <td className="px-4 py-3">{q.quoteId?.replace(/^QUOTE#/, '#')}</td>
               <td className="px-4 py-3">{new Date(q.createdAt).toLocaleString()}</td>
-              <td className="px-4 py-3">{q.customerEmail || '—'}</td>
+              <td className="px-4 py-3">{q.customerEmail || '-'}</td>
               <td className="px-4 py-3">{q.pickupLocation?.address?.slice(0, 60)}</td>
               <td className="px-4 py-3">{q.dropoffLocation?.address?.slice(0, 60)}</td>
-              <td className="px-4 py-3">{q.totalPrice !== null ? `£${(q.totalPrice/100).toFixed(2)}` : '—'}</td>
+              <td className="px-4 py-3">{formatPrice(q.totalPrice)}</td>
               <td className="px-4 py-3">{q.status}</td>
             </tr>
           ))}

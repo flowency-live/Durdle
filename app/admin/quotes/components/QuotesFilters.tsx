@@ -2,13 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 
+import { QuoteFilters } from '../../../../lib/types/quotes';
+
+type StatusOption = 'all' | 'active' | 'expired' | 'converted';
+
 interface QuotesFiltersProps {
-  filters: Record<string, any>;
-  onChange: (filters: Record<string, any>) => void;
+  filters: QuoteFilters;
+  onChange: (filters: QuoteFilters) => void;
 }
 
 export default function QuotesFilters({ filters, onChange }: QuotesFiltersProps) {
-  const [local, setLocal] = useState(() => ({
+  const [local, setLocal] = useState<{ status: StatusOption; search: string }>(() => ({
     status: filters?.status || 'all',
     search: filters?.search || '',
   }));
@@ -16,11 +20,11 @@ export default function QuotesFilters({ filters, onChange }: QuotesFiltersProps)
   useEffect(() => setLocal({ status: filters?.status || 'all', search: filters?.search || '' }), [filters]);
 
   function handleApply() {
-    onChange({ ...filters, ...local });
+    onChange({ ...filters, ...local } as QuoteFilters);
   }
 
   function handleClear() {
-    const cleared = { status: 'all', search: '', dateFrom: undefined, dateTo: undefined, priceMin: undefined, priceMax: undefined };
+    const cleared: QuoteFilters = { status: 'all', search: '', dateFrom: undefined, dateTo: undefined, priceMin: undefined, priceMax: undefined };
     onChange(cleared);
   }
 
@@ -30,7 +34,7 @@ export default function QuotesFilters({ filters, onChange }: QuotesFiltersProps)
         <label className="text-sm font-medium text-gray-700">Status</label>
         <select
           value={local.status}
-          onChange={e => setLocal(s => ({ ...s, status: e.target.value }))}
+          onChange={e => setLocal(s => ({ ...s, status: e.target.value as StatusOption }))}
           className="mt-1 block w-48 rounded-md border-gray-200 bg-white p-2"
         >
           <option value="all">All</option>

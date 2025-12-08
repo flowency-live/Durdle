@@ -1,25 +1,38 @@
 'use client';
 
+import { useSearchParams, useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 
-import { useSearchParams, useRouter } from 'next/navigation';
-
+import { useQuotes, QuoteFilters } from '../../../lib/hooks/useQuotes';
 import ExportButton from './components/ExportButton';
 import QuoteDetailsModal from './components/QuoteDetailsModal';
 import QuotesFilters from './components/QuotesFilters';
 import QuotesTable from './components/QuotesTable';
 
-import { useQuotes, QuoteFilters } from '../../../lib/hooks/useQuotes';
+function parseStatus(value: string | null): QuoteFilters['status'] {
+  if (value === 'active' || value === 'expired' || value === 'converted') return value;
+  return 'all';
+}
+
+function parseSortBy(value: string | null): QuoteFilters['sortBy'] {
+  if (value === 'price') return 'price';
+  return 'date';
+}
+
+function parseSortOrder(value: string | null): QuoteFilters['sortOrder'] {
+  if (value === 'asc') return 'asc';
+  return 'desc';
+}
 
 export default function AdminQuotesPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
   const [filters, setFilters] = useState<QuoteFilters>({
-    status: (searchParams.get('status') || 'all') as any,
+    status: parseStatus(searchParams.get('status')),
     search: searchParams.get('search') || undefined,
-    sortBy: (searchParams.get('sortBy') || 'date') as any,
-    sortOrder: (searchParams.get('sortOrder') || 'desc') as any,
+    sortBy: parseSortBy(searchParams.get('sortBy')),
+    sortOrder: parseSortOrder(searchParams.get('sortOrder')),
     limit: 50,
     cursor: searchParams.get('cursor') || undefined,
   });
@@ -80,7 +93,7 @@ export default function AdminQuotesPage() {
 
       <QuotesFilters filters={filters} onChange={handleFilterChange} />
 
-      {loading && <div className="p-6 bg-white rounded-lg shadow-sm">Loading…</div>}
+      {loading && <div className="p-6 bg-white rounded-lg shadow-sm">Loading...</div>}
       {error && <div className="p-6 bg-white rounded-lg shadow-sm text-red-600">{error.message}</div>}
 
       {data && (
@@ -95,7 +108,7 @@ export default function AdminQuotesPage() {
 
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-600">
-              Showing {data.quotes.length} of {data.pagination?.total || '—'}
+              Showing {data.quotes.length} of {data.pagination?.total || '-'}
             </div>
             <div className="flex gap-2">
               <button

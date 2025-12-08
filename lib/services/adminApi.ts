@@ -3,6 +3,7 @@
  * exposes quote-related endpoints used by the admin UI.
  */
 import { getApiUrl, API_ENDPOINTS } from '../config/api';
+import { QuoteFilters } from '../types/quotes';
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
@@ -45,8 +46,8 @@ async function authFetch(inputUrl: string, opts: RequestInit = {}): Promise<Resp
   return res;
 }
 
-export async function listQuotes(filters: Record<string, unknown> = {}): Promise<unknown> {
-  const url = `${getApiUrl(API_ENDPOINTS.adminQuotes)}${buildQuery(filters)}`;
+export async function listQuotes(filters: QuoteFilters = {}): Promise<unknown> {
+  const url = `${getApiUrl(API_ENDPOINTS.adminQuotes)}${buildQuery(filters as Record<string, unknown>)}`;
   return authFetch(url, { method: 'GET' });
 }
 
@@ -56,8 +57,8 @@ export async function getQuoteDetails(quoteId: string): Promise<unknown> {
   return authFetch(url, { method: 'GET' });
 }
 
-export async function exportQuotes(filters: Record<string, unknown> = {}): Promise<Blob> {
-  const url = `${getApiUrl(API_ENDPOINTS.adminQuotesExport)}${buildQuery(filters)}`;
+export async function exportQuotes(filters: QuoteFilters = {}): Promise<Blob> {
+  const url = `${getApiUrl(API_ENDPOINTS.adminQuotesExport)}${buildQuery(filters as Record<string, unknown>)}`;
   const res = (await authFetch(url, { method: 'GET' })) as Response;
   // If authFetch returned parsed JSON, wrap; otherwise it's a Response
   if (res instanceof Response) return res.blob();
@@ -65,8 +66,10 @@ export async function exportQuotes(filters: Record<string, unknown> = {}): Promi
   throw new Error('Unexpected response when exporting CSV');
 }
 
-export default {
+const adminApi = {
   listQuotes,
   getQuoteDetails,
   exportQuotes,
 };
+
+export default adminApi;

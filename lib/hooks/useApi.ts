@@ -33,7 +33,7 @@ export interface UseApiResult<T> extends UseApiState<T> {
  */
 export function useApi<T>(
   apiCall: () => Promise<T>,
-  dependencies: unknown[] = [],
+  _dependencies: unknown[] = [],
   options: {
     immediate?: boolean;
     onSuccess?: (data: T) => void;
