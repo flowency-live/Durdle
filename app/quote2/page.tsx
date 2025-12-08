@@ -163,7 +163,6 @@ function Quote2PageContent() {
     setLuggage(0);
     setVehicles([]);
     setVehicleQuotes(new Map());
-    setJourneySelection(null);
     setError(null);
     setBookingStage('quote');
     setContactDetails(null);
