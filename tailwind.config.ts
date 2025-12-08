@@ -29,6 +29,7 @@ const config: Config = {
           DEFAULT: '#b7d5b9',
           dark: '#8fb894',
           light: '#d4e7d6',
+          accessible: '#4a7a50', // WCAG AA compliant (4.7:1 on white)
         },
         gray: {
           DEFAULT: '#a6a6a6',

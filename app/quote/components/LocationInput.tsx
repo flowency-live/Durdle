@@ -217,7 +217,7 @@ export default function LocationInput({
           type="button"
           onClick={handleUseCurrentLocation}
           disabled={gettingLocation}
-          className="flex items-center gap-2 text-sm text-sage-dark hover:text-sage-dark/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 text-sm text-sage-accessible hover:text-sage-accessible/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {gettingLocation ? (
             <>

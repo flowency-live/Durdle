@@ -61,7 +61,7 @@ export default function WaypointInput({ index, waypoint, onChange, onRemove }: W
         <button
           type="button"
           onClick={() => setEditingWaitTime(true)}
-          className="text-xs text-sage-dark hover:text-sage-dark/80 transition-colors flex items-center gap-1"
+          className="text-xs text-sage-accessible hover:text-sage-accessible/80 transition-colors flex items-center gap-1"
         >
           <Clock className="w-3 h-3" />
           Add wait time
@@ -80,7 +80,7 @@ export default function WaypointInput({ index, waypoint, onChange, onRemove }: W
               setTempWaitTime(waypoint.waitTime || 0);
               setEditingWaitTime(true);
             }}
-            className="text-sage-dark hover:text-sage-dark/80 transition-colors"
+            className="text-sage-accessible hover:text-sage-accessible/80 transition-colors"
           >
             Edit
           </button>

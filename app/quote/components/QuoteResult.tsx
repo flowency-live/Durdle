@@ -86,7 +86,7 @@ export default function QuoteResult({ quote, onNewQuote, onBack, onConfirmBookin
               <button
                 type="button"
                 onClick={onBack || onNewQuote}
-                className="flex items-center gap-1.5 text-sm text-sage-dark hover:text-sage-dark/80 transition-colors"
+                className="flex items-center gap-1.5 text-sm text-sage-accessible hover:text-sage-accessible/80 transition-colors"
               >
                 <Edit2 className="w-4 h-4" />
                 <span>Edit</span>
@@ -293,7 +293,7 @@ export default function QuoteResult({ quote, onNewQuote, onBack, onConfirmBookin
               <button
                 type="button"
                 onClick={onNewQuote}
-                className="text-sm text-sage-dark hover:underline"
+                className="text-sm text-sage-accessible hover:underline"
               >
                 Get a new quote
               </button>

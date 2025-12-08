@@ -147,7 +147,7 @@ export default function LocationStep({
             <button
               type="button"
               onClick={addWaypoint}
-              className="mt-2 flex items-center gap-2 text-sm text-sage-dark hover:text-sage-dark/80 transition-colors"
+              className="mt-2 flex items-center gap-2 text-sm text-sage-accessible hover:text-sage-accessible/80 transition-colors"
             >
               <Plus className="w-4 h-4" />
               Add waypoints along the way

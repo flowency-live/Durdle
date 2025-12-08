@@ -123,7 +123,7 @@ export default function PricingPage() {
                 <p className="text-error font-medium">{error}</p>
                 <p className="text-sm text-muted-foreground mt-2">
                   Please try again later or{' '}
-                  <Link href="/quote" className="text-sage-dark hover:underline">
+                  <Link href="/quote" className="text-sage-accessible hover:underline">
                     get a custom quote
                   </Link>
                 </p>
@@ -135,7 +135,7 @@ export default function PricingPage() {
             <div className="text-center py-12">
               <p className="text-muted-foreground">
                 No fixed routes available at the moment.{' '}
-                <Link href="/quote" className="text-sage-dark hover:underline">
+                <Link href="/quote" className="text-sage-accessible hover:underline">
                   Get a custom quote
                 </Link>
               </p>

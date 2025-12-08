@@ -59,7 +59,7 @@ export default function VehicleSelector({ selected, onChange, passengers, error 
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="mt-4 text-sm text-sage-dark hover:underline"
+            className="mt-4 text-sm text-sage-accessible hover:underline"
           >
             Retry
           </button>
