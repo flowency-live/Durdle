@@ -22,7 +22,8 @@ import PaymentForm, { PaymentDetails } from './components/PaymentForm';
 import QuoteResult from './components/QuoteResult';
 import VehicleSelector from './components/VehicleSelector';
 import { calculateQuote, getFixedRoutes } from './lib/api';
-import { QuoteResponse, QuoteRequest, Location, Waypoint } from './lib/types';
+import { Extras, JourneyType, QuoteResponse, QuoteRequest, Location, Waypoint } from './lib/types';
+import OptionalExtras from './components/OptionalExtras';
 
 
 type Step = 1 | 2 | 3 | 4;

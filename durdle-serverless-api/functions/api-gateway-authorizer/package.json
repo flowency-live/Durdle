@@ -1,0 +1,14 @@
+{
+  "name": "api-gateway-authorizer",
+  "version": "1.0.0",
+  "description": "JWT authorizer for API Gateway admin routes",
+  "type": "module",
+  "main": "index.mjs",
+  "scripts": {
+    "test": "echo \"No tests yet\""
+  },
+  "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.679.0",
+    "jsonwebtoken": "^9.0.2"
+  }
+}

@@ -55,7 +55,13 @@
       "Bash(aws apigateway get-integration-response:*)",
       "Bash(aws apigateway get-authorizers:*)",
       "Bash(aws apigateway get-method:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npx next lint:*)",
+      "Bash(aws apigateway create-authorizer:*)",
+      "Bash(aws apigateway get-resource:*)",
+      "Bash(aws apigateway update-method:*)",
+      "Bash(MSYS_NO_PATHCONV=1 aws apigateway update-method:*)"
     ],
     "deny": [],
     "ask": []

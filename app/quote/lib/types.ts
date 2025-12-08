@@ -1,6 +1,15 @@
 // Quote Wizard TypeScript Types
 // Based on QUOTE_WIZARD_IMPLEMENTATION_SPEC.md
 
+// Journey Type (one-way vs hourly)
+export type JourneyType = 'one-way' | 'hourly';
+
+// Optional Extras
+export interface Extras {
+  babySeats: number;
+  childSeats: number;
+}
+
 // Vehicle Type
 export interface Vehicle {
   vehicleId: string;
@@ -29,13 +38,16 @@ export interface Waypoint extends Location {
 // Quote Request (POST /v1/quotes)
 export interface QuoteRequest {
   pickupLocation: Location;
-  dropoffLocation: Location;
+  dropoffLocation?: Location; // Optional for hourly journeys
   waypoints?: Waypoint[]; // Changed from Location[] to support wait times
   pickupTime: string; // ISO 8601 format
   passengers: number; // 1-8
   luggage?: number; // Number of bags
   vehicleType: 'standard' | 'executive' | 'minibus';
   returnJourney?: boolean;
+  journeyType?: JourneyType; // 'one-way' | 'hourly'
+  durationHours?: number; // Required for hourly journeys (2-6)
+  extras?: Extras; // Baby seats, child seats
   contactDetails?: {
     name: string;
     email: string;
@@ -84,6 +96,9 @@ export interface QuoteResponse {
   passengers: number;
   luggage?: number;
   returnJourney: boolean;
+  journeyType?: JourneyType;
+  durationHours?: number;
+  extras?: Extras;
   createdAt: string;
 }
 
