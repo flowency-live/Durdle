@@ -19,13 +19,6 @@ import FeedbackButton from '../components/FeedbackButton';
 type Step = 1 | 2;
 type BookingStage = 'quote' | 'contact' | 'payment' | 'confirmation';
 
-interface JourneySelection {
-  vehicleId: string;
-  isReturn: boolean;
-  oneWayPrice: number;
-  returnPrice: number;
-}
-
 function Quote2PageContent() {
   // Form state
   const [currentStep, setCurrentStep] = useState<Step>(1);
@@ -43,9 +36,7 @@ function Quote2PageContent() {
 
   // UI state
   const [quote, setQuote] = useState<QuoteResponse | null>(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [journeySelection, setJourneySelection] = useState<JourneySelection | null>(null);
 
   // Booking flow state
   const [bookingStage, setBookingStage] = useState<BookingStage>('quote');
@@ -143,13 +134,6 @@ function Quote2PageContent() {
 
     const oneWayPrice = vehicleQuote.pricing.breakdown.total;
     const returnPrice = Math.round(oneWayPrice * 2 * 0.9); // 10% discount on return
-
-    setJourneySelection({
-      vehicleId,
-      isReturn,
-      oneWayPrice,
-      returnPrice,
-    });
 
     // Create the final quote with adjusted pricing for return
     const finalQuote: QuoteResponse = {
@@ -392,7 +376,7 @@ function Quote2PageContent() {
       </div>
 
       {/* Loading Overlay */}
-      {(loading || loadingQuotes) && <LoadingState />}
+      {loadingQuotes && <LoadingState />}
     </div>
   );
 }
