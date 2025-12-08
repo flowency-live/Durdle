@@ -63,6 +63,11 @@ export default function LocationInput({
         const data = await response.json();
 
         if (data.predictions) {
+          // Debug: log predictions with locationType
+          console.log('[LocationInput] Predictions received:', data.predictions.map((p: Prediction) => ({
+            description: p.description,
+            locationType: p.locationType
+          })));
           setSuggestions(data.predictions);
           setShowSuggestions(true);
         }
@@ -97,6 +102,12 @@ export default function LocationInput({
   };
 
   const handleSelectSuggestion = (prediction: Prediction) => {
+    // Debug: log selected prediction
+    console.log('[LocationInput] Selected:', {
+      description: prediction.description,
+      place_id: prediction.place_id,
+      locationType: prediction.locationType
+    });
     isSelectingRef.current = true;
     setInput(prediction.description);
     onSelect(prediction.description, prediction.place_id, prediction.locationType);

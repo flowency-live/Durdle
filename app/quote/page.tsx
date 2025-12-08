@@ -272,14 +272,43 @@ function QuotePageContent() {
     );
   }
 
-  // Render quote result
+  // Render quote result - wrapped in same layout with header
   if (quote) {
     return (
-      <QuoteResult
-        quote={quote}
-        onNewQuote={handleNewQuote}
-        onConfirmBooking={handleConfirmBooking}
-      />
+      <div className="min-h-screen bg-background">
+        {/* Header */}
+        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-sage-light/50 shadow-sm">
+          <div className="container px-4 md:px-6 mx-auto">
+            <div className="flex items-center justify-between h-16 md:h-20">
+              <Link href="/" className="flex items-center gap-3">
+                <Image
+                  src="/dtc-logo-wave2.png"
+                  alt="The Dorset Transfer Company"
+                  width={60}
+                  height={60}
+                  className="h-10 md:h-12 w-auto"
+                />
+              </Link>
+              <div className="flex items-center gap-3">
+                <FeedbackButton />
+                <Link
+                  href="/"
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span className="hidden sm:inline">Back to Home</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <QuoteResult
+          quote={quote}
+          onNewQuote={handleNewQuote}
+          onConfirmBooking={handleConfirmBooking}
+        />
+      </div>
     );
   }
 

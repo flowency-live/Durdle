@@ -34,22 +34,15 @@ export default function TransportDetails({
 
   return (
     <div className="bg-card rounded-2xl p-4 shadow-mobile border-2 border-sage-light animate-fade-up">
-      <div className="flex items-start gap-3 mb-3">
+      <div className="flex items-center gap-2 mb-3">
         {isAirport ? (
-          <Plane className="w-5 h-5 text-sage-dark flex-shrink-0 mt-0.5" />
+          <Plane className="w-5 h-5 text-sage-dark flex-shrink-0" />
         ) : (
-          <Train className="w-5 h-5 text-sage-dark flex-shrink-0 mt-0.5" />
+          <Train className="w-5 h-5 text-sage-dark flex-shrink-0" />
         )}
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">
-            {isAirport ? 'Flight Details' : 'Train Details'}
-          </h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {isAirport
-              ? 'Help your driver track flight delays'
-              : 'Help your driver track train delays'}
-          </p>
-        </div>
+        <h3 className="text-sm font-semibold text-foreground">
+          {isAirport ? 'Flight Details' : 'Train Details'}
+        </h3>
       </div>
 
       <div className="space-y-3">

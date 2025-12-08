@@ -52,20 +52,8 @@ export default function QuoteResult({ quote, onNewQuote, onBack, onConfirmBookin
   return (
     <section className="pb-24">
       <div className="container px-4 mx-auto max-w-4xl">
-        {/* Letterhead Logo */}
-        <div className="flex justify-center mb-6 pt-6">
-          <Image
-            src="/dtc-letterhead-logo.png"
-            alt="The Dorset Transfer Company"
-            width={400}
-            height={100}
-            className="h-auto w-full max-w-[280px] md:max-w-[350px]"
-            priority
-          />
-        </div>
-
         {/* Navigation Header */}
-        <div className="flex items-center mb-6">
+        <div className="flex items-center mb-6 pt-6">
           <Button
             type="button"
             variant="hero-outline"
@@ -81,12 +69,22 @@ export default function QuoteResult({ quote, onNewQuote, onBack, onConfirmBookin
 
         {/* Quote Card */}
         <div className="bg-card rounded-3xl shadow-xl overflow-hidden">
-          {/* Header */}
+          {/* Header with Letterhead */}
           <div className="bg-gradient-navy-sage p-6 text-white">
-            <h2 className="text-2xl md:text-3xl font-bold font-playfair mb-2">
+            <div className="flex justify-center mb-4">
+              <Image
+                src="/dtc-letterhead-logo.png"
+                alt="The Dorset Transfer Company"
+                width={300}
+                height={75}
+                className="h-auto w-full max-w-[200px] md:max-w-[280px] brightness-0 invert"
+                priority
+              />
+            </div>
+            <h2 className="text-2xl md:text-3xl font-bold font-playfair mb-2 text-center">
               Your Quote
             </h2>
-            <p className="text-sm opacity-90">
+            <p className="text-sm opacity-90 text-center">
               Quote ID: {quote.quoteId}
             </p>
           </div>
