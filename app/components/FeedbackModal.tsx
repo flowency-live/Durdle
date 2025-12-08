@@ -1,9 +1,9 @@
 'use client';
 
 import { X } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { usePathname } from 'next/navigation';
 
 interface FeedbackModalProps {
   isOpen: boolean;

@@ -1,12 +1,14 @@
 'use client';
 
 import { Plus } from 'lucide-react';
-import { Location, Waypoint } from '../../quote/lib/types';
+
 import LocationInput from '../../quote/components/LocationInput';
-import WaypointInput from '../../quote/components/WaypointInput';
+import LuggageCounter from '../../quote/components/LuggageCounter';
 import MapPreview from '../../quote/components/MapPreview';
 import PassengerCounter from '../../quote/components/PassengerCounter';
-import LuggageCounter from '../../quote/components/LuggageCounter';
+import WaypointInput from '../../quote/components/WaypointInput';
+import { Location, Waypoint } from '../../quote/lib/types';
+
 import DateTimePickerMobile from './DateTimePickerMobile';
 
 interface AllInputsStepProps {

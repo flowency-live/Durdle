@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { CreditCard, Lock, AlertCircle, Info } from 'lucide-react';
+import { useState, useEffect } from 'react';
+
 import { Button } from '@/components/ui/button';
 
 export interface PaymentDetails {

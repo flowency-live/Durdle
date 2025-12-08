@@ -1,9 +1,9 @@
 'use client';
 
+import { Calendar } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { Calendar } from 'lucide-react';
 
 interface DateTimePickerMobileProps {
   selectedDate: Date | null;

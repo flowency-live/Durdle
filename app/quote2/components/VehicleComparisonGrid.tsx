@@ -1,6 +1,7 @@
 'use client';
 
 import { Car, Star, Users, MapPin, Clock } from 'lucide-react';
+
 import { Vehicle, QuoteResponse } from '../../quote/lib/types';
 
 interface VehicleComparisonGridProps {

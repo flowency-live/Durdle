@@ -1,25 +1,29 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
-import Link from 'next/link';
 import Image from 'next/image';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+
 import { Button } from '@/components/ui/button';
-import LocationStep from './components/LocationStep';
-import DateTimeStep from './components/DateTimeStep';
-import MapPreview from './components/MapPreview';
-import VehicleSelector from './components/VehicleSelector';
-import PassengerCounter from './components/PassengerCounter';
-import LuggageCounter from './components/LuggageCounter';
-import LoadingState from './components/LoadingState';
-import QuoteResult from './components/QuoteResult';
-import ContactDetailsForm, { ContactDetails } from './components/ContactDetailsForm';
-import PaymentForm, { PaymentDetails } from './components/PaymentForm';
+
+import FeedbackButton from '../components/FeedbackButton';
+
 import BookingConfirmation from './components/BookingConfirmation';
+import ContactDetailsForm, { ContactDetails } from './components/ContactDetailsForm';
+import DateTimeStep from './components/DateTimeStep';
+import LoadingState from './components/LoadingState';
+import LocationStep from './components/LocationStep';
+import LuggageCounter from './components/LuggageCounter';
+import MapPreview from './components/MapPreview';
+import PassengerCounter from './components/PassengerCounter';
+import PaymentForm, { PaymentDetails } from './components/PaymentForm';
+import QuoteResult from './components/QuoteResult';
+import VehicleSelector from './components/VehicleSelector';
 import { calculateQuote, getFixedRoutes } from './lib/api';
 import { QuoteResponse, QuoteRequest, Location, Waypoint } from './lib/types';
-import FeedbackButton from '../components/FeedbackButton';
+
 
 type Step = 1 | 2 | 3 | 4;
 type BookingStage = 'quote' | 'contact' | 'payment' | 'confirmation';

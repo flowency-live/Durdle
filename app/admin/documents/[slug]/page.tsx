@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'next/navigation';
-import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import { ArrowLeft, Edit, Save, X, Loader2 } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
+
 import { getDocument, updateDocument, isGitHubError } from '@/lib/services/github-service';
 
 const MDEditor = dynamic(

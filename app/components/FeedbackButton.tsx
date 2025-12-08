@@ -2,6 +2,7 @@
 
 import { Bug } from 'lucide-react';
 import { useState } from 'react';
+
 import FeedbackModal from './FeedbackModal';
 
 export default function FeedbackButton() {

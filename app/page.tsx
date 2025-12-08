@@ -1,9 +1,12 @@
 'use client';
 
-import { useState } from "react";
 import { MapPin, Clock, Shield, Car, Users, Briefcase, Plane, ArrowRight, KeyRound } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
 import Image from "next/image";
+import { useState } from "react";
+
+import { buttonVariants } from "@/components/ui/button";
+
+
 import FeedbackButton from "./components/FeedbackButton";
 
 const features = [

@@ -1,7 +1,7 @@
 'use client';
 
-import { QRCodeSVG } from 'qrcode.react';
 import { Phone, Mail, MapPin, Download } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 
 export default function QuoteQRPage() {
   const quoteUrl = 'https://durdle.co.uk/quote';

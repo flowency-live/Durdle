@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { User, Mail, Phone, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+
 import { Button } from '@/components/ui/button';
 
 export interface ContactDetails {

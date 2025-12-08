@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 
 import { useQuotes, QuoteFilters } from '../../../lib/hooks/useQuotes';
+
 import ExportButton from './components/ExportButton';
 import QuoteDetailsModal from './components/QuoteDetailsModal';
 import QuotesFilters from './components/QuotesFilters';

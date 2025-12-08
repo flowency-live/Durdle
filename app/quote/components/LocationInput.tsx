@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
 import { MapPin, Loader2, Crosshair } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 
 interface LocationInputProps {
   label?: string;

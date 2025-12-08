@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { Location, Waypoint } from '../lib/types';
 import dynamic from 'next/dynamic';
+import { useEffect, useMemo, useState } from 'react';
 import { useMap } from 'react-leaflet';
+
+import { Location, Waypoint } from '../lib/types';
 import 'leaflet/dist/leaflet.css';
 
 interface Coordinates {

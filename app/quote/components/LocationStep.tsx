@@ -1,7 +1,9 @@
 'use client';
 
 import { Plus } from 'lucide-react';
+
 import { Location, Waypoint } from '../lib/types';
+
 import LocationInput from './LocationInput';
 import WaypointInput from './WaypointInput';
 

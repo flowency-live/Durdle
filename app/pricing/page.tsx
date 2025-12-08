@@ -1,13 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
 import { ArrowLeft, MapPin, Clock, ArrowRight } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+
+import { buttonVariants } from '@/components/ui/button';
+
+import FeedbackButton from '../components/FeedbackButton';
 import { getFixedRoutes } from '../quote/lib/api';
 import { FixedRoute } from '../quote/lib/types';
-import { buttonVariants } from '@/components/ui/button';
-import FeedbackButton from '../components/FeedbackButton';
 
 export default function PricingPage() {
   const [routes, setRoutes] = useState<FixedRoute[]>([]);

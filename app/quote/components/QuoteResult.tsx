@@ -1,10 +1,13 @@
 'use client';
 
 import { MapPin, Clock, Calendar, Users, Car, Luggage, ArrowLeft, Edit2 } from 'lucide-react';
-import { QuoteResponse } from '../lib/types';
-import { Button } from '@/components/ui/button';
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+
+import { QuoteResponse } from '../lib/types';
+
 
 interface QuoteResultProps {
   quote: QuoteResponse;

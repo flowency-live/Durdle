@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { Car, Star, Users, Loader2 } from 'lucide-react';
-import { Vehicle } from '../lib/types';
+import { useEffect, useState } from 'react';
+
 import { getVehicles } from '../lib/api';
+import { Vehicle } from '../lib/types';
 
 interface VehicleSelectorProps {
   selected: string | null;

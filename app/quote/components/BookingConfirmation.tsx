@@ -2,8 +2,11 @@
 
 import { CheckCircle, Calendar, MapPin, Users, Car, Mail, Phone, Download } from 'lucide-react';
 import Link from 'next/link';
+
 import { Button } from '@/components/ui/button';
+
 import { QuoteResponse } from '../lib/types';
+
 import { ContactDetails } from './ContactDetailsForm';
 
 interface BookingConfirmationProps {

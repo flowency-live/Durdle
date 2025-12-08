@@ -1,20 +1,23 @@
 'use client';
 
-import { useState, Suspense } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
 import Image from 'next/image';
+import Link from 'next/link';
+import { useState, Suspense } from 'react';
+
 import { Button } from '@/components/ui/button';
-import AllInputsStep from './components/AllInputsStep';
-import VehicleComparisonGrid from './components/VehicleComparisonGrid';
-import LoadingState from '../quote/components/LoadingState';
-import QuoteResult from '../quote/components/QuoteResult';
-import ContactDetailsForm, { ContactDetails } from '../quote/components/ContactDetailsForm';
-import PaymentForm, { PaymentDetails } from '../quote/components/PaymentForm';
+
+import FeedbackButton from '../components/FeedbackButton';
 import BookingConfirmation from '../quote/components/BookingConfirmation';
+import ContactDetailsForm, { ContactDetails } from '../quote/components/ContactDetailsForm';
+import LoadingState from '../quote/components/LoadingState';
+import PaymentForm, { PaymentDetails } from '../quote/components/PaymentForm';
+import QuoteResult from '../quote/components/QuoteResult';
 import { calculateQuote, getVehicles } from '../quote/lib/api';
 import { QuoteResponse, Location, Waypoint, Vehicle } from '../quote/lib/types';
-import FeedbackButton from '../components/FeedbackButton';
+
+import AllInputsStep from './components/AllInputsStep';
+import VehicleComparisonGrid from './components/VehicleComparisonGrid';
 
 type Step = 1 | 2;
 type BookingStage = 'quote' | 'contact' | 'payment' | 'confirmation';

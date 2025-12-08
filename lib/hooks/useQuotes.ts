@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 
-import { Quote, QuoteFilters, QuotesListResponse } from '../types/quotes';
 import adminApi from '../services/adminApi';
+import { Quote, QuoteFilters, QuotesListResponse } from '../types/quotes';
+
 import { useApi } from './useApi';
 
 export type { Quote, QuoteFilters, QuotesListResponse };

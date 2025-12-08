@@ -1,9 +1,12 @@
 'use client';
 
-import { useState } from 'react';
 import { Clock, Check, X } from 'lucide-react';
-import LocationInput from './LocationInput';
+import { useState } from 'react';
+
 import { Waypoint } from '../lib/types';
+
+import LocationInput from './LocationInput';
+
 
 interface WaypointInputProps {
   index: number;

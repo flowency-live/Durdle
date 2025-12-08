@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { MessageSquare, Trash2, RefreshCw } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface Feedback {
   feedbackId: string;
