@@ -152,3 +152,44 @@ export interface FixedRoutesResponse {
   routes: FixedRoute[];
   count: number;
 }
+
+// Vehicle pricing from compareMode response
+export interface VehiclePricing {
+  oneWay: number;           // pence
+  return: number;           // pence
+  displayOneWay: string;    // "£35.00"
+  displayReturn: string;    // "£70.00"
+  vehicle: {
+    vehicleId: string;
+    name: string;
+    description: string;
+    capacity: number;
+    features: string[];
+    imageUrl: string;
+  };
+}
+
+// Multi-vehicle quote response (compareMode: true)
+export interface MultiVehicleQuoteResponse {
+  quoteId: string;
+  status: 'valid' | 'expired';
+  expiresAt: string;
+  journey: {
+    distance: { meters: number; miles: string; text: string };
+    duration: { seconds: number; minutes: number; text: string };
+    route: { polyline: string | null };
+  };
+  vehicles: {
+    standard: VehiclePricing;
+    executive: VehiclePricing;
+    minibus: VehiclePricing;
+  };
+  pickupLocation: Location;
+  dropoffLocation?: Location;
+  waypoints?: Waypoint[];
+  pickupTime: string;
+  passengers: number;
+  luggage?: number;
+  extras?: Extras;
+  createdAt: string;
+}

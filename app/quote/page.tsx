@@ -21,8 +21,8 @@ import PassengerCounter from './components/PassengerCounter';
 import PaymentForm, { PaymentDetails } from './components/PaymentForm';
 import QuoteResult from './components/QuoteResult';
 import VehicleSelector from './components/VehicleSelector';
-import { calculateQuote, getFixedRoutes } from './lib/api';
-import { Extras, JourneyType, QuoteResponse, QuoteRequest, Location, Waypoint } from './lib/types';
+import { calculateQuote, calculateMultiVehicleQuote, getFixedRoutes } from './lib/api';
+import { Extras, JourneyType, QuoteResponse, QuoteRequest, Location, Waypoint, MultiVehicleQuoteResponse } from './lib/types';
 import OptionalExtras from './components/OptionalExtras';
 
 
@@ -51,6 +51,10 @@ function QuotePageContent() {
   const [quote, setQuote] = useState<QuoteResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Multi-vehicle quote state (for Step 4 with prices)
+  const [multiQuote, setMultiQuote] = useState<MultiVehicleQuoteResponse | null>(null);
+  const [returnJourney, setReturnJourney] = useState(false);
 
   // Booking flow state
   const [bookingStage, setBookingStage] = useState<BookingStage>('quote');
@@ -115,7 +119,7 @@ function QuotePageContent() {
     return vehicleType !== null;
   };
 
-  const handleNextStep = () => {
+  const handleNextStep = async () => {
     setError(null);
 
     if (currentStep === 1 && !canProceedFromStep1()) {
@@ -137,6 +141,43 @@ function QuotePageContent() {
 
     if (currentStep === 4 && !canProceedFromStep4()) {
       setError('Please select a vehicle type');
+      return;
+    }
+
+    // After Step 3, fetch multi-vehicle quotes before showing Step 4
+    if (currentStep === 3) {
+      setLoading(true);
+      try {
+        const isHourly = journeyType === 'hourly';
+
+        // Filter out empty waypoints
+        const filteredWaypoints: Waypoint[] = waypoints.filter(w => {
+          const hasValidAddress = w.address && w.address.trim().length > 0;
+          const hasValidPlaceId = w.placeId && w.placeId.trim().length > 0;
+          return hasValidAddress && hasValidPlaceId;
+        });
+
+        const response = await calculateMultiVehicleQuote({
+          pickupLocation: pickupLocation!,
+          dropoffLocation: isHourly ? undefined : dropoffLocation!,
+          waypoints: isHourly ? undefined : (filteredWaypoints.length > 0 ? filteredWaypoints : undefined),
+          pickupTime: pickupDate!.toISOString(),
+          passengers,
+          luggage,
+          journeyType,
+          durationHours: isHourly ? duration : undefined,
+          extras: (extras.babySeats > 0 || extras.childSeats > 0) ? extras : undefined,
+          compareMode: true,
+        });
+
+        setMultiQuote(response);
+        setCurrentStep(4);
+      } catch (err) {
+        console.error('Multi-vehicle quote error:', err);
+        setError(err instanceof Error ? err.message : 'Failed to get quotes. Please try again.');
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 
@@ -182,6 +223,7 @@ function QuotePageContent() {
         passengers,
         luggage,
         vehicleType: vehicleType as 'standard' | 'executive' | 'minibus',
+        returnJourney,
         journeyType,
         durationHours: isHourly ? duration : undefined,
         extras: (extras.babySeats > 0 || extras.childSeats > 0) ? extras : undefined,
@@ -201,6 +243,8 @@ function QuotePageContent() {
 
   const handleNewQuote = () => {
     setQuote(null);
+    setMultiQuote(null);
+    setReturnJourney(false);
     setCurrentStep(1);
     setPickupLocation(null);
     setDropoffLocation(null);
@@ -460,11 +504,14 @@ function QuotePageContent() {
             )}
 
             {/* Step 4: Vehicle Selection */}
-            {currentStep === 4 && (
+            {currentStep === 4 && multiQuote && (
               <VehicleSelector
                 selected={vehicleType}
                 onChange={setVehicleType}
                 passengers={passengers}
+                vehiclePrices={multiQuote.vehicles}
+                returnJourney={returnJourney}
+                onReturnJourneyChange={setReturnJourney}
               />
             )}
 

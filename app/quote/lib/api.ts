@@ -1,7 +1,7 @@
 // Quote Wizard API Client
 // Based on QUOTE_WIZARD_IMPLEMENTATION_SPEC.md
 
-import { QuoteRequest, QuoteResponse, Vehicle, ApiError, FixedRoute, FixedRoutesResponse } from './types';
+import { QuoteRequest, QuoteResponse, Vehicle, ApiError, FixedRoute, FixedRoutesResponse, MultiVehicleQuoteResponse } from './types';
 import { API_BASE_URL, API_ENDPOINTS } from '@/lib/config/api';
 
 /**
@@ -77,4 +77,38 @@ export async function getFixedRoutes(): Promise<FixedRoute[]> {
 
   const data: FixedRoutesResponse = await response.json();
   return data.routes;
+}
+
+/**
+ * Calculate quotes for all vehicle types in one API call
+ * @param request Quote request data (without vehicleType, with compareMode: true)
+ * @returns Multi-vehicle quote response with pricing for all vehicles
+ */
+export async function calculateMultiVehicleQuote(
+  request: Omit<QuoteRequest, 'vehicleType'> & { compareMode: true }
+): Promise<MultiVehicleQuoteResponse> {
+  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.quotes}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    let errorMessage = 'Failed to get quotes';
+
+    try {
+      const error: ApiError = await response.json();
+      errorMessage = error.error?.message || errorMessage;
+      console.error('API Error Response:', error);
+    } catch (parseError) {
+      errorMessage = `Server error (${response.status}): ${response.statusText}`;
+      console.error('Failed to parse error response:', parseError);
+    }
+
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
 }

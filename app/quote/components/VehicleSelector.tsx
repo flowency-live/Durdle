@@ -1,134 +1,131 @@
 'use client';
 
-import { Car, Star, Users, Loader2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Car } from 'lucide-react';
+import Image from 'next/image';
 
-import { getVehicles } from '../lib/api';
-import { Vehicle } from '../lib/types';
+import { VehiclePricing } from '../lib/types';
 
 interface VehicleSelectorProps {
   selected: string | null;
   onChange: (vehicleId: string) => void;
   passengers: number;
-  error?: string;
+  vehiclePrices: {
+    standard: VehiclePricing;
+    executive: VehiclePricing;
+    minibus: VehiclePricing;
+  };
+  returnJourney: boolean;
+  onReturnJourneyChange: (isReturn: boolean) => void;
 }
 
-const vehicleIcons: Record<string, typeof Car> = {
-  standard: Car,
-  executive: Star,
-  minibus: Users,
-};
+export default function VehicleSelector({
+  selected,
+  onChange,
+  passengers,
+  vehiclePrices,
+  returnJourney,
+  onReturnJourneyChange,
+}: VehicleSelectorProps) {
+  const vehicleTypes = ['standard', 'executive', 'minibus'] as const;
 
-export default function VehicleSelector({ selected, onChange, passengers, error }: VehicleSelectorProps) {
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function fetchVehicles() {
-      try {
-        setLoading(true);
-        const data = await getVehicles();
-        setVehicles(data);
-        setLoadError(null);
-      } catch (err) {
-        setLoadError(err instanceof Error ? err.message : 'Failed to load vehicles');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchVehicles();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="bg-card rounded-2xl p-4 shadow-mobile border-2 border-sage-light">
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 text-sage-dark animate-spin" />
-        </div>
-      </div>
-    );
-  }
-
-  if (loadError) {
-    return (
-      <div className="bg-card rounded-2xl p-4 shadow-mobile border-2 border-sage-light">
-        <div className="text-center py-8 text-error">
-          <p>{loadError}</p>
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="mt-4 text-sm text-sage-accessible hover:underline"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Filter out disabled vehicles (hide vehicles that can't accommodate passengers)
-  const availableVehicles = vehicles.filter(v => v.capacity >= passengers);
+  // Filter vehicles that can accommodate the passenger count
+  const availableVehicles = vehicleTypes.filter(
+    type => vehiclePrices[type].vehicle.capacity >= passengers
+  );
 
   return (
-    <div className="bg-card rounded-2xl p-4 shadow-mobile border-2 border-sage-light">
+    <div className="space-y-4">
+      {/* One Way / Return Tabs */}
+      <div className="flex rounded-xl overflow-hidden border-2 border-sage-light">
+        <button
+          type="button"
+          onClick={() => onReturnJourneyChange(false)}
+          className={`flex-1 py-3 text-sm font-medium transition-colors ${
+            !returnJourney
+              ? 'bg-sage-dark text-white'
+              : 'bg-card text-foreground hover:bg-muted'
+          }`}
+        >
+          One Way
+        </button>
+        <button
+          type="button"
+          onClick={() => onReturnJourneyChange(true)}
+          className={`flex-1 py-3 text-sm font-medium transition-colors ${
+            returnJourney
+              ? 'bg-sage-dark text-white'
+              : 'bg-card text-foreground hover:bg-muted'
+          }`}
+        >
+          Return
+        </button>
+      </div>
+
+      {/* Vehicle Cards - NO outer container */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        {availableVehicles.map((vehicle) => {
-          const Icon = vehicleIcons[vehicle.vehicleId] || Car;
-          const isSelected = selected === vehicle.vehicleId;
+        {availableVehicles.map((type) => {
+          const pricing = vehiclePrices[type];
+          const vehicle = pricing.vehicle;
+          const isSelected = selected === type;
+          const displayPrice = returnJourney
+            ? pricing.displayReturn
+            : pricing.displayOneWay;
 
           return (
             <button
-              key={vehicle.vehicleId}
+              key={type}
               type="button"
-              onClick={() => onChange(vehicle.vehicleId)}
-              className={`relative p-3 rounded-xl border-2 transition-all text-left ${
+              onClick={() => onChange(type)}
+              className={`relative p-3 rounded-xl border-2 transition-all text-left bg-card ${
                 isSelected
                   ? 'border-sage-dark bg-sage-dark/10'
                   : 'border-border hover:border-sage-dark/50'
               }`}
             >
-              {/* Radio indicator */}
+              {/* Selection indicator */}
               <div className="absolute top-2 right-2">
-                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
                   isSelected ? 'border-sage-dark bg-sage-dark' : 'border-border'
                 }`}>
-                  {isSelected && (
-                    <div className="w-1.5 h-1.5 bg-white rounded-full" />
-                  )}
+                  {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
                 </div>
               </div>
 
-              {/* Icon */}
-              <Icon className={`w-6 h-6 mb-2 ${
-                isSelected ? 'text-sage-dark' : 'text-muted-foreground'
-              }`} />
+              {/* Vehicle Image */}
+              {vehicle.imageUrl ? (
+                <div className="relative w-full h-20 mb-2">
+                  <Image
+                    src={vehicle.imageUrl}
+                    alt={vehicle.name}
+                    fill
+                    className="object-contain"
+                    unoptimized
+                  />
+                </div>
+              ) : (
+                <div className="w-full h-20 bg-muted rounded-lg mb-2 flex items-center justify-center">
+                  <Car className="w-8 h-8 text-muted-foreground" />
+                </div>
+              )}
 
-              {/* Details */}
+              {/* Vehicle Name */}
               <h3 className="text-sm font-semibold text-foreground mb-1 pr-6">
                 {vehicle.name}
               </h3>
+
+              {/* Capacity */}
               <p className="text-xs text-muted-foreground mb-2">
                 Up to {vehicle.capacity} passengers
               </p>
 
-              {/* Features - show only first 2 */}
-              <ul className="space-y-1">
-                {vehicle.features.slice(0, 2).map((feature, idx) => (
-                  <li key={idx} className="text-xs text-muted-foreground flex items-center gap-1.5">
-                    <span className="w-1 h-1 bg-sage-dark rounded-full flex-shrink-0" />
-                    <span className="truncate">{feature}</span>
-                  </li>
-                ))}
-              </ul>
+              {/* Price - prominent */}
+              <p className="text-lg font-bold text-sage-dark">
+                {displayPrice}
+              </p>
             </button>
           );
         })}
       </div>
-      {error && (
-        <p className="text-sm text-error mt-3">{error}</p>
-      )}
     </div>
   );
 }
