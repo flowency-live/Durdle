@@ -1,6 +1,6 @@
 # Backend Team - Start Here
 
-**Last Updated**: December 6, 2025
+**Last Updated**: December 8, 2025
 **Owner**: CTO
 **Purpose**: Single entry point for all backend development on Durdle platform
 
@@ -13,6 +13,19 @@ This is your **single source of truth** for backend development. Before touching
 ---
 
 ## Critical Rules
+
+### 0. ADMIN ENDPOINTS: Read ADMIN_ENDPOINT_STANDARD.md FIRST
+
+**If you are working on ANY `/admin/*` endpoint, you MUST read:**
+```
+durdle-serverless-api/ADMIN_ENDPOINT_STANDARD.md
+```
+
+This document contains **MANDATORY** CORS configuration that prevents browser errors. Failure to follow this standard results in CORS errors in production.
+
+**Key requirement**: Admin endpoints CANNOT use `Access-Control-Allow-Origin: '*'` because the frontend uses `credentials: 'include'`.
+
+---
 
 ### 1. NEVER Deploy Without Reading STRUCTURE.md
 
@@ -261,6 +274,17 @@ aws lambda update-function-configuration \
 2. Check file size: `ls -lh function.zip`
 3. If still 0 bytes, delete and recreate
 
+### Error: "CORS header 'Access-Control-Allow-Origin' cannot be '*' when credentials mode is 'include'"
+
+**Cause**: Admin endpoint using wildcard `*` for CORS origin
+
+**Fix**:
+1. Read `ADMIN_ENDPOINT_STANDARD.md`
+2. Copy CORS code exactly from `admin-auth/index.mjs`
+3. Never use `'Access-Control-Allow-Origin': '*'` for admin endpoints
+4. Always use specific origin matching: `allowedOrigins.includes(origin) ? origin : allowedOrigins[0]`
+5. Always include `'Access-Control-Allow-Credentials': 'true'`
+
 ---
 
 ## Best Practices
@@ -305,16 +329,19 @@ Start at this document, then drill down:
 
 ```
 1. BACKEND_TEAM_START_HERE.md (you are here)
-   ├── 2. functions/[lambda-name]/STRUCTURE.md (deployment guide per Lambda)
-   ├── 3. .documentation/CTO/LAMBDA_DEPLOYMENT_GUIDE.md (detailed deployment process)
-   └── 4. .documentation/CTO/CODE_AUDIT_AND_REMEDIATION.md (CTO tracking, optional reading)
+   ├── 2. ADMIN_ENDPOINT_STANDARD.md (MANDATORY for /admin/* endpoints - CORS config)
+   ├── 3. functions/[lambda-name]/STRUCTURE.md (deployment guide per Lambda)
+   ├── 4. .documentation/CTO/LAMBDA_DEPLOYMENT_GUIDE.md (detailed deployment process)
+   └── 5. .documentation/CTO/CODE_AUDIT_AND_REMEDIATION.md (CTO tracking, optional reading)
 ```
 
 **When deploying**:
 1. Read this document first (overview)
-2. Read STRUCTURE.md for specific Lambda (exact commands)
-3. Follow commands exactly
-4. Verify deployment
+2. **If admin endpoint**: Read ADMIN_ENDPOINT_STANDARD.md (CORS config)
+3. Read STRUCTURE.md for specific Lambda (exact commands)
+4. Follow commands exactly
+5. Verify deployment
+6. **If admin endpoint**: Test from production URL to verify no CORS errors
 
 ---
 
@@ -418,7 +445,7 @@ aws lambda list-functions --region eu-west-2 --query 'Functions[?starts_with(Fun
 ---
 
 **Document Owner**: CTO
-**Last Updated**: December 6, 2025 (Backend Foundation Complete)
+**Last Updated**: December 8, 2025 (ADMIN_ENDPOINT_STANDARD.md added)
 **Next Review**: After remaining 4 Lambdas have STRUCTURE.md files
 
 **Backend Foundation Status**:
@@ -426,6 +453,7 @@ aws lambda list-functions --region eu-west-2 --query 'Functions[?starts_with(Fun
 - ✅ 9/9 Lambdas with structured logging (130+ log events)
 - ✅ 5/9 Lambdas with STRUCTURE.md deployment documentation
 - ✅ Pino optimization complete (removed duplication, ~3.6 MB saved across all Lambdas)
+- ✅ ADMIN_ENDPOINT_STANDARD.md created (CORS configuration for admin endpoints)
 - ⏭️ Next: Create STRUCTURE.md for locations-lookup, uploads-presigned, document-comments, fixed-routes-manager
 
 **Questions?** Consult CTO before deploying if anything is unclear.

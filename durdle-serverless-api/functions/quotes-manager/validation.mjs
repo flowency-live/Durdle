@@ -14,9 +14,9 @@ export const listQuotesSchema = z.object({
   cursor: z.string().optional(),
 });
 
-// Quote ID path parameter schema
+// Quote ID path parameter schema (accepts IDs like DTS1208_001)
 export const quoteIdSchema = z.object({
-  quoteId: z.string().regex(/^QUOTE#[a-zA-Z0-9-]+$/, 'Invalid quote ID format'),
+  quoteId: z.string().regex(/^[a-zA-Z0-9_-]+$/, 'Invalid quote ID format').min(1),
 });
 
 // Export query parameters (same as list but no pagination)

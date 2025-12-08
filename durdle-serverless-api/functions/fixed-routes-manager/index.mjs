@@ -19,21 +19,8 @@ const getAllowedOrigins = () => [
   'https://durdle.co.uk'
 ];
 
-const getHeaders = (httpMethod, origin) => {
-  // Public GET endpoint uses wildcard, admin endpoints use dynamic origin for credentials
-  const isPublicRead = httpMethod === 'GET' || httpMethod === 'OPTIONS';
-
-  if (isPublicRead) {
-    // Public endpoint - wildcard is fine, no credentials
-    return {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-      'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
-    };
-  }
-
-  // Admin endpoints (POST/PUT/DELETE) - use specific origin with credentials
+const getHeaders = (origin) => {
+  // All admin endpoints require credentials - use specific origin
   const allowedOrigins = getAllowedOrigins();
   const allowedOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
 
@@ -51,7 +38,7 @@ export const handler = async (event) => {
 
   const origin = event.headers?.origin || event.headers?.Origin || '';
   const httpMethod = event.httpMethod || 'GET';
-  const headers = getHeaders(httpMethod, origin);
+  const headers = getHeaders(origin);
 
   if (httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };

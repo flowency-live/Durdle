@@ -214,7 +214,7 @@ async function handleExportQuotes(event, logger) {
     headers: {
       'Content-Type': 'text/csv',
       'Content-Disposition': `attachment; filename="${filename}"`,
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': 'https://durdle.flowency.build',
       'Access-Control-Allow-Credentials': true,
     },
     body: csv,
@@ -229,7 +229,7 @@ function createSuccessResponse(data, logger) {
     statusCode: 200,
     headers: {
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': 'https://durdle.flowency.build',
       'Access-Control-Allow-Credentials': true,
     },
     body: JSON.stringify(data),
@@ -252,7 +252,7 @@ function createErrorResponse(statusCode, message, logger, additionalData = {}) {
     statusCode,
     headers: {
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': 'https://durdle.flowency.build',
       'Access-Control-Allow-Credentials': true,
     },
     body: JSON.stringify({

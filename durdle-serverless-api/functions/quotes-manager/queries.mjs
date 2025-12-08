@@ -8,8 +8,9 @@ import {
 
 const client = DynamoDBDocumentClient.from(new DynamoDBClient({ region: 'eu-west-2' }));
 
-const TABLE_NAME = 'durdle-quotes-dev';
-const GSI_NAME = 'status-createdAt-index';
+// Single-table design - quotes stored in main table
+const TABLE_NAME = process.env.TABLE_NAME || 'durdle-main-table-dev';
+const GSI_NAME = 'GSI1'; // Existing GSI with GSI1PK (status) and GSI1SK (createdAt)
 
 // Query quotes with filters, pagination, and sorting
 export async function queryQuotes(filters, logger) {
@@ -51,38 +52,51 @@ export async function queryQuotes(filters, logger) {
   // Decode cursor if provided
   const exclusiveStartKey = cursor ? decodeCursor(cursor) : undefined;
 
-  // Strategy 1: Use GSI if filtering by specific status
+  // Strategy 1: Use GSI1 if filtering by specific status
   if (status !== 'all') {
     const result = await queryByStatus(status, dateFrom, dateTo, limit, exclusiveStartKey, logger);
     items = result.items;
     lastEvaluatedKey = result.lastEvaluatedKey;
   }
-  // Strategy 2: Scan table if status is 'all'
+  // Strategy 2: Scan for quotes if status is 'all'
   else {
     const result = await scanQuotes(dateFrom, dateTo, limit, exclusiveStartKey, logger);
     items = result.items;
     lastEvaluatedKey = result.lastEvaluatedKey;
   }
 
-  // Apply additional filters (price, search)
-  let filteredItems = items;
+  // Extract quote data from items (quotes are stored in Data field)
+  let quotes = items.map(item => {
+    const quoteData = item.Data || item;
+    // Add quoteId from PK if not in Data
+    if (!quoteData.quoteId && item.PK) {
+      quoteData.quoteId = item.PK.replace('QUOTE#', '');
+    }
+    // Map status from GSI1PK if needed (valid -> active)
+    if (!quoteData.status && item.GSI1PK) {
+      const gsiStatus = item.GSI1PK.replace('STATUS#', '');
+      quoteData.status = gsiStatus === 'valid' ? 'active' : gsiStatus;
+    }
+    return quoteData;
+  });
 
+  // Apply additional filters (price, search)
   if (priceMin !== undefined || priceMax !== undefined) {
-    filteredItems = filteredItems.filter(item => {
-      const price = item.totalPrice || 0;
-      if (priceMin !== undefined && price < priceMin) return false;
-      if (priceMax !== undefined && price > priceMax) return false;
+    quotes = quotes.filter(quote => {
+      const price = quote.pricing?.breakdown?.total || quote.totalPrice || 0;
+      if (priceMin !== undefined && price < priceMin * 100) return false; // Convert to pence
+      if (priceMax !== undefined && price > priceMax * 100) return false;
       return true;
     });
   }
 
   if (search) {
     const searchLower = search.toLowerCase();
-    filteredItems = filteredItems.filter(item => {
-      const quoteId = (item.quoteId || '').toLowerCase();
-      const pickupAddress = (item.pickupLocation?.address || '').toLowerCase();
-      const dropoffAddress = (item.dropoffLocation?.address || '').toLowerCase();
-      const customerEmail = (item.customerEmail || '').toLowerCase();
+    quotes = quotes.filter(quote => {
+      const quoteId = (quote.quoteId || '').toLowerCase();
+      const pickupAddress = (quote.pickupLocation?.address || '').toLowerCase();
+      const dropoffAddress = (quote.dropoffLocation?.address || '').toLowerCase();
+      const customerEmail = (quote.customerEmail || '').toLowerCase();
 
       return (
         quoteId.includes(searchLower) ||
@@ -94,7 +108,7 @@ export async function queryQuotes(filters, logger) {
   }
 
   // Sort results
-  const sortedItems = sortQuotes(filteredItems, sortBy, sortOrder);
+  const sortedQuotes = sortQuotes(quotes, sortBy, sortOrder);
 
   // Calculate pagination
   const paginationCursor = lastEvaluatedKey ? encodeCursor(lastEvaluatedKey) : null;
@@ -102,56 +116,56 @@ export async function queryQuotes(filters, logger) {
   logger.info(
     {
       event: 'quotes_query_complete',
-      resultCount: sortedItems.length,
+      resultCount: sortedQuotes.length,
       hasMoreResults: !!paginationCursor,
     },
     'Quotes query completed'
   );
 
   return {
-    quotes: sortedItems,
+    quotes: sortedQuotes.map(normalizeQuoteForApi),
     pagination: {
-      total: sortedItems.length,
+      total: sortedQuotes.length,
       limit,
       cursor: paginationCursor,
     },
   };
 }
 
-// Query quotes by status using GSI
+// Query quotes by status using GSI1
 async function queryByStatus(status, dateFrom, dateTo, limit, exclusiveStartKey, logger) {
+  // Map API status to DynamoDB status
+  const dbStatus = status === 'active' ? 'valid' : status;
+
   const params = {
     TableName: TABLE_NAME,
     IndexName: GSI_NAME,
-    KeyConditionExpression: '#status = :status',
-    ExpressionAttributeNames: {
-      '#status': 'status',
-    },
+    KeyConditionExpression: 'GSI1PK = :status',
     ExpressionAttributeValues: {
-      ':status': status,
+      ':status': `STATUS#${dbStatus}`,
     },
     Limit: limit,
     ScanIndexForward: false, // Sort descending by default (newest first)
   };
 
-  // Add date range filter if provided
+  // Add date range filter using GSI1SK (CREATED#timestamp format)
   if (dateFrom && dateTo) {
-    params.KeyConditionExpression += ' AND createdAt BETWEEN :dateFrom AND :dateTo';
-    params.ExpressionAttributeValues[':dateFrom'] = dateFrom;
-    params.ExpressionAttributeValues[':dateTo'] = dateTo;
+    params.KeyConditionExpression += ' AND GSI1SK BETWEEN :dateFrom AND :dateTo';
+    params.ExpressionAttributeValues[':dateFrom'] = `CREATED#${dateFrom}`;
+    params.ExpressionAttributeValues[':dateTo'] = `CREATED#${dateTo}`;
   } else if (dateFrom) {
-    params.KeyConditionExpression += ' AND createdAt >= :dateFrom';
-    params.ExpressionAttributeValues[':dateFrom'] = dateFrom;
+    params.KeyConditionExpression += ' AND GSI1SK >= :dateFrom';
+    params.ExpressionAttributeValues[':dateFrom'] = `CREATED#${dateFrom}`;
   } else if (dateTo) {
-    params.KeyConditionExpression += ' AND createdAt <= :dateTo';
-    params.ExpressionAttributeValues[':dateTo'] = dateTo;
+    params.KeyConditionExpression += ' AND GSI1SK <= :dateTo';
+    params.ExpressionAttributeValues[':dateTo'] = `CREATED#${dateTo}`;
   }
 
   if (exclusiveStartKey) {
     params.ExclusiveStartKey = exclusiveStartKey;
   }
 
-  logger.info({ event: 'dynamodb_query', indexName: GSI_NAME, status }, 'Querying DynamoDB by status');
+  logger.info({ event: 'dynamodb_query', indexName: GSI_NAME, status: dbStatus }, 'Querying DynamoDB by status');
 
   const result = await client.send(new QueryCommand(params));
 
@@ -161,32 +175,31 @@ async function queryByStatus(status, dateFrom, dateTo, limit, exclusiveStartKey,
   };
 }
 
-// Scan quotes table (when status is 'all')
+// Scan for all quotes (when status is 'all')
 async function scanQuotes(dateFrom, dateTo, limit, exclusiveStartKey, logger) {
   const params = {
     TableName: TABLE_NAME,
-    Limit: limit,
+    FilterExpression: 'begins_with(PK, :quotePrefix) AND SK = :metadata',
+    ExpressionAttributeValues: {
+      ':quotePrefix': 'QUOTE#',
+      ':metadata': 'METADATA',
+    },
+    Limit: limit * 3, // Fetch more since we're filtering
   };
 
-  // Add date filter expression if provided
+  // Add date filter if provided
   if (dateFrom || dateTo) {
-    const filterExpressions = [];
-    params.ExpressionAttributeNames = {};
-    params.ExpressionAttributeValues = {};
-
     if (dateFrom && dateTo) {
-      filterExpressions.push('createdAt BETWEEN :dateFrom AND :dateTo');
-      params.ExpressionAttributeValues[':dateFrom'] = dateFrom;
-      params.ExpressionAttributeValues[':dateTo'] = dateTo;
+      params.FilterExpression += ' AND GSI1SK BETWEEN :dateFrom AND :dateTo';
+      params.ExpressionAttributeValues[':dateFrom'] = `CREATED#${dateFrom}`;
+      params.ExpressionAttributeValues[':dateTo'] = `CREATED#${dateTo}`;
     } else if (dateFrom) {
-      filterExpressions.push('createdAt >= :dateFrom');
-      params.ExpressionAttributeValues[':dateFrom'] = dateFrom;
+      params.FilterExpression += ' AND GSI1SK >= :dateFrom';
+      params.ExpressionAttributeValues[':dateFrom'] = `CREATED#${dateFrom}`;
     } else if (dateTo) {
-      filterExpressions.push('createdAt <= :dateTo');
-      params.ExpressionAttributeValues[':dateTo'] = dateTo;
+      params.FilterExpression += ' AND GSI1SK <= :dateTo';
+      params.ExpressionAttributeValues[':dateTo'] = `CREATED#${dateTo}`;
     }
-
-    params.FilterExpression = filterExpressions.join(' AND ');
   }
 
   if (exclusiveStartKey) {
@@ -198,7 +211,7 @@ async function scanQuotes(dateFrom, dateTo, limit, exclusiveStartKey, logger) {
   const result = await client.send(new ScanCommand(params));
 
   return {
-    items: result.Items || [],
+    items: (result.Items || []).slice(0, limit),
     lastEvaluatedKey: result.LastEvaluatedKey,
   };
 }
@@ -207,9 +220,15 @@ async function scanQuotes(dateFrom, dateTo, limit, exclusiveStartKey, logger) {
 export async function getQuoteById(quoteId, logger) {
   logger.info({ event: 'quote_detail_fetch_start', quoteId }, 'Fetching quote details');
 
+  // Ensure quoteId has proper format
+  const pk = quoteId.startsWith('QUOTE#') ? quoteId : `QUOTE#${quoteId}`;
+
   const params = {
     TableName: TABLE_NAME,
-    Key: { quoteId },
+    Key: {
+      PK: pk,
+      SK: 'METADATA'
+    },
   };
 
   const result = await client.send(new GetCommand(params));
@@ -221,7 +240,54 @@ export async function getQuoteById(quoteId, logger) {
 
   logger.info({ event: 'quote_detail_fetched', quoteId }, 'Quote details retrieved');
 
-  return result.Item;
+  // Extract and normalize quote data
+  const quoteData = result.Item.Data || result.Item;
+  if (!quoteData.quoteId) {
+    quoteData.quoteId = pk.replace('QUOTE#', '');
+  }
+
+  return normalizeQuoteForApi(quoteData);
+}
+
+// Normalize quote data for API response
+function normalizeQuoteForApi(quote) {
+  // Map internal status to API status
+  let status = quote.status;
+  if (status === 'valid') {
+    // Check if expired based on expiresAt
+    if (quote.expiresAt && new Date(quote.expiresAt) < new Date()) {
+      status = 'expired';
+    } else {
+      status = 'active';
+    }
+  }
+
+  // Extract total price from pricing breakdown
+  const totalPrice = quote.pricing?.breakdown?.total || quote.totalPrice || 0;
+
+  return {
+    quoteId: quote.quoteId,
+    createdAt: quote.createdAt,
+    expiresAt: quote.expiresAt,
+    status,
+    pickupLocation: quote.pickupLocation,
+    dropoffLocation: quote.dropoffLocation,
+    waypoints: quote.waypoints,
+    pickupTime: quote.pickupTime,
+    totalPrice: totalPrice / 100, // Convert pence to pounds
+    vehicleType: quote.vehicleType,
+    pricingBreakdown: quote.pricing?.breakdown ? {
+      baseFare: (quote.pricing.breakdown.baseFare || 0) / 100,
+      distanceCost: (quote.pricing.breakdown.distanceCharge || 0) / 100,
+      waypointCost: (quote.pricing.breakdown.waitTimeCharge || 0) / 100,
+    } : quote.pricingBreakdown,
+    customerEmail: quote.customerEmail,
+    customerPhone: quote.customerPhone,
+    bookingId: quote.bookingId,
+    journey: quote.journey,
+    passengers: quote.passengers,
+    luggage: quote.luggage,
+  };
 }
 
 // Sort quotes by specified field
@@ -236,8 +302,8 @@ function sortQuotes(quotes, sortBy, sortOrder) {
       const dateB = new Date(b.createdAt);
       compareValue = dateA - dateB;
     } else if (sortBy === 'price') {
-      const priceA = a.totalPrice || 0;
-      const priceB = b.totalPrice || 0;
+      const priceA = a.pricing?.breakdown?.total || a.totalPrice || 0;
+      const priceB = b.pricing?.breakdown?.total || b.totalPrice || 0;
       compareValue = priceA - priceB;
     }
 
@@ -292,25 +358,32 @@ export async function getAllQuotesForExport(filters, logger) {
     lastEvaluatedKey = result.lastEvaluatedKey;
   } while (lastEvaluatedKey);
 
-  // Apply filters (same logic as queryQuotes)
-  let filteredItems = allItems;
+  // Extract and normalize quotes
+  let quotes = allItems.map(item => {
+    const quoteData = item.Data || item;
+    if (!quoteData.quoteId && item.PK) {
+      quoteData.quoteId = item.PK.replace('QUOTE#', '');
+    }
+    return quoteData;
+  });
 
+  // Apply filters
   if (priceMin !== undefined || priceMax !== undefined) {
-    filteredItems = filteredItems.filter(item => {
-      const price = item.totalPrice || 0;
-      if (priceMin !== undefined && price < priceMin) return false;
-      if (priceMax !== undefined && price > priceMax) return false;
+    quotes = quotes.filter(quote => {
+      const price = quote.pricing?.breakdown?.total || quote.totalPrice || 0;
+      if (priceMin !== undefined && price < priceMin * 100) return false;
+      if (priceMax !== undefined && price > priceMax * 100) return false;
       return true;
     });
   }
 
   if (search) {
     const searchLower = search.toLowerCase();
-    filteredItems = filteredItems.filter(item => {
-      const quoteId = (item.quoteId || '').toLowerCase();
-      const pickupAddress = (item.pickupLocation?.address || '').toLowerCase();
-      const dropoffAddress = (item.dropoffLocation?.address || '').toLowerCase();
-      const customerEmail = (item.customerEmail || '').toLowerCase();
+    quotes = quotes.filter(quote => {
+      const quoteId = (quote.quoteId || '').toLowerCase();
+      const pickupAddress = (quote.pickupLocation?.address || '').toLowerCase();
+      const dropoffAddress = (quote.dropoffLocation?.address || '').toLowerCase();
+      const customerEmail = (quote.customerEmail || '').toLowerCase();
 
       return (
         quoteId.includes(searchLower) ||
@@ -324,10 +397,10 @@ export async function getAllQuotesForExport(filters, logger) {
   logger.info(
     {
       event: 'quotes_export_complete',
-      totalQuotes: filteredItems.length,
+      totalQuotes: quotes.length,
     },
     'Quotes export data prepared'
   );
 
-  return filteredItems;
+  return quotes.map(normalizeQuoteForApi);
 }

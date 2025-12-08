@@ -33,7 +33,7 @@ export interface UseApiResult<T> extends UseApiState<T> {
  */
 export function useApi<T>(
   apiCall: () => Promise<T>,
-  _dependencies: unknown[] = [],
+  dependencies: unknown[] = [],
   options: {
     immediate?: boolean;
     onSuccess?: (data: T) => void;
@@ -48,6 +48,9 @@ export function useApi<T>(
     error: null,
   });
 
+  // Stringify dependencies to create a stable key
+  const depsKey = JSON.stringify(dependencies);
+
   const execute = useCallback(async () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
@@ -60,13 +63,15 @@ export function useApi<T>(
       setState({ data: null, loading: false, error });
       onError?.(error);
     }
-  }, [apiCall, onSuccess, onError]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [depsKey]);
 
   useEffect(() => {
     if (immediate) {
       execute();
     }
-  }, [execute, immediate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [depsKey, immediate]);
 
   return {
     ...state,
