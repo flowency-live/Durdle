@@ -1,7 +1,6 @@
 'use client';
 
-import { MapPin, Clock, Calendar, Users, Car, Luggage, ArrowLeft, Edit2 } from 'lucide-react';
-import Image from 'next/image';
+import { MapPin, Clock, Calendar, Users, Car, Luggage, Edit2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -50,41 +49,16 @@ export default function QuoteResult({ quote, onNewQuote, onBack, onConfirmBookin
   const pickupDate = new Date(quote.pickupTime);
 
   return (
-    <section className="pb-24">
+    <section className="py-6 pb-24">
       <div className="container px-4 mx-auto max-w-4xl">
-        {/* Navigation Header */}
-        <div className="flex items-center mb-6 pt-6">
-          <Button
-            type="button"
-            variant="hero-outline"
-            size="default"
-            onClick={onBack || onNewQuote}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">Back to Edit</span>
-            <span className="sm:hidden">Back</span>
-          </Button>
-        </div>
-
         {/* Quote Card */}
         <div className="bg-card rounded-3xl shadow-xl overflow-hidden">
-          {/* Header with Letterhead */}
+          {/* Header */}
           <div className="bg-gradient-navy-sage p-6 text-white">
-            <div className="flex justify-center mb-4">
-              <Image
-                src="/dtc-letterhead-logo.png"
-                alt="The Dorset Transfer Company"
-                width={300}
-                height={75}
-                className="h-auto w-full max-w-[200px] md:max-w-[280px] brightness-0 invert"
-                priority
-              />
-            </div>
-            <h2 className="text-2xl md:text-3xl font-bold font-playfair mb-2 text-center">
+            <h2 className="text-2xl md:text-3xl font-bold font-playfair mb-2">
               Your Quote
             </h2>
-            <p className="text-sm opacity-90 text-center">
+            <p className="text-sm opacity-90">
               Quote ID: {quote.quoteId}
             </p>
           </div>
