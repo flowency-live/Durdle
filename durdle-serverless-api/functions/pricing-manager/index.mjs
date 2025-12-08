@@ -18,6 +18,7 @@ const CreateVehicleSchema = z.object({
   baseFare: z.number().int().min(0, 'Base fare cannot be negative'),
   perMile: z.number().int().min(0, 'Per mile rate cannot be negative'),
   perMinute: z.number().int().min(0, 'Per minute rate cannot be negative'),
+  returnDiscount: z.number().int().min(0).max(100).optional(), // Return journey discount percentage (0-100)
   features: z.array(z.string()).optional(),
   active: z.boolean().optional(),
   imageKey: z.string().optional(),
@@ -32,6 +33,7 @@ const UpdateVehicleSchema = z.object({
   baseFare: z.number().int().min(0, 'Base fare cannot be negative').optional(),
   perMile: z.number().int().min(0, 'Per mile rate cannot be negative').optional(),
   perMinute: z.number().int().min(0, 'Per minute rate cannot be negative').optional(),
+  returnDiscount: z.number().int().min(0).max(100).optional(), // Return journey discount percentage (0-100)
   features: z.array(z.string()).optional(),
   active: z.boolean().optional(),
   imageKey: z.string().optional(),
@@ -148,6 +150,7 @@ async function listVehicles(headers, logger) {
     baseFare: item.baseFare,
     perMile: item.perMile,
     perMinute: item.perMinute,
+    returnDiscount: item.returnDiscount ?? 0, // Default to 0% if not set
     active: item.active,
     imageKey: item.imageKey || '',
     imageUrl: item.imageUrl || '',
@@ -205,6 +208,7 @@ async function getVehicle(vehicleId, headers, logger) {
     baseFare: result.Item.baseFare,
     perMile: result.Item.perMile,
     perMinute: result.Item.perMinute,
+    returnDiscount: result.Item.returnDiscount ?? 0,
     active: result.Item.active,
     imageKey: result.Item.imageKey || '',
     imageUrl: result.Item.imageUrl || '',
@@ -267,6 +271,7 @@ async function createVehicle(requestBody, headers, logger) {
     baseFare: data.baseFare,
     perMile: data.perMile,
     perMinute: data.perMinute,
+    returnDiscount: data.returnDiscount ?? 0,
     active: data.active !== undefined ? data.active : true,
     imageKey: data.imageKey || '',
     imageUrl: data.imageUrl || '',
@@ -311,6 +316,7 @@ async function createVehicle(requestBody, headers, logger) {
           baseFare: item.baseFare,
           perMile: item.perMile,
           perMinute: item.perMinute,
+          returnDiscount: item.returnDiscount,
           active: item.active,
           imageKey: item.imageKey,
           imageUrl: item.imageUrl,
@@ -426,6 +432,11 @@ async function updateVehicle(vehicleId, requestBody, headers, logger) {
     expressionAttributeValues[':perMinute'] = data.perMinute;
   }
 
+  if (data.returnDiscount !== undefined) {
+    updates.push('returnDiscount = :returnDiscount');
+    expressionAttributeValues[':returnDiscount'] = data.returnDiscount;
+  }
+
   if (data.active !== undefined) {
     updates.push('active = :active');
     expressionAttributeValues[':active'] = data.active;
@@ -490,6 +501,7 @@ async function updateVehicle(vehicleId, requestBody, headers, logger) {
         baseFare: result.Attributes.baseFare,
         perMile: result.Attributes.perMile,
         perMinute: result.Attributes.perMinute,
+        returnDiscount: result.Attributes.returnDiscount ?? 0,
         active: result.Attributes.active,
         imageKey: result.Attributes.imageKey,
         imageUrl: result.Attributes.imageUrl,

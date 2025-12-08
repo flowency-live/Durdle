@@ -9,6 +9,7 @@ interface VehiclePricing {
   baseFare: number;
   perMile: number;
   perMinute: number;
+  returnDiscount: number; // Percentage discount for return journeys (0-100)
   capacity: number;
   features: string[];
   imageUrl: string;
@@ -61,6 +62,7 @@ export default function PricingManagement() {
       baseFare: vehicle.baseFare,
       perMile: vehicle.perMile,
       perMinute: vehicle.perMinute,
+      returnDiscount: vehicle.returnDiscount,
     });
   };
 
@@ -166,6 +168,9 @@ export default function PricingManagement() {
                   Per Minute
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Return Discount
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -244,6 +249,29 @@ export default function PricingManagement() {
                         </div>
                       ) : (
                         <span className="text-sm text-gray-900">£{(vehicle.perMinute / 100).toFixed(2)}</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {isEditing ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            step="1"
+                            min="0"
+                            max="100"
+                            value={editedValues.returnDiscount ?? 0}
+                            onChange={(e) =>
+                              setEditedValues({
+                                ...editedValues,
+                                returnDiscount: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)),
+                              })
+                            }
+                            className="w-16 px-2 py-1 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-gray-500">%</span>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-900">{vehicle.returnDiscount || 0}%</span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">

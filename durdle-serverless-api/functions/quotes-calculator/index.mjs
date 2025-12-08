@@ -78,6 +78,7 @@ async function getVehiclePricing() {
         baseFare: item.baseFare,
         perMile: item.perMile,
         perMinute: item.perMinute,
+        returnDiscount: item.returnDiscount ?? 0, // Default 0% discount
         name: item.name,
         description: item.description,
         capacity: item.capacity,
@@ -107,6 +108,8 @@ function getFallbackPricing() {
       baseFare: 500,
       perMile: 100,
       perMinute: 10,
+      perHour: 3500, // £35/hour in pence
+      returnDiscount: 15, // 15% discount on return journeys
       name: 'Standard Sedan',
       description: 'Comfortable sedan for up to 4 passengers',
       capacity: 4,
@@ -117,6 +120,8 @@ function getFallbackPricing() {
       baseFare: 800,
       perMile: 150,
       perMinute: 15,
+      perHour: 5000, // £50/hour in pence
+      returnDiscount: 15, // 15% discount on return journeys
       name: 'Executive Sedan',
       description: 'Premium sedan with luxury amenities',
       capacity: 4,
@@ -127,6 +132,8 @@ function getFallbackPricing() {
       baseFare: 1000,
       perMile: 120,
       perMinute: 12,
+      perHour: 7000, // £70/hour in pence
+      returnDiscount: 15, // 15% discount on return journeys
       name: 'Minibus',
       description: 'Spacious minibus for up to 8 passengers',
       capacity: 8,
@@ -474,6 +481,10 @@ export const handler = async (event, context) => {
     const vehicleType = body.vehicleType || 'standard';
     const waypoints = body.waypoints || [];
     const hasWaypoints = waypoints.length > 0;
+    const journeyType = body.journeyType || 'one-way';
+    const durationHours = body.durationHours;
+    const extras = body.extras || { babySeats: 0, childSeats: 0 };
+    const compareMode = body.compareMode || false;
 
     // Calculate total wait time from waypoints (in minutes)
     const totalWaitTime = waypoints.reduce((sum, wp) => sum + (wp.waitTime || 0), 0);
@@ -481,44 +492,28 @@ export const handler = async (event, context) => {
     // Log quote calculation start
     logQuoteCalculationStart(logger, body);
 
-    // Check for fixed route first if placeIds are provided AND no waypoints
-    // Fixed routes do not support waypoints
-    let fixedRoute = null;
-    if (!hasWaypoints && body.pickupLocation.placeId && body.dropoffLocation.placeId) {
-      fixedRoute = await checkFixedRoute(
-        body.pickupLocation.placeId,
-        body.dropoffLocation.placeId,
-        vehicleType
-      );
-    }
-
     let route, pricing;
     let isFixedRoute = false;
+    let isHourlyRate = false;
 
-    if (fixedRoute) {
-      // Use fixed route pricing
+    // Handle 'by-the-hour' journey type
+    if (journeyType === 'by-the-hour') {
       logger.info({
-        event: 'fixed_route_selected',
-        routeId: fixedRoute.routeId,
-        price: fixedRoute.price,
-      }, 'Using fixed route pricing');
-      isFixedRoute = true;
-
-      route = {
-        distance: {
-          miles: fixedRoute.distance.toFixed(2),
-          meters: Math.round(fixedRoute.distance * 1609.34),
-          text: `${fixedRoute.distance.toFixed(1)} mi`
-        },
-        duration: {
-          minutes: fixedRoute.estimatedDuration,
-          seconds: fixedRoute.estimatedDuration * 60,
-          text: `${fixedRoute.estimatedDuration} mins`
-        }
-      };
+        event: 'hourly_pricing_selected',
+        durationHours,
+        vehicleType,
+      }, 'Using hourly pricing calculation');
+      isHourlyRate = true;
 
       const allPricing = await getVehiclePricing();
-      const vehicleMetadata = allPricing[vehicleType] || allPricing.standard;
+      const vehicleRates = allPricing[vehicleType] || allPricing.standard;
+      const perHour = vehicleRates.perHour || getFallbackPricing()[vehicleType].perHour;
+      const hourlyCharge = durationHours * perHour;
+
+      route = {
+        distance: { miles: '0', meters: 0, text: 'N/A (hourly booking)' },
+        duration: { minutes: durationHours * 60, seconds: durationHours * 3600, text: `${durationHours} hours` }
+      };
 
       pricing = {
         currency: 'GBP',
@@ -526,61 +521,242 @@ export const handler = async (event, context) => {
           baseFare: 0,
           distanceCharge: 0,
           waitTimeCharge: 0,
-          subtotal: fixedRoute.price,
+          hourlyCharge,
+          durationHours,
+          subtotal: hourlyCharge,
           tax: 0,
-          total: fixedRoute.price
+          total: hourlyCharge,
         },
-        displayTotal: `£${(fixedRoute.price / 100).toFixed(2)}`,
-        isFixedRoute: true,
-        routeId: fixedRoute.routeId,
+        displayTotal: `£${(hourlyCharge / 100).toFixed(2)}`,
+        isHourlyRate: true,
         vehicleMetadata: {
-          name: vehicleMetadata.name,
-          description: vehicleMetadata.description,
-          capacity: vehicleMetadata.capacity,
-          features: vehicleMetadata.features,
-          imageUrl: vehicleMetadata.imageUrl
+          name: vehicleRates.name,
+          description: vehicleRates.description,
+          capacity: vehicleRates.capacity,
+          features: vehicleRates.features,
+          imageUrl: vehicleRates.imageUrl
         }
       };
     } else {
-      // Fallback to variable pricing calculation
-      logger.info({ event: 'variable_pricing_selected' }, 'Using variable pricing calculation');
-      const apiKey = await getGoogleMapsApiKey();
+      // Standard one-way journey pricing
 
-      if (hasWaypoints) {
-        // Use Directions API for routes with waypoints
-        logger.info({
-          event: 'route_calculation_waypoints',
-          waypointCount: waypoints.length,
-          totalWaitTime,
-        }, 'Calculating route with waypoints');
-
-        const apiStart = Date.now();
-        route = await calculateRouteWithWaypoints(
-          body.pickupLocation.placeId || body.pickupLocation.address,
-          body.dropoffLocation.placeId || body.dropoffLocation.address,
-          waypoints,
-          apiKey
+      // Check for fixed route first if placeIds are provided AND no waypoints
+      // Fixed routes do not support waypoints
+      let fixedRoute = null;
+      if (!hasWaypoints && body.pickupLocation.placeId && body.dropoffLocation.placeId) {
+        fixedRoute = await checkFixedRoute(
+          body.pickupLocation.placeId,
+          body.dropoffLocation.placeId,
+          vehicleType
         );
-        logExternalApiCall(logger, 'directions', Date.now() - apiStart);
-      } else {
-        // Use Distance Matrix API for simple routes
-        logger.info({ event: 'route_calculation_simple' }, 'Calculating simple route');
-        const apiStart = Date.now();
-        route = await calculateDistance(
-          body.pickupLocation.address,
-          body.dropoffLocation.address,
-          apiKey
-        );
-        logExternalApiCall(logger, 'distance_matrix', Date.now() - apiStart);
       }
 
-      // Calculate pricing: baseFare + (distance × perMile) + (waitTime × perMinute)
-      // Note: Journey driving time is NOT charged, only explicit wait times
-      pricing = await calculatePricing(
-        parseFloat(route.distance.miles),
-        totalWaitTime, // Only charge for explicit wait times, not driving time
-        vehicleType
-      );
+      if (fixedRoute) {
+        // Use fixed route pricing
+        logger.info({
+          event: 'fixed_route_selected',
+          routeId: fixedRoute.routeId,
+          price: fixedRoute.price,
+        }, 'Using fixed route pricing');
+        isFixedRoute = true;
+
+        route = {
+          distance: {
+            miles: fixedRoute.distance.toFixed(2),
+            meters: Math.round(fixedRoute.distance * 1609.34),
+            text: `${fixedRoute.distance.toFixed(1)} mi`
+          },
+          duration: {
+            minutes: fixedRoute.estimatedDuration,
+            seconds: fixedRoute.estimatedDuration * 60,
+            text: `${fixedRoute.estimatedDuration} mins`
+          }
+        };
+
+        const allPricing = await getVehiclePricing();
+        const vehicleMetadata = allPricing[vehicleType] || allPricing.standard;
+
+        pricing = {
+          currency: 'GBP',
+          breakdown: {
+            baseFare: 0,
+            distanceCharge: 0,
+            waitTimeCharge: 0,
+            subtotal: fixedRoute.price,
+            tax: 0,
+            total: fixedRoute.price
+          },
+          displayTotal: `£${(fixedRoute.price / 100).toFixed(2)}`,
+          isFixedRoute: true,
+          routeId: fixedRoute.routeId,
+          vehicleMetadata: {
+            name: vehicleMetadata.name,
+            description: vehicleMetadata.description,
+            capacity: vehicleMetadata.capacity,
+            features: vehicleMetadata.features,
+            imageUrl: vehicleMetadata.imageUrl
+          }
+        };
+      } else {
+        // Fallback to variable pricing calculation
+        logger.info({ event: 'variable_pricing_selected' }, 'Using variable pricing calculation');
+        const apiKey = await getGoogleMapsApiKey();
+
+        if (hasWaypoints) {
+          // Use Directions API for routes with waypoints
+          logger.info({
+            event: 'route_calculation_waypoints',
+            waypointCount: waypoints.length,
+            totalWaitTime,
+          }, 'Calculating route with waypoints');
+
+          const apiStart = Date.now();
+          route = await calculateRouteWithWaypoints(
+            body.pickupLocation.placeId || body.pickupLocation.address,
+            body.dropoffLocation.placeId || body.dropoffLocation.address,
+            waypoints,
+            apiKey
+          );
+          logExternalApiCall(logger, 'directions', Date.now() - apiStart);
+        } else {
+          // Use Distance Matrix API for simple routes
+          logger.info({ event: 'route_calculation_simple' }, 'Calculating simple route');
+          const apiStart = Date.now();
+          route = await calculateDistance(
+            body.pickupLocation.address,
+            body.dropoffLocation.address,
+            apiKey
+          );
+          logExternalApiCall(logger, 'distance_matrix', Date.now() - apiStart);
+        }
+
+        // Calculate pricing: baseFare + (distance × perMile) + (waitTime × perMinute)
+        // Note: Journey driving time is NOT charged, only explicit wait times
+        pricing = await calculatePricing(
+          parseFloat(route.distance.miles),
+          totalWaitTime, // Only charge for explicit wait times, not driving time
+          vehicleType
+        );
+      }
+    } // End of one-way journey else block
+
+    // Handle compareMode - return pricing for ALL vehicle types
+    if (compareMode) {
+      logger.info({
+        event: 'compare_mode_calculation',
+        journeyType,
+        hasRoute: !!route,
+      }, 'Calculating prices for all vehicle types');
+
+      const allPricing = await getVehiclePricing();
+      const vehicleTypes = ['standard', 'executive', 'minibus'];
+      const vehicles = {};
+
+      for (const vType of vehicleTypes) {
+        const vehicleRates = allPricing[vType] || getFallbackPricing()[vType];
+        let oneWayPrice, oneWayBreakdown;
+
+        if (journeyType === 'by-the-hour') {
+          // Hourly pricing for compare mode
+          const perHour = vehicleRates.perHour || getFallbackPricing()[vType].perHour;
+          const hourlyCharge = durationHours * perHour;
+          oneWayPrice = hourlyCharge;
+          oneWayBreakdown = {
+            baseFare: 0,
+            distanceCharge: 0,
+            waitTimeCharge: 0,
+            hourlyCharge,
+            durationHours,
+            subtotal: hourlyCharge,
+            tax: 0,
+            total: hourlyCharge,
+          };
+        } else {
+          // Distance-based pricing for compare mode
+          const baseFare = vehicleRates.baseFare;
+          const distanceMiles = parseFloat(route.distance.miles);
+          const distanceCharge = Math.round(distanceMiles * vehicleRates.perMile);
+          const waitTimeCharge = Math.round(totalWaitTime * vehicleRates.perMinute);
+          const subtotal = baseFare + distanceCharge + waitTimeCharge;
+          oneWayPrice = subtotal;
+          oneWayBreakdown = {
+            baseFare,
+            distanceCharge,
+            waitTimeCharge,
+            subtotal,
+            tax: 0,
+            total: subtotal,
+          };
+        }
+
+        // Calculate return price with configurable discount
+        const returnDiscount = vehicleRates.returnDiscount ?? 0;
+        const returnPriceBeforeDiscount = oneWayPrice * 2;
+        const discountAmount = Math.round(returnPriceBeforeDiscount * returnDiscount / 100);
+        const returnPrice = returnPriceBeforeDiscount - discountAmount;
+
+        vehicles[vType] = {
+          name: vehicleRates.name,
+          description: vehicleRates.description,
+          capacity: vehicleRates.capacity,
+          features: vehicleRates.features || [],
+          imageUrl: vehicleRates.imageUrl || '',
+          oneWay: {
+            price: oneWayPrice,
+            displayPrice: `£${(oneWayPrice / 100).toFixed(2)}`,
+            breakdown: oneWayBreakdown,
+          },
+          return: {
+            price: returnPrice,
+            displayPrice: `£${(returnPrice / 100).toFixed(2)}`,
+            discount: {
+              percentage: returnDiscount,
+              amount: discountAmount,
+            },
+            breakdown: {
+              ...oneWayBreakdown,
+              subtotal: returnPriceBeforeDiscount,
+              discount: discountAmount,
+              total: returnPrice,
+              ...(oneWayBreakdown.hourlyCharge && { hourlyCharge: oneWayBreakdown.hourlyCharge * 2 }),
+            },
+          },
+        };
+      }
+
+      const compareResponse = {
+        compareMode: true,
+        journeyType,
+        journey: {
+          distance: route.distance,
+          duration: route.duration,
+        },
+        pickupLocation: body.pickupLocation,
+        ...(body.dropoffLocation && { dropoffLocation: body.dropoffLocation }),
+        ...(durationHours && { durationHours }),
+        pickupTime: body.pickupTime,
+        passengers: body.passengers,
+        luggage: body.luggage || 0,
+        extras,
+        vehicles,
+        createdAt: new Date().toISOString(),
+      };
+
+      const duration = Date.now() - startTime;
+      logger.info({
+        event: 'compare_mode_success',
+        duration,
+        vehicleCount: vehicleTypes.length,
+      }, 'Compare mode calculation complete');
+
+      return {
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+        body: JSON.stringify(compareResponse),
+      };
     }
 
     const quoteId = await generateFriendlyQuoteId();
@@ -591,6 +767,7 @@ export const handler = async (event, context) => {
       quoteId,
       status: 'valid',
       expiresAt,
+      journeyType,
       journey: {
         distance: route.distance,
         duration: route.duration,
@@ -601,11 +778,13 @@ export const handler = async (event, context) => {
       pricing,
       vehicleType,
       pickupLocation: body.pickupLocation,
-      dropoffLocation: body.dropoffLocation,
+      ...(body.dropoffLocation && { dropoffLocation: body.dropoffLocation }), // Only include if provided (not for hourly)
       ...(hasWaypoints && { waypoints }), // Only include waypoints if they exist
+      ...(durationHours && { durationHours }), // Only include for hourly bookings
       pickupTime: body.pickupTime,
       passengers: body.passengers,
       luggage: body.luggage || 0,
+      extras, // Baby seats and child seats
       returnJourney: body.returnJourney || false,
       createdAt: now,
     };
