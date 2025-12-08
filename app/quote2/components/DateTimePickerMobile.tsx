@@ -20,13 +20,12 @@ export default function DateTimePickerMobile({ selectedDate, onChange, error }: 
   const maxDate = new Date();
   maxDate.setMonth(maxDate.getMonth() + 6);
 
-  // Prevent keyboard on mobile - set inputMode to none
+  // Set inputMode to none on mount to prevent Android keyboard
   useEffect(() => {
     if (inputRef.current) {
       const input = (inputRef.current as unknown as { input: HTMLInputElement }).input;
       if (input) {
         input.setAttribute('inputmode', 'none');
-        input.setAttribute('readonly', 'true');
       }
     }
   }, []);
@@ -44,16 +43,10 @@ export default function DateTimePickerMobile({ selectedDate, onChange, error }: 
     return time.getTime() >= minDateTime.getTime();
   };
 
-  // Prevent keyboard from appearing on focus
+  // Prevent mobile keyboard from appearing while still allowing picker to open
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    // Blur immediately to prevent keyboard, then re-focus for the picker
     e.target.blur();
     e.target.setAttribute('inputmode', 'none');
-    e.target.setAttribute('readonly', 'true');
-    // Small delay then trigger click to open picker
-    setTimeout(() => {
-      e.target.click();
-    }, 10);
   };
 
   return (
@@ -79,7 +72,6 @@ export default function DateTimePickerMobile({ selectedDate, onChange, error }: 
           placeholderText="Tap to select date and time"
           onFocus={handleFocus}
           autoComplete="off"
-          readOnly
           className={`w-full pl-12 pr-4 py-4 rounded-xl border ${
             error ? 'border-error' : 'border-border'
           } focus:outline-none focus:ring-2 focus:ring-sage-dark bg-background text-foreground text-base cursor-pointer`}
