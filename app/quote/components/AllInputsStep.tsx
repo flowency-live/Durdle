@@ -2,13 +2,13 @@
 
 import { Plus } from 'lucide-react';
 
-import JourneyTypeTabs from '../../quote/components/JourneyTypeTabs';
-import LocationInput from '../../quote/components/LocationInput';
-import MapPreview from '../../quote/components/MapPreview';
-import OptionalExtras from '../../quote/components/OptionalExtras';
-import PassengerLuggageRow from '../../quote/components/PassengerLuggageRow';
-import WaypointInput from '../../quote/components/WaypointInput';
-import { Extras, JourneyType, Location, LocationType, Waypoint } from '../../quote/lib/types';
+import JourneyTypeTabs from './JourneyTypeTabs';
+import LocationInput from './LocationInput';
+import MapPreview from './MapPreview';
+import OptionalExtras from './OptionalExtras';
+import PassengerLuggageRow from './PassengerLuggageRow';
+import WaypointInput from './WaypointInput';
+import { Extras, JourneyType, Location, LocationType, Waypoint } from '../lib/types';
 
 import DateTimePickerMobile from './DateTimePickerMobile';
 import HourlyTimeSelector, { calculateHourlyDuration } from './HourlyTimeSelector';

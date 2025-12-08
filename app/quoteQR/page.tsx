@@ -4,7 +4,7 @@ import { Phone, Mail, MapPin, Download } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
 export default function QuoteQRPage() {
-  const quoteUrl = 'https://durdle.co.uk/quote2';
+  const quoteUrl = 'https://durdle.co.uk/quote';
 
   const contactInfo = {
     name: 'The Dorset Transfer Company',
@@ -45,7 +45,7 @@ END:VCARD`;
               The Dorset Transfer Company
             </h1>
             <p className="text-sage-light text-sm">
-              Your Reliable Travel Partner
+              Your Reliable Transfer Partner
             </p>
           </div>
 
@@ -126,7 +126,7 @@ END:VCARD`;
             </button>
 
             <a
-              href="/quote2"
+              href="/quote"
               className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-navy-dark text-white rounded-xl font-semibold hover:bg-navy-dark/90 transition-all shadow-lg active:scale-95"
             >
               Get a Quote Now

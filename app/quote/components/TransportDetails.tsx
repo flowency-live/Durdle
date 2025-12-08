@@ -2,7 +2,7 @@
 
 import { Plane, Train, AlertCircle } from 'lucide-react';
 
-import { LocationType } from '../../quote/lib/types';
+import { LocationType } from '../lib/types';
 
 export type TransportType = 'airport' | 'train_station' | null;
 

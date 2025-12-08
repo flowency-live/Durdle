@@ -3,7 +3,7 @@
 import { Car, MapPin, Clock } from 'lucide-react';
 import Image from 'next/image';
 
-import { MultiVehicleQuoteResponse } from '../../quote/lib/types';
+import { MultiVehicleQuoteResponse } from '../lib/types';
 
 interface VehicleComparisonGridProps {
   multiQuote: MultiVehicleQuoteResponse;
