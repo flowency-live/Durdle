@@ -210,7 +210,12 @@ export default function Home() {
                 <a href="/quote" className={buttonVariants({ variant: "hero-golden", size: "xl" })}>
                   Get a Quote
                 </a>
-                <a href="#services" className={buttonVariants({ variant: "hero-outline", size: "xl" })}>
+                <a href="/quote2" className={buttonVariants({ variant: "hero-outline", size: "xl" })}>
+                  Quote V2
+                </a>
+              </div>
+              <div className="animate-fade-up-delay-3 mt-4">
+                <a href="#services" className="text-sm text-white/80 hover:text-white transition-colors underline underline-offset-4">
                   Learn More
                 </a>
               </div>
