@@ -14,7 +14,7 @@ import LoadingState from '../quote/components/LoadingState';
 import PaymentForm, { PaymentDetails } from '../quote/components/PaymentForm';
 import QuoteResult from '../quote/components/QuoteResult';
 import { calculateQuote, getVehicles } from '../quote/lib/api';
-import { QuoteResponse, Location, Waypoint, Vehicle } from '../quote/lib/types';
+import { Extras, JourneyType, QuoteResponse, Location, Waypoint, Vehicle } from '../quote/lib/types';
 
 import AllInputsStep from './components/AllInputsStep';
 import VehicleComparisonGrid from './components/VehicleComparisonGrid';
@@ -31,6 +31,11 @@ function Quote2PageContent() {
   const [pickupDate, setPickupDate] = useState<Date | null>(null);
   const [passengers, setPassengers] = useState(2);
   const [luggage, setLuggage] = useState(0);
+
+  // Journey type & extras state
+  const [journeyType, setJourneyType] = useState<JourneyType>('one-way');
+  const [duration, setDuration] = useState(2);
+  const [extras, setExtras] = useState<Extras>({ babySeats: 0, childSeats: 0 });
 
   // Step 2 state - vehicle quotes
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -49,6 +54,11 @@ function Quote2PageContent() {
 
   // Validation for Step 1
   const canProceedFromStep1 = () => {
+    // For hourly: only pickup and date required
+    // For one-way: pickup, dropoff, and date required
+    if (journeyType === 'hourly') {
+      return pickupLocation?.address.trim() !== '' && pickupDate !== null;
+    }
     return (
       pickupLocation?.address.trim() !== '' &&
       dropoffLocation?.address.trim() !== '' &&
@@ -70,8 +80,19 @@ function Quote2PageContent() {
     }
   };
 
+  // Hourly rates in pence per hour (used for client-side calculation)
+  const HOURLY_RATES: Record<string, number> = {
+    standard: 3500,   // £35/hour
+    executive: 5000,  // £50/hour
+    minibus: 7000,    // £70/hour
+  };
+
   const fetchAllQuotes = async () => {
-    if (!pickupLocation || !dropoffLocation || !pickupDate) return;
+    const isHourly = journeyType === 'hourly';
+
+    // Validate required fields based on journey type
+    if (!pickupLocation || !pickupDate) return;
+    if (!isHourly && !dropoffLocation) return;
 
     setLoadingQuotes(true);
     setError(null);
@@ -81,43 +102,96 @@ function Quote2PageContent() {
       const allVehicles = await getVehicles();
       setVehicles(allVehicles);
 
-      // Filter out empty waypoints
-      const filteredWaypoints: Waypoint[] = waypoints.filter(w => {
-        const hasValidAddress = w.address && w.address.trim().length > 0;
-        const hasValidPlaceId = w.placeId && w.placeId.trim().length > 0;
-        return hasValidAddress && hasValidPlaceId;
-      });
+      if (isHourly) {
+        // For hourly journeys, calculate prices client-side
+        const quotesMap = new Map<string, QuoteResponse>();
+        const now = new Date().toISOString();
 
-      // Fetch quotes for all vehicles in parallel
-      const quotePromises = allVehicles.map(async (vehicle) => {
-        try {
-          const response = await calculateQuote({
+        allVehicles.forEach(vehicle => {
+          const hourlyRate = HOURLY_RATES[vehicle.vehicleId] || 3500;
+          const total = hourlyRate * duration;
+
+          // Create a mock quote response for hourly
+          const hourlyQuote: QuoteResponse = {
+            quoteId: `hourly-${vehicle.vehicleId}-${Date.now()}`,
+            status: 'valid',
+            expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+            journey: {
+              distance: { meters: 0, miles: '0', text: 'N/A' },
+              duration: { seconds: duration * 3600, minutes: duration * 60, text: `${duration} hours` },
+              route: { polyline: null },
+            },
+            pricing: {
+              currency: 'GBP',
+              breakdown: {
+                baseFare: total,
+                distanceCharge: 0,
+                waitTimeCharge: 0,
+                subtotal: total,
+                tax: 0,
+                total: total,
+              },
+              displayTotal: `£${(total / 100).toFixed(2)}`,
+            },
+            vehicleType: vehicle.vehicleId,
             pickupLocation,
-            dropoffLocation,
-            waypoints: filteredWaypoints.length > 0 ? filteredWaypoints : undefined,
+            dropoffLocation: pickupLocation, // Same as pickup for hourly
             pickupTime: pickupDate.toISOString(),
             passengers,
             luggage,
-            vehicleType: vehicle.vehicleId as 'standard' | 'executive' | 'minibus',
-          });
-          return { vehicleId: vehicle.vehicleId, quote: response };
-        } catch (err) {
-          console.error(`Failed to get quote for ${vehicle.vehicleId}:`, err);
-          return null;
-        }
-      });
+            returnJourney: false,
+            journeyType: 'hourly',
+            durationHours: duration,
+            createdAt: now,
+          };
 
-      const results = await Promise.all(quotePromises);
-      const quotesMap = new Map<string, QuoteResponse>();
+          quotesMap.set(vehicle.vehicleId, hourlyQuote);
+        });
 
-      results.forEach(result => {
-        if (result) {
-          quotesMap.set(result.vehicleId, result.quote);
-        }
-      });
+        setVehicleQuotes(quotesMap);
+        setCurrentStep(2);
+      } else {
+        // For one-way journeys, fetch from API
+        // Filter out empty waypoints
+        const filteredWaypoints: Waypoint[] = waypoints.filter(w => {
+          const hasValidAddress = w.address && w.address.trim().length > 0;
+          const hasValidPlaceId = w.placeId && w.placeId.trim().length > 0;
+          return hasValidAddress && hasValidPlaceId;
+        });
 
-      setVehicleQuotes(quotesMap);
-      setCurrentStep(2);
+        // Fetch quotes for all vehicles in parallel
+        const quotePromises = allVehicles.map(async (vehicle) => {
+          try {
+            const response = await calculateQuote({
+              pickupLocation,
+              dropoffLocation: dropoffLocation!,
+              waypoints: filteredWaypoints.length > 0 ? filteredWaypoints : undefined,
+              pickupTime: pickupDate.toISOString(),
+              passengers,
+              luggage,
+              vehicleType: vehicle.vehicleId as 'standard' | 'executive' | 'minibus',
+              journeyType: 'one-way',
+              extras: (extras.babySeats > 0 || extras.childSeats > 0) ? extras : undefined,
+            });
+            return { vehicleId: vehicle.vehicleId, quote: response };
+          } catch (err) {
+            console.error(`Failed to get quote for ${vehicle.vehicleId}:`, err);
+            return null;
+          }
+        });
+
+        const results = await Promise.all(quotePromises);
+        const quotesMap = new Map<string, QuoteResponse>();
+
+        results.forEach(result => {
+          if (result) {
+            quotesMap.set(result.vehicleId, result.quote);
+          }
+        });
+
+        setVehicleQuotes(quotesMap);
+        setCurrentStep(2);
+      }
     } catch (err) {
       console.error('Error fetching quotes:', err);
       setError(err instanceof Error ? err.message : 'Failed to calculate quotes');
@@ -164,6 +238,9 @@ function Quote2PageContent() {
     setPickupDate(null);
     setPassengers(2);
     setLuggage(0);
+    setJourneyType('one-way');
+    setDuration(2);
+    setExtras({ babySeats: 0, childSeats: 0 });
     setVehicles([]);
     setVehicleQuotes(new Map());
     setError(null);
@@ -317,12 +394,18 @@ function Quote2PageContent() {
               pickupDate={pickupDate}
               passengers={passengers}
               luggage={luggage}
+              journeyType={journeyType}
+              duration={duration}
+              extras={extras}
               onPickupChange={setPickupLocation}
               onDropoffChange={setDropoffLocation}
               onWaypointsChange={setWaypoints}
               onDateChange={setPickupDate}
               onPassengersChange={setPassengers}
               onLuggageChange={setLuggage}
+              onJourneyTypeChange={setJourneyType}
+              onDurationChange={setDuration}
+              onExtrasChange={setExtras}
             />
           )}
 

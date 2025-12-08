@@ -42,6 +42,11 @@ function QuotePageContent() {
   const [luggage, setLuggage] = useState(0);
   const [vehicleType, setVehicleType] = useState<string | null>(null);
 
+  // Journey type & extras state
+  const [journeyType, setJourneyType] = useState<JourneyType>('one-way');
+  const [duration, setDuration] = useState(2);
+  const [extras, setExtras] = useState<Extras>({ babySeats: 0, childSeats: 0 });
+
   // UI state
   const [quote, setQuote] = useState<QuoteResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -85,7 +90,12 @@ function QuotePageContent() {
 
   // Validation
   const canProceedFromStep1 = () => {
-    // Step 1: Locations (pickup and dropoff required)
+    // Step 1: Locations
+    // For hourly: only pickup required
+    // For one-way: pickup and dropoff required
+    if (journeyType === 'hourly') {
+      return pickupLocation?.address.trim() !== '';
+    }
     return pickupLocation?.address.trim() !== '' &&
            dropoffLocation?.address.trim() !== '';
   };
@@ -109,7 +119,9 @@ function QuotePageContent() {
     setError(null);
 
     if (currentStep === 1 && !canProceedFromStep1()) {
-      setError('Please enter pickup and dropoff locations');
+      setError(journeyType === 'hourly'
+        ? 'Please enter a pickup location'
+        : 'Please enter pickup and dropoff locations');
       return;
     }
 
@@ -143,7 +155,9 @@ function QuotePageContent() {
   const handleSubmit = async () => {
     setError(null);
 
-    if (!pickupLocation || !dropoffLocation || !pickupDate || !vehicleType) {
+    // Validation depends on journey type
+    const isHourly = journeyType === 'hourly';
+    if (!pickupLocation || (!isHourly && !dropoffLocation) || !pickupDate || !vehicleType) {
       setError('Please complete all required fields');
       return;
     }
@@ -162,12 +176,15 @@ function QuotePageContent() {
 
       const request: QuoteRequest = {
         pickupLocation,
-        dropoffLocation,
-        waypoints: filteredWaypoints.length > 0 ? filteredWaypoints : undefined,
+        dropoffLocation: isHourly ? undefined : dropoffLocation!,
+        waypoints: isHourly ? undefined : (filteredWaypoints.length > 0 ? filteredWaypoints : undefined),
         pickupTime: pickupDate.toISOString(),
         passengers,
         luggage,
         vehicleType: vehicleType as 'standard' | 'executive' | 'minibus',
+        journeyType,
+        durationHours: isHourly ? duration : undefined,
+        extras: (extras.babySeats > 0 || extras.childSeats > 0) ? extras : undefined,
       };
 
       console.log('Quote request:', request);
@@ -192,6 +209,9 @@ function QuotePageContent() {
     setPassengers(2);
     setLuggage(0);
     setVehicleType(null);
+    setJourneyType('one-way');
+    setDuration(2);
+    setExtras({ babySeats: 0, childSeats: 0 });
     setError(null);
     setBookingStage('quote');
     setContactDetails(null);
@@ -375,8 +395,8 @@ function QuotePageContent() {
       {/* Form Content */}
       <section className="py-6 md:py-12 pb-28 md:pb-12">
         <div className="container px-4 mx-auto max-w-2xl">
-          {/* Map Preview - Shows route with all locations */}
-          {pickupLocation && dropoffLocation && (
+          {/* Map Preview - Shows route with all locations (one-way only) */}
+          {journeyType === 'one-way' && pickupLocation && dropoffLocation && (
             <div className="mb-6 animate-fade-up">
               <MapPreview
                 pickup={pickupLocation}
@@ -398,6 +418,10 @@ function QuotePageContent() {
                 onPickupChange={setPickupLocation}
                 onDropoffChange={setDropoffLocation}
                 onWaypointsChange={setWaypoints}
+                journeyType={journeyType}
+                onJourneyTypeChange={setJourneyType}
+                duration={duration}
+                onDurationChange={setDuration}
               />
             )}
 
@@ -411,18 +435,27 @@ function QuotePageContent() {
 
             {/* Step 3: Passengers & Luggage */}
             {currentStep === 3 && (
-              <div className="bg-card rounded-2xl p-4 shadow-mobile border-2 border-sage-light space-y-6">
-                <PassengerCounter
-                  count={passengers}
-                  onChange={setPassengers}
-                />
-
-                <div className="border-t border-border pt-6">
-                  <LuggageCounter
-                    count={luggage}
-                    onChange={setLuggage}
+              <div className="space-y-4">
+                <div className="bg-card rounded-2xl p-4 shadow-mobile border-2 border-sage-light space-y-6">
+                  <PassengerCounter
+                    count={passengers}
+                    onChange={setPassengers}
                   />
+
+                  <div className="border-t border-border pt-6">
+                    <LuggageCounter
+                      count={luggage}
+                      onChange={setLuggage}
+                    />
+                  </div>
                 </div>
+
+                {/* Optional Extras */}
+                <OptionalExtras
+                  extras={extras}
+                  onChange={setExtras}
+                  maxSeats={passengers}
+                />
               </div>
             )}
 
