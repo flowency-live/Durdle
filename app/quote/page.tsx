@@ -43,6 +43,7 @@ function QuotePageContent() {
   // Transport details (airport/train station)
   const [flightNumber, setFlightNumber] = useState('');
   const [trainNumber, setTrainNumber] = useState('');
+  const [specialRequests, setSpecialRequests] = useState('');
 
   // Step 2 state - multi-vehicle quote
   const [multiQuote, setMultiQuote] = useState<MultiVehicleQuoteResponse | null>(null);
@@ -209,6 +210,7 @@ function QuotePageContent() {
     setExtras({ babySeats: 0, childSeats: 0 });
     setFlightNumber('');
     setTrainNumber('');
+    setSpecialRequests('');
     setMultiQuote(null);
     setError(null);
     setBookingStage('quote');
@@ -476,6 +478,8 @@ function QuotePageContent() {
               onExtrasChange={setExtras}
               onFlightNumberChange={setFlightNumber}
               onTrainNumberChange={setTrainNumber}
+              specialRequests={specialRequests}
+              onSpecialRequestsChange={setSpecialRequests}
             />
           )}
 

@@ -2,7 +2,7 @@
 
 import { Plus } from 'lucide-react';
 
-import JourneyTypeTabs from './JourneyTypeTabs';
+import JourneyTypeTabs, { JourneyDirectionToggle } from './JourneyTypeTabs';
 import LocationInput from './LocationInput';
 import MapPreview from './MapPreview';
 import OptionalExtras from './OptionalExtras';
@@ -41,6 +41,8 @@ interface AllInputsStepProps {
   onExtrasChange: (extras: Extras) => void;
   onFlightNumberChange: (value: string) => void;
   onTrainNumberChange: (value: string) => void;
+  specialRequests: string;
+  onSpecialRequestsChange: (value: string) => void;
 }
 
 export default function AllInputsStep({
@@ -70,6 +72,8 @@ export default function AllInputsStep({
   onExtrasChange,
   onFlightNumberChange,
   onTrainNumberChange,
+  specialRequests,
+  onSpecialRequestsChange,
 }: AllInputsStepProps) {
   const isHourly = journeyType === 'hourly';
   const isRoundTrip = journeyType === 'round-trip';
@@ -132,6 +136,16 @@ export default function AllInputsStep({
             {isHourly ? 'Where should we pick you up?' : 'Where are you going?'}
           </h3>
         </div>
+
+        {/* One Way / Return toggle */}
+        {isJourneyPlan && (
+          <div className="mb-4">
+            <JourneyDirectionToggle
+              selected={journeyType}
+              onChange={onJourneyTypeChange}
+            />
+          </div>
+        )}
 
         <div className="space-y-0">
           {/* Pickup Location */}
@@ -290,6 +304,21 @@ export default function AllInputsStep({
         onChange={onExtrasChange}
         maxSeats={passengers}
       />
+
+      {/* Special Requests */}
+      <div className="bg-card rounded-2xl p-4 shadow-mobile border-2 border-sage-light">
+        <div className="mb-3">
+          <h3 className="text-sm font-semibold text-foreground">Special Requests</h3>
+          <p className="text-xs text-muted-foreground mt-1">Any additional requirements or notes</p>
+        </div>
+        <textarea
+          value={specialRequests}
+          onChange={(e) => onSpecialRequestsChange(e.target.value)}
+          placeholder="e.g., wheelchair access, extra luggage, specific route..."
+          className="w-full px-4 py-3 rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-sage-dark bg-background text-foreground text-sm resize-none"
+          rows={3}
+        />
+      </div>
     </div>
   );
 }
