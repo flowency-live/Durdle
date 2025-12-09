@@ -43,33 +43,33 @@ const servicePillars = [
   },
 ];
 
-// Destinations carousel data
-const destinations = [
+// Services carousel data - reframed from destinations to service types
+const services = [
   {
-    id: 'airports',
+    id: 'travel',
     icon: Plane,
-    title: "Airport Transfers",
-    description: "Heathrow, Gatwick, Bristol, Southampton and all major UK airports",
+    title: "Travel Transfers",
+    description: "Airports, cruise terminals, ferry ports, and rail stations - stress-free connections for every journey",
     // Airport departures board / terminal interior
     image: "https://images.unsplash.com/photo-1529074963764-98f45c47344b?w=1600&h=900&fit=crop",
     color: "sage",
   },
   {
-    id: 'cruise',
-    icon: Ship,
-    title: "Cruise Transfers",
-    description: "Southampton and Poole - serving the world's leading cruise lines",
-    // Large cruise ship at port - more realistic UK port feel
-    image: "https://images.unsplash.com/photo-1599640842225-85d111c60e6b?w=1600&h=900&fit=crop",
+    id: 'chauffeur',
+    icon: Clock,
+    title: "Private Chauffeur",
+    description: "Your driver, your schedule. Hourly hire for business meetings, day trips, or whenever you need flexibility",
+    // Luxury black car
+    image: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=1600&h=900&fit=crop",
     color: "navy",
   },
   {
-    id: 'rail',
-    icon: Train,
-    title: "Rail Connections",
-    description: "London Waterloo, Bournemouth, Southampton Central and beyond",
-    // Modern passenger train at platform
-    image: "https://images.unsplash.com/photo-1515165562839-978bbcf18277?w=1600&h=900&fit=crop",
+    id: 'corporate',
+    icon: Briefcase,
+    title: "Corporate Transport",
+    description: "Executive travel, client visits, corporate events - professional service with account management",
+    // Business/corporate setting
+    image: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1600&h=900&fit=crop",
     color: "sage",
   },
 ];
@@ -101,7 +101,7 @@ export default function HomeV2() {
   // Auto-rotate carousel
   useEffect(() => {
     const interval = setInterval(() => {
-      setActiveDestination((prev) => (prev + 1) % destinations.length);
+      setActiveDestination((prev) => (prev + 1) % services.length);
     }, 5000);
     return () => clearInterval(interval);
   }, []);
@@ -125,7 +125,7 @@ export default function HomeV2() {
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-8">
               <a
-                href="#services"
+                href="#services-carousel"
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 Services
@@ -135,12 +135,6 @@ export default function HomeV2() {
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 Pricing
-              </a>
-              <a
-                href="#destinations"
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Destinations
               </a>
               <a
                 href="/contact"
@@ -191,7 +185,7 @@ export default function HomeV2() {
             <div className="container px-4 py-6 mx-auto">
               <nav className="flex flex-col gap-4">
                 <a
-                  href="#services"
+                  href="#services-carousel"
                   onClick={() => setMobileMenuOpen(false)}
                   className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
                 >
@@ -203,13 +197,6 @@ export default function HomeV2() {
                   className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
                 >
                   Pricing
-                </a>
-                <a
-                  href="#destinations"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
-                >
-                  Destinations
                 </a>
                 <a
                   href="/contact"
@@ -324,17 +311,17 @@ export default function HomeV2() {
           </div>
         </section>
 
-        {/* Destinations Carousel Section */}
-        <section id="destinations" className="relative bg-card overflow-hidden">
+        {/* Services Carousel Section */}
+        <section id="services-carousel" className="relative bg-card overflow-hidden">
           <div className="container px-4 md:px-6 mx-auto py-24">
             <div className="max-w-5xl mx-auto">
               {/* Section Header */}
               <div className="text-center mb-12">
                 <h2 className="font-playfair text-3xl md:text-4xl lg:text-5xl font-semibold text-foreground mb-4">
-                  Where we&apos;ll take <span className="text-gradient-navy-sage">you</span>
+                  Every journey, <span className="text-gradient-navy-sage">handled</span>
                 </h2>
                 <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                  Airports, cruise terminals, and rail stations across the UK
+                  Premium transport for every occasion
                 </p>
               </div>
 
@@ -342,30 +329,30 @@ export default function HomeV2() {
               <div className="relative">
                 {/* Main carousel image */}
                 <div className="relative rounded-3xl overflow-hidden h-[400px] md:h-[500px]">
-                  {destinations.map((dest, index) => (
+                  {services.map((service, index) => (
                     <div
-                      key={dest.id}
+                      key={service.id}
                       className={`absolute inset-0 transition-opacity duration-700 ${
                         index === activeDestination ? 'opacity-100' : 'opacity-0 pointer-events-none'
                       }`}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={dest.image}
-                        alt={dest.title}
+                        src={service.image}
+                        alt={service.title}
                         className="absolute inset-0 w-full h-full object-cover"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
                       <div className="absolute inset-0 flex flex-col items-center justify-end pb-12 px-6 text-center">
                         <div className="max-w-2xl">
-                          <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${dest.color === 'sage' ? 'bg-sage/20 border-sage/30' : 'bg-navy/20 border-navy/30'} backdrop-blur-sm border mb-4`}>
-                            <dest.icon className={`w-5 h-5 ${dest.color === 'sage' ? 'text-sage-dark' : 'text-navy'}`} />
+                          <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${service.color === 'sage' ? 'bg-sage/20 border-sage/30' : 'bg-navy/20 border-navy/30'} backdrop-blur-sm border mb-4`}>
+                            <service.icon className={`w-5 h-5 ${service.color === 'sage' ? 'text-sage-dark' : 'text-navy'}`} />
                           </div>
                           <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
-                            {dest.title}
+                            {service.title}
                           </h3>
                           <p className="text-muted-foreground text-lg">
-                            {dest.description}
+                            {service.description}
                           </p>
                         </div>
                       </div>
@@ -375,9 +362,9 @@ export default function HomeV2() {
 
                 {/* Carousel indicators */}
                 <div className="flex justify-center gap-3 mt-6">
-                  {destinations.map((dest, index) => (
+                  {services.map((service, index) => (
                     <button
-                      key={dest.id}
+                      key={service.id}
                       onClick={() => setActiveDestination(index)}
                       className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${
                         index === activeDestination
@@ -385,8 +372,8 @@ export default function HomeV2() {
                           : 'bg-background border border-border text-muted-foreground hover:border-sage/50'
                       }`}
                     >
-                      <dest.icon className="w-4 h-4" />
-                      <span className="text-sm font-medium hidden sm:inline">{dest.title.split(' ')[0]}</span>
+                      <service.icon className="w-4 h-4" />
+                      <span className="text-sm font-medium hidden sm:inline">{service.title.split(' ')[0]}</span>
                     </button>
                   ))}
                 </div>
@@ -562,16 +549,10 @@ export default function HomeV2() {
 
             <nav className="flex gap-8">
               <a
-                href="#services"
+                href="#services-carousel"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Services
-              </a>
-              <a
-                href="#destinations"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Destinations
               </a>
               <a
                 href="/contact"

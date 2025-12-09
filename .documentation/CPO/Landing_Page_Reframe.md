@@ -58,26 +58,29 @@ Southampton and Poole are **major global cruise hubs**. This isn't just "airport
 
 ---
 
-## Journey Section Replacement
+## Services Carousel Section
 
 ### Current Layout (to remove)
 - "From arrival to destination" 3-step narrative with Dorset scenic images
 - "Where we'll take you" circular thumbnails of Dorset landmarks
 
-### Proposed: Destinations Carousel
-Replace scenic Dorset imagery with a **carousel of departure types**:
+### Proposed: Services Carousel
+Replace scenic Dorset imagery with a **carousel of service types** (not destinations):
 
 | Slide | Image Concept | Headline | Copy |
 |-------|---------------|----------|------|
-| **Airports** | Terminal building / departure board / executive car at drop-off | "Airport Transfers" | "Heathrow, Gatwick, Bristol, Southampton and all major UK airports" |
-| **Cruise Terminals** | Cruise ship at Southampton / Poole harbour | "Cruise Transfers" | "Southampton and Poole - serving the world's leading cruise lines" |
-| **Train Stations** | Platform / train / London terminus | "Rail Connections" | "London Waterloo, Bournemouth, Southampton Central and beyond" |
+| **Travel Transfers** | Airport terminal / departures board | "Travel Transfers" | "Airports, cruise terminals, ferry ports, and rail stations - stress-free connections for every journey" |
+| **Private Chauffeur** | Luxury black car | "Private Chauffeur" | "Your driver, your schedule. Hourly hire for business meetings, day trips, or whenever you need flexibility" |
+| **Corporate Transport** | Business/professional setting | "Corporate Transport" | "Executive travel, client visits, corporate events - professional service with account management" |
 
-**Section Title**: "Where we'll take you"
-**Section Subhead**: "Airports, cruise terminals, and rail stations across the UK"
+**Section Title**: "Every journey, handled"
+**Section Subhead**: "Premium transport for every occasion"
 
-### Why Cruise Gets Its Own Slide
-Southampton is Europe's busiest cruise port. Poole serves expedition cruises and Channel Islands ferries. This is a **real competitive advantage** - not just another service offering.
+### Key Messaging Decision
+- We are NOT an "airport shuttle company" - we're a premium chauffeur service
+- Travel transfers (airports, cruise, rail) are a key strength, not the only offering
+- Corporate and private chauffeur services expand the market
+- NO weddings (too specialist) - but corporate events are in scope
 
 *Note: Specific airport codes (LHR, LGW, BRS, SOU) for SEO metadata only, not visual content.*
 
