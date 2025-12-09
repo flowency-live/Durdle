@@ -1017,6 +1017,21 @@ export const handler = async (event, context) => {
         const discountAmount = Math.round(returnPriceBeforeDiscount * returnDiscount / 100);
         const returnPrice = returnPriceBeforeDiscount - discountAmount;
 
+        // Apply surge pricing to compare mode prices (for non-hourly, non-fixed routes)
+        let finalOneWayPrice = oneWayPrice;
+        let finalReturnPrice = returnPrice;
+        let surgeInfo = {};
+
+        if (surgeResult.isPeakPricing) {
+          finalOneWayPrice = Math.round(oneWayPrice * surgeResult.combinedMultiplier);
+          finalReturnPrice = Math.round(returnPrice * surgeResult.combinedMultiplier);
+          surgeInfo = {
+            isPeakPricing: true,
+            surgeMultiplier: surgeResult.combinedMultiplier,
+            appliedSurgeRules: surgeResult.appliedRules.map(r => ({ name: r.name, multiplier: r.multiplier })),
+          };
+        }
+
         vehicles[vType] = {
           name: vehicleRates.name,
           description: vehicleRates.description,
@@ -1024,13 +1039,21 @@ export const handler = async (event, context) => {
           features: vehicleRates.features || [],
           imageUrl: vehicleRates.imageUrl || '',
           oneWay: {
-            price: oneWayPrice,
-            displayPrice: `£${(oneWayPrice / 100).toFixed(2)}`,
-            breakdown: oneWayBreakdown,
+            price: finalOneWayPrice,
+            displayPrice: `£${(finalOneWayPrice / 100).toFixed(2)}`,
+            breakdown: {
+              ...oneWayBreakdown,
+              ...(surgeResult.isPeakPricing && {
+                basePriceBeforeSurge: oneWayPrice,
+                surgeMultiplier: surgeResult.combinedMultiplier,
+                total: finalOneWayPrice,
+              }),
+            },
+            ...surgeInfo,
           },
           return: {
-            price: returnPrice,
-            displayPrice: `£${(returnPrice / 100).toFixed(2)}`,
+            price: finalReturnPrice,
+            displayPrice: `£${(finalReturnPrice / 100).toFixed(2)}`,
             discount: {
               percentage: returnDiscount,
               amount: discountAmount,
@@ -1039,9 +1062,14 @@ export const handler = async (event, context) => {
               ...oneWayBreakdown,
               subtotal: returnPriceBeforeDiscount,
               discount: discountAmount,
-              total: returnPrice,
+              total: finalReturnPrice,
               ...(oneWayBreakdown.hourlyCharge && { hourlyCharge: oneWayBreakdown.hourlyCharge * 2 }),
+              ...(surgeResult.isPeakPricing && {
+                basePriceBeforeSurge: returnPrice,
+                surgeMultiplier: surgeResult.combinedMultiplier,
+              }),
             },
+            ...surgeInfo,
           },
         };
       }

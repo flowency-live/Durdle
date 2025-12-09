@@ -5,7 +5,8 @@
 // - 'one-way': Single journey from A to B
 // - 'round-trip': Journey A to B with return trip on specified date/time
 // - 'hourly': Hire by the hour from pickup location
-export type JourneyType = 'one-way' | 'round-trip' | 'hourly';
+// - 'by-the-hour': Backend API uses this for hourly journeys
+export type JourneyType = 'one-way' | 'round-trip' | 'hourly' | 'by-the-hour';
 
 // Optional Extras
 export interface Extras {
@@ -187,7 +188,14 @@ export interface VehiclePricing {
       total: number;
       hourlyCharge?: number;
       durationHours?: number;
+      // Surge pricing fields
+      basePriceBeforeSurge?: number;
+      surgeMultiplier?: number;
     };
+    // Surge pricing indicators
+    isPeakPricing?: boolean;
+    surgeMultiplier?: number;
+    appliedSurgeRules?: { name: string; multiplier: number }[];
   };
   return: {
     price: number;          // pence
@@ -205,7 +213,14 @@ export interface VehiclePricing {
       tax: number;
       total: number;
       hourlyCharge?: number;
+      // Surge pricing fields
+      basePriceBeforeSurge?: number;
+      surgeMultiplier?: number;
     };
+    // Surge pricing indicators
+    isPeakPricing?: boolean;
+    surgeMultiplier?: number;
+    appliedSurgeRules?: { name: string; multiplier: number }[];
   };
 }
 
