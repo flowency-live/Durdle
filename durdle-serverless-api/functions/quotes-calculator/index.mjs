@@ -14,6 +14,7 @@ import logger, {
   logValidationError,
   logCacheAccess,
 } from '/opt/nodejs/logger.mjs';
+import { getTenantId, buildTenantPK, logTenantContext } from '/opt/nodejs/tenant.mjs';
 
 const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION });
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
@@ -52,19 +53,22 @@ async function getGoogleMapsApiKey() {
   }
 }
 
-async function getVehiclePricing() {
+async function getVehiclePricing(tenantId) {
   // Check if cache is still valid
   if (vehiclePricingCache && pricingCacheTime && (Date.now() - pricingCacheTime < PRICING_CACHE_DURATION)) {
     return vehiclePricingCache;
   }
 
   try {
+    // Dual-format filter: supports both old (VEHICLE#id) and new (TENANT#001#VEHICLE#id) PK formats
     const command = new ScanCommand({
       TableName: PRICING_TABLE_NAME,
-      FilterExpression: 'begins_with(PK, :pkPrefix) AND SK = :sk',
+      FilterExpression: '(begins_with(PK, :tenantPrefix) OR begins_with(PK, :oldPrefix)) AND SK = :sk AND (attribute_not_exists(tenantId) OR tenantId = :tenantId)',
       ExpressionAttributeValues: {
-        ':pkPrefix': 'VEHICLE#',
-        ':sk': 'METADATA'
+        ':tenantPrefix': `${tenantId}#VEHICLE#`,
+        ':oldPrefix': 'VEHICLE#',
+        ':sk': 'METADATA',
+        ':tenantId': tenantId
       }
     });
 
@@ -148,7 +152,7 @@ function getFallbackPricing() {
 }
 
 // Check surge pricing for a specific pickup date/time
-async function checkSurgePricing(pickupDateTime) {
+async function checkSurgePricing(pickupDateTime, tenantId) {
   const pickupDate = new Date(pickupDateTime);
   const dayOfWeek = pickupDate.toLocaleDateString('en-GB', { weekday: 'long' }).toLowerCase();
   const dateString = pickupDate.toISOString().split('T')[0]; // "2025-12-25"
@@ -160,13 +164,15 @@ async function checkSurgePricing(pickupDateTime) {
   }
 
   try {
-    // Query all active surge rules
+    // Dual-format filter: supports both old (SURGE_RULE#id) and new (TENANT#001#SURGE_RULE#id) PK formats
     const command = new ScanCommand({
       TableName: SURGE_TABLE_NAME,
-      FilterExpression: 'begins_with(PK, :pkPrefix) AND isActive = :active',
+      FilterExpression: '(begins_with(PK, :tenantPrefix) OR begins_with(PK, :oldPrefix)) AND isActive = :active AND (attribute_not_exists(tenantId) OR tenantId = :tenantId)',
       ExpressionAttributeValues: {
-        ':pkPrefix': 'SURGE_RULE#',
+        ':tenantPrefix': `${tenantId}#SURGE_RULE#`,
+        ':oldPrefix': 'SURGE_RULE#',
         ':active': true,
+        ':tenantId': tenantId
       }
     });
 
@@ -276,22 +282,37 @@ function calculateSurge(rules, dateString, dayOfWeek, timeString) {
   };
 }
 
-async function checkFixedRoute(originPlaceId, destinationPlaceId, vehicleId) {
+async function checkFixedRoute(originPlaceId, destinationPlaceId, vehicleId, tenantId) {
   if (!originPlaceId || !destinationPlaceId || !vehicleId) {
     return null;
   }
 
   try {
+    // Try tenant-prefixed PK first
+    const tenantPK = buildTenantPK(tenantId, 'ROUTE', originPlaceId);
     const command = new QueryCommand({
       TableName: FIXED_ROUTES_TABLE_NAME,
       KeyConditionExpression: 'PK = :pk AND SK = :sk',
       ExpressionAttributeValues: {
-        ':pk': `ROUTE#${originPlaceId}`,
+        ':pk': tenantPK,
         ':sk': `DEST#${destinationPlaceId}#VEHICLE#${vehicleId}`
       }
     });
 
-    const result = await docClient.send(command);
+    let result = await docClient.send(command);
+
+    // Fallback to old PK format if not found
+    if (!result.Items || result.Items.length === 0) {
+      const oldCommand = new QueryCommand({
+        TableName: FIXED_ROUTES_TABLE_NAME,
+        KeyConditionExpression: 'PK = :pk AND SK = :sk',
+        ExpressionAttributeValues: {
+          ':pk': `ROUTE#${originPlaceId}`,
+          ':sk': `DEST#${destinationPlaceId}#VEHICLE#${vehicleId}`
+        }
+      });
+      result = await docClient.send(oldCommand);
+    }
 
     if (result.Items && result.Items.length > 0) {
       const route = result.Items[0];
@@ -483,8 +504,8 @@ async function calculateRouteWithWaypoints(origin, destination, waypoints, apiKe
   }
 }
 
-async function calculatePricing(distanceMiles, waitTimeMinutes, vehicleType = 'standard') {
-  const allPricing = await getVehiclePricing();
+async function calculatePricing(distanceMiles, waitTimeMinutes, vehicleType = 'standard', tenantId) {
+  const allPricing = await getVehiclePricing(tenantId);
   const rates = allPricing[vehicleType] || allPricing.standard;
 
   const baseFare = rates.baseFare;
@@ -554,11 +575,12 @@ function generateMagicToken() {
 }
 
 // Store a saved quote (no TTL - persists until booking or explicit delete)
-async function storeSavedQuote(quote, magicToken, logger) {
+async function storeSavedQuote(quote, magicToken, logger, tenantId) {
   const item = {
-    PK: `QUOTE#${quote.quoteId}`,
+    PK: buildTenantPK(tenantId, 'QUOTE', quote.quoteId),
     SK: 'METADATA',
     EntityType: 'Quote',
+    tenantId, // Always include tenant attribute for filtering
     GSI1PK: `STATUS#${quote.status}`,
     GSI1SK: `CREATED#${quote.createdAt}`,
     // No TTL for saved quotes - they persist
@@ -577,12 +599,14 @@ async function storeSavedQuote(quote, magicToken, logger) {
     logger.info({
       event: 'quote_saved',
       quoteId: quote.quoteId,
+      tenantId,
     }, 'Quote saved to DynamoDB');
   } catch (error) {
     logger.error({
       event: 'dynamodb_put_error',
       tableName: TABLE_NAME,
       quoteId: quote.quoteId,
+      tenantId,
       errorMessage: error.message,
     }, 'Failed to store quote in DynamoDB');
     throw new Error('Failed to save quote');
@@ -590,15 +614,27 @@ async function storeSavedQuote(quote, magicToken, logger) {
 }
 
 // Retrieve a quote by ID and magic token (public access)
-async function getQuoteByToken(quoteId, magicToken, logger) {
+async function getQuoteByToken(quoteId, magicToken, logger, tenantId) {
   try {
-    const result = await docClient.send(new GetCommand({
+    // Try tenant-prefixed PK first
+    let result = await docClient.send(new GetCommand({
       TableName: TABLE_NAME,
       Key: {
-        PK: `QUOTE#${quoteId}`,
+        PK: buildTenantPK(tenantId, 'QUOTE', quoteId),
         SK: 'METADATA',
       },
     }));
+
+    // Fallback to old PK format if not found
+    if (!result.Item) {
+      result = await docClient.send(new GetCommand({
+        TableName: TABLE_NAME,
+        Key: {
+          PK: `QUOTE#${quoteId}`,
+          SK: 'METADATA',
+        },
+      }));
+    }
 
     if (!result.Item) {
       return { found: false, error: 'Quote not found' };
@@ -609,6 +645,7 @@ async function getQuoteByToken(quoteId, magicToken, logger) {
       logger.warn({
         event: 'invalid_magic_token',
         quoteId,
+        tenantId,
       }, 'Invalid magic token for quote retrieval');
       return { found: false, error: 'Invalid token' };
     }
@@ -618,6 +655,7 @@ async function getQuoteByToken(quoteId, magicToken, logger) {
     logger.error({
       event: 'quote_retrieval_error',
       quoteId,
+      tenantId,
       errorMessage: error.message,
     }, 'Failed to retrieve quote');
     return { found: false, error: 'Failed to retrieve quote' };
@@ -627,6 +665,7 @@ async function getQuoteByToken(quoteId, magicToken, logger) {
 export const handler = async (event, context) => {
   const startTime = Date.now();
   const logger = createLogger(event, context);
+  const tenantId = getTenantId(event);
 
   const { httpMethod, path, pathParameters } = event;
 
@@ -636,6 +675,8 @@ export const handler = async (event, context) => {
     path,
     pathParameters,
   }, 'Quote calculator invoked');
+
+  logTenantContext(logger, tenantId, 'quotes_calculator');
 
   // CORS headers
   const headers = {
@@ -663,7 +704,7 @@ export const handler = async (event, context) => {
       };
     }
 
-    const result = await getQuoteByToken(quoteId, token, logger);
+    const result = await getQuoteByToken(quoteId, token, logger, tenantId);
     if (!result.found) {
       return {
         statusCode: 404,
@@ -706,7 +747,7 @@ export const handler = async (event, context) => {
         updatedAt: now,
       };
 
-      await storeSavedQuote(savedQuote, magicToken, logger);
+      await storeSavedQuote(savedQuote, magicToken, logger, tenantId);
 
       // Return quote ID, token, and shareable URL
       const shareUrl = `https://dorsettc.co.uk/quote/${quoteId}?token=${magicToken}`;
@@ -789,7 +830,7 @@ export const handler = async (event, context) => {
       }, 'Using hourly pricing calculation');
       isHourlyRate = true;
 
-      const allPricing = await getVehiclePricing();
+      const allPricing = await getVehiclePricing(tenantId);
       const vehicleRates = allPricing[vehicleType] || allPricing.standard;
       const perHour = vehicleRates.perHour || getFallbackPricing()[vehicleType].perHour;
       const hourlyCharge = durationHours * perHour;
@@ -831,7 +872,8 @@ export const handler = async (event, context) => {
         fixedRoute = await checkFixedRoute(
           body.pickupLocation.placeId,
           body.dropoffLocation.placeId,
-          vehicleType
+          vehicleType,
+          tenantId
         );
       }
 
@@ -857,7 +899,7 @@ export const handler = async (event, context) => {
           }
         };
 
-        const allPricing = await getVehiclePricing();
+        const allPricing = await getVehiclePricing(tenantId);
         const vehicleMetadata = allPricing[vehicleType] || allPricing.standard;
 
         pricing = {
@@ -919,7 +961,8 @@ export const handler = async (event, context) => {
         pricing = await calculatePricing(
           parseFloat(route.distance.miles),
           totalWaitTime, // Only charge for explicit wait times, not driving time
-          vehicleType
+          vehicleType,
+          tenantId
         );
       }
     } // End of one-way journey else block
@@ -928,7 +971,7 @@ export const handler = async (event, context) => {
     let surgeResult = { combinedMultiplier: 1.0, isPeakPricing: false, appliedRules: [], wasCapped: false };
 
     if (body.pickupTime && !isHourlyRate && !isFixedRoute) {
-      surgeResult = await checkSurgePricing(body.pickupTime);
+      surgeResult = await checkSurgePricing(body.pickupTime, tenantId);
 
       if (surgeResult.isPeakPricing) {
         logger.info({
@@ -970,7 +1013,7 @@ export const handler = async (event, context) => {
         hasRoute: !!route,
       }, 'Calculating prices for all vehicle types');
 
-      const allPricing = await getVehiclePricing();
+      const allPricing = await getVehiclePricing(tenantId);
       const vehicleTypes = ['standard', 'executive', 'minibus'];
       const vehicles = {};
 

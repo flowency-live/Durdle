@@ -3,6 +3,7 @@ import { DynamoDBDocumentClient, QueryCommand, GetCommand, PutCommand, UpdateCom
 import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
 import axios from 'axios';
 import { randomUUID } from 'crypto';
+import { getTenantId, buildTenantPK } from '/opt/nodejs/tenant.mjs';
 
 const client = new DynamoDBClient({ region: 'eu-west-2' });
 const ddbDocClient = DynamoDBDocumentClient.from(client);
@@ -39,6 +40,9 @@ export const handler = async (event) => {
   const origin = event.headers?.origin || event.headers?.Origin || '';
   const httpMethod = event.httpMethod || 'GET';
   const headers = getHeaders(origin);
+  const tenantId = getTenantId(event);
+
+  console.log('Tenant context:', { tenantId, operation: 'fixed_routes_manager' });
 
   if (httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -51,24 +55,24 @@ export const handler = async (event) => {
     switch (httpMethod) {
       case 'GET':
         if (routeId) {
-          return await getRoute(routeId, headers);
+          return await getRoute(routeId, headers, tenantId);
         }
-        return await listRoutes(queryStringParameters || {}, headers);
+        return await listRoutes(queryStringParameters || {}, headers, tenantId);
 
       case 'POST':
-        return await createRoute(requestBody, headers);
+        return await createRoute(requestBody, headers, tenantId);
 
       case 'PUT':
         if (!routeId) {
           return errorResponse(400, 'routeId is required', null, headers);
         }
-        return await updateRoute(routeId, requestBody, headers);
+        return await updateRoute(routeId, requestBody, headers, tenantId);
 
       case 'DELETE':
         if (!routeId) {
           return errorResponse(400, 'routeId is required', null, headers);
         }
-        return await deleteRoute(routeId, headers);
+        return await deleteRoute(routeId, headers, tenantId);
 
       default:
         return errorResponse(405, 'Method not allowed', null, headers);
@@ -122,10 +126,13 @@ async function fetchRouteDetails(originPlaceId, destinationPlaceId) {
   };
 }
 
-async function listRoutes(queryParams, headers) {
+async function listRoutes(queryParams, headers, tenantId) {
   const { origin, destination, vehicleId, active, limit, lastEvaluatedKey } = queryParams;
 
   let command;
+
+  // Tenant filter expression for all queries
+  const tenantFilter = 'attribute_not_exists(tenantId) OR tenantId = :tenantId';
 
   if (vehicleId) {
     // Query GSI1 for all routes for a specific vehicle
@@ -133,43 +140,38 @@ async function listRoutes(queryParams, headers) {
       TableName: FIXED_ROUTES_TABLE_NAME,
       IndexName: 'GSI1',
       KeyConditionExpression: 'GSI1PK = :gsi1pk',
+      FilterExpression: tenantFilter,
       ExpressionAttributeValues: {
-        ':gsi1pk': `VEHICLE#${vehicleId}`
+        ':gsi1pk': `VEHICLE#${vehicleId}`,
+        ':tenantId': tenantId
       },
       Limit: limit ? parseInt(limit) : 50,
       ExclusiveStartKey: lastEvaluatedKey ? JSON.parse(lastEvaluatedKey) : undefined
     });
   } else if (origin) {
-    // Query by origin place ID
-    const keyCondition = 'PK = :pk';
-    const expressionAttributeValues = {
-      ':pk': `ROUTE#${origin}`
-    };
-
-    if (destination) {
-      command = new QueryCommand({
-        TableName: FIXED_ROUTES_TABLE_NAME,
-        KeyConditionExpression: `${keyCondition} AND begins_with(SK, :sk)`,
-        ExpressionAttributeValues: {
-          ...expressionAttributeValues,
-          ':sk': `DEST#${destination}`
-        },
-        Limit: limit ? parseInt(limit) : 50,
-        ExclusiveStartKey: lastEvaluatedKey ? JSON.parse(lastEvaluatedKey) : undefined
-      });
-    } else {
-      command = new QueryCommand({
-        TableName: FIXED_ROUTES_TABLE_NAME,
-        KeyConditionExpression: keyCondition,
-        ExpressionAttributeValues: expressionAttributeValues,
-        Limit: limit ? parseInt(limit) : 50,
-        ExclusiveStartKey: lastEvaluatedKey ? JSON.parse(lastEvaluatedKey) : undefined
-      });
-    }
-  } else {
-    // Scan all routes (no specific filter)
+    // Query by origin place ID - try both tenant-prefixed and old format
+    // For now, use dual-format scan since PK varies
     command = new ScanCommand({
       TableName: FIXED_ROUTES_TABLE_NAME,
+      FilterExpression: `(begins_with(PK, :tenantPrefix) OR begins_with(PK, :oldPrefix)) AND (${tenantFilter})`,
+      ExpressionAttributeValues: {
+        ':tenantPrefix': `${tenantId}#ROUTE#${origin}`,
+        ':oldPrefix': `ROUTE#${origin}`,
+        ':tenantId': tenantId
+      },
+      Limit: limit ? parseInt(limit) : 50,
+      ExclusiveStartKey: lastEvaluatedKey ? JSON.parse(lastEvaluatedKey) : undefined
+    });
+  } else {
+    // Scan all routes with tenant filter
+    command = new ScanCommand({
+      TableName: FIXED_ROUTES_TABLE_NAME,
+      FilterExpression: `(begins_with(PK, :tenantPrefix) OR begins_with(PK, :oldPrefix)) AND (${tenantFilter})`,
+      ExpressionAttributeValues: {
+        ':tenantPrefix': `${tenantId}#ROUTE#`,
+        ':oldPrefix': 'ROUTE#',
+        ':tenantId': tenantId
+      },
       Limit: limit ? parseInt(limit) : 50,
       ExclusiveStartKey: lastEvaluatedKey ? JSON.parse(lastEvaluatedKey) : undefined
     });
@@ -198,13 +200,14 @@ async function listRoutes(queryParams, headers) {
   };
 }
 
-async function getRoute(routeId, headers) {
-  // Since we only have routeId, we need to scan to find the item
+async function getRoute(routeId, headers, tenantId) {
+  // Since we only have routeId, we need to scan to find the item with tenant filter
   const command = new ScanCommand({
     TableName: FIXED_ROUTES_TABLE_NAME,
-    FilterExpression: 'routeId = :routeId',
+    FilterExpression: 'routeId = :routeId AND (attribute_not_exists(tenantId) OR tenantId = :tenantId)',
     ExpressionAttributeValues: {
-      ':routeId': routeId
+      ':routeId': routeId,
+      ':tenantId': tenantId
     }
   });
 
@@ -221,7 +224,7 @@ async function getRoute(routeId, headers) {
   };
 }
 
-async function createRoute(requestBody, headers) {
+async function createRoute(requestBody, headers, tenantId) {
   const data = JSON.parse(requestBody);
 
   // Validate required fields
@@ -242,17 +245,32 @@ async function createRoute(requestBody, headers) {
     return errorResponse(400, 'Price cannot be negative', null, headers);
   }
 
-  // Check for duplicate route
+  // Check for duplicate route - try both tenant-prefixed and old formats
+  const tenantPK = buildTenantPK(tenantId, 'ROUTE', data.originPlaceId);
   const duplicateCheck = new QueryCommand({
     TableName: FIXED_ROUTES_TABLE_NAME,
     KeyConditionExpression: 'PK = :pk AND SK = :sk',
     ExpressionAttributeValues: {
-      ':pk': `ROUTE#${data.originPlaceId}`,
+      ':pk': tenantPK,
       ':sk': `DEST#${data.destinationPlaceId}#VEHICLE#${data.vehicleId}`
     }
   });
 
-  const duplicateResult = await ddbDocClient.send(duplicateCheck);
+  let duplicateResult = await ddbDocClient.send(duplicateCheck);
+
+  // Also check old format
+  if (!duplicateResult.Items || duplicateResult.Items.length === 0) {
+    const oldDuplicateCheck = new QueryCommand({
+      TableName: FIXED_ROUTES_TABLE_NAME,
+      KeyConditionExpression: 'PK = :pk AND SK = :sk',
+      ExpressionAttributeValues: {
+        ':pk': `ROUTE#${data.originPlaceId}`,
+        ':sk': `DEST#${data.destinationPlaceId}#VEHICLE#${data.vehicleId}`
+      }
+    });
+    duplicateResult = await ddbDocClient.send(oldDuplicateCheck);
+  }
+
   if (duplicateResult.Items && duplicateResult.Items.length > 0) {
     return errorResponse(409, 'Route already exists for this origin, destination, and vehicle combination', null, headers);
   }
@@ -269,8 +287,9 @@ async function createRoute(requestBody, headers) {
   const now = new Date().toISOString();
 
   const item = {
-    PK: `ROUTE#${data.originPlaceId}`,
+    PK: tenantPK,
     SK: `DEST#${data.destinationPlaceId}#VEHICLE#${data.vehicleId}`,
+    tenantId, // Always include tenant attribute for filtering
     GSI1PK: `VEHICLE#${data.vehicleId}`,
     GSI1SK: `ROUTE#${data.originPlaceId}#${data.destinationPlaceId}`,
     routeId,
@@ -310,15 +329,16 @@ async function createRoute(requestBody, headers) {
   };
 }
 
-async function updateRoute(routeId, requestBody, headers) {
+async function updateRoute(routeId, requestBody, headers, tenantId) {
   const data = JSON.parse(requestBody);
 
-  // Find the route first
+  // Find the route first with tenant filter
   const findCommand = new ScanCommand({
     TableName: FIXED_ROUTES_TABLE_NAME,
-    FilterExpression: 'routeId = :routeId',
+    FilterExpression: 'routeId = :routeId AND (attribute_not_exists(tenantId) OR tenantId = :tenantId)',
     ExpressionAttributeValues: {
-      ':routeId': routeId
+      ':routeId': routeId,
+      ':tenantId': tenantId
     }
   });
 
@@ -430,13 +450,14 @@ async function updateRoute(routeId, requestBody, headers) {
   };
 }
 
-async function deleteRoute(routeId, headers) {
-  // Find the route first
+async function deleteRoute(routeId, headers, tenantId) {
+  // Find the route first with tenant filter
   const findCommand = new ScanCommand({
     TableName: FIXED_ROUTES_TABLE_NAME,
-    FilterExpression: 'routeId = :routeId',
+    FilterExpression: 'routeId = :routeId AND (attribute_not_exists(tenantId) OR tenantId = :tenantId)',
     ExpressionAttributeValues: {
-      ':routeId': routeId
+      ':routeId': routeId,
+      ':tenantId': tenantId
     }
   });
 

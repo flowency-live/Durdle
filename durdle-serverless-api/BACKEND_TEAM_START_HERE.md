@@ -1,6 +1,6 @@
 # Backend Team - Start Here
 
-**Last Updated**: December 8, 2025
+**Last Updated**: December 9, 2025
 **Owner**: CTO
 **Purpose**: Single entry point for all backend development on Durdle platform
 
@@ -46,17 +46,21 @@ durdle-serverless-api/functions/quotes-calculator/STRUCTURE.md
 **We use Lambda Layers** to share code across functions. Currently deployed layer:
 
 **Layer Name**: `durdle-common-layer`
-**Current Version**: 3
-**Layer ARN**: `arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:3`
-**Contains**: logger.mjs + Pino dependency (includes logger.log() backward compatibility fix)
+**Current Version**: 5
+**Layer ARN**: `arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:5`
+**Contains**:
+- `logger.mjs` - Structured logging with Pino (includes logger.log() backward compatibility)
+- `tenant.mjs` - Multi-tenant utilities (Phase 0.5 - see Tenant Awareness section below)
+- `node_modules/pino` - Pino logging framework
 
 **Critical**: If a Lambda imports from `/opt/nodejs/`, it REQUIRES the layer attached or it will crash.
 
 ### 3. Do NOT Include Layer Files in Deployment ZIPs
 
 Files that are in Lambda Layers must NOT be in your deployment ZIP:
-- ❌ DO NOT include `logger.mjs` in deployment ZIPs
-- ✅ DO include all other .mjs files specific to that Lambda
+- DO NOT include `logger.mjs` in deployment ZIPs
+- DO NOT include `tenant.mjs` in deployment ZIPs
+- DO include all other .mjs files specific to that Lambda
 
 ### 4. Follow Deployment Commands Exactly
 
@@ -68,34 +72,36 @@ Each STRUCTURE.md has exact deployment commands. Copy and paste them. Do NOT mod
 
 All functions are in `durdle-serverless-api/functions/`:
 
-| Function | Description | Uses Layer? | STRUCTURE.md |
-|----------|-------------|-------------|--------------|
-| api-gateway-authorizer | JWT validation for API Gateway | No | [STRUCTURE.md](functions/api-gateway-authorizer/STRUCTURE.md) |
-| quotes-calculator | Calculate transfer quotes | ✅ Yes (v3) | [STRUCTURE.md](functions/quotes-calculator/STRUCTURE.md) |
-| quotes-manager | Admin quotes CRUD + export | ✅ Yes (v3) | [STRUCTURE.md](functions/quotes-manager/STRUCTURE.md) |
-| admin-auth | Admin authentication (JWT) | ✅ Yes (v3) | [STRUCTURE.md](functions/admin-auth/STRUCTURE.md) |
-| pricing-manager | Manage pricing config | ✅ Yes (v3) | [STRUCTURE.md](functions/pricing-manager/STRUCTURE.md) |
-| vehicle-manager | Manage vehicle fleet | ✅ Yes (v3) | [STRUCTURE.md](functions/vehicle-manager/STRUCTURE.md) |
-| feedback-manager | Customer feedback | ✅ Yes (v3) | [STRUCTURE.md](functions/feedback-manager/STRUCTURE.md) |
-| locations-lookup | Search locations | ✅ Yes (v3) | Not yet created |
-| uploads-presigned | S3 presigned URLs | ✅ Yes (v3) | Not yet created |
-| document-comments | Quote comments | ✅ Yes (v3) | Not yet created |
-| fixed-routes-manager | Fixed route pricing | ✅ Yes (v3) | Not yet created |
+| Function | Description | Layer | Tenant-Aware | STRUCTURE.md |
+|----------|-------------|-------|--------------|--------------|
+| api-gateway-authorizer | JWT validation for API Gateway | No | N/A | [STRUCTURE.md](functions/api-gateway-authorizer/STRUCTURE.md) |
+| quotes-calculator | Calculate transfer quotes | v5 | Yes | [STRUCTURE.md](functions/quotes-calculator/STRUCTURE.md) |
+| quotes-manager | Admin quotes CRUD + export | v5 | Yes | [STRUCTURE.md](functions/quotes-manager/STRUCTURE.md) |
+| bookings-manager | Booking management | v5 | Yes | Not yet created |
+| admin-auth | Admin authentication (JWT) | v5 | Yes | [STRUCTURE.md](functions/admin-auth/STRUCTURE.md) |
+| pricing-manager | Manage pricing config | v5 | Yes | [STRUCTURE.md](functions/pricing-manager/STRUCTURE.md) |
+| vehicle-manager | Manage vehicle fleet | v5 | Yes | [STRUCTURE.md](functions/vehicle-manager/STRUCTURE.md) |
+| feedback-manager | Customer feedback | v5 | Yes | [STRUCTURE.md](functions/feedback-manager/STRUCTURE.md) |
+| locations-lookup | Search locations | v5 | Yes (logging) | Not yet created |
+| uploads-presigned | S3 presigned URLs | v5 | Yes | Not yet created |
+| document-comments | Quote comments | v5 | Yes | Not yet created |
+| fixed-routes-manager | Fixed route pricing | v5 | Yes | Not yet created |
 
 **Deployment Status**:
-- ✅ **api-gateway-authorizer**: Fully documented, validates JWT for all admin routes
-- ✅ **quotes-calculator**: Fully documented, layer attached, structured logging (14 log events), Zod validation, 32 tests
-- ✅ **quotes-manager**: Fully documented, layer attached, handles /admin/quotes routes
-- ✅ **admin-auth**: Fully documented, layer attached, structured logging (security audit trails)
-- ✅ **pricing-manager**: Fully documented, layer attached, structured logging (19 log events), Zod validation
-- ✅ **vehicle-manager**: Fully documented, layer attached, structured logging (6 log events)
-- ✅ **feedback-manager**: Fully documented, layer attached, structured logging (7 log events)
-- ⚠️ **locations-lookup**: Layer attached, structured logging deployed (17 log events) - No STRUCTURE.md yet
-- ⚠️ **uploads-presigned**: Layer attached, structured logging deployed (7 log events) - No STRUCTURE.md yet
-- ⚠️ **document-comments**: Layer attached, structured logging deployed (23 log events) - No STRUCTURE.md yet
-- ⚠️ **fixed-routes-manager**: Layer attached, structured logging deployed (43 log events) - No STRUCTURE.md yet
+- **api-gateway-authorizer**: Fully documented, validates JWT for all admin routes
+- **quotes-calculator**: Fully documented, layer v5, tenant-aware, Zod validation, 32 tests
+- **quotes-manager**: Fully documented, layer v5, tenant-aware queries/exports
+- **bookings-manager**: Layer v5, tenant-aware bookings - needs STRUCTURE.md
+- **admin-auth**: Fully documented, layer v5, tenant-aware, tenantId in JWT tokens
+- **pricing-manager**: Fully documented, layer v5, tenant-aware pricing CRUD
+- **vehicle-manager**: Fully documented, layer v5, tenant-aware vehicle listing
+- **feedback-manager**: Fully documented, layer v5, tenant-aware feedback CRUD
+- **locations-lookup**: Layer v5, tenant context logging (no DynamoDB) - needs STRUCTURE.md
+- **uploads-presigned**: Layer v5, tenant-prefixed S3 paths - needs STRUCTURE.md
+- **document-comments**: Layer v5, tenant-prefixed document paths - needs STRUCTURE.md
+- **fixed-routes-manager**: Layer v5, tenant-aware routes CRUD - needs STRUCTURE.md
 
-**Summary**: 11 Lambdas total | 10/10 data Lambdas have Layer v3 | 8/11 have STRUCTURE.md | API Gateway authorizer active
+**Summary**: 11 Lambdas total | All data Lambdas have Layer v5 + tenant awareness | 8/11 have STRUCTURE.md
 
 ---
 
@@ -141,13 +147,13 @@ aws lambda get-function-configuration \
   --query 'Layers[*].Arn'
 ```
 
-Expected output: `["arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:3"]`
+Expected output: `["arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:5"]`
 
 If missing, attach it:
 ```bash
 aws lambda update-function-configuration \
   --function-name [function-name]-dev \
-  --layers arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:3 \
+  --layers arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:5 \
   --region eu-west-2
 ```
 
@@ -250,6 +256,97 @@ export const handler = async (event, context) => {
 
 ---
 
+## Tenant Awareness (Phase 0.5)
+
+**Status**: Implemented December 9, 2025
+**Documentation**: [MULTI_TENANT_ARCHITECTURE.md](../.documentation/CTO/MULTI_TENANT_ARCHITECTURE.md)
+
+### What Is This?
+
+Phase 0.5 implements "lightweight tenant-awareness" across all Lambda functions. This prepares the platform for multi-tenant operation when Client #2 arrives, without requiring full multi-tenancy infrastructure now.
+
+**Key Principle**: All NEW records include tenant context. Existing data unchanged (backward compatible).
+
+### Current Tenant
+
+All functions currently use hardcoded tenant: `TENANT#001`
+
+This will be replaced by API Gateway authorizer context when Client #2 onboards.
+
+### tenant.mjs Utilities (Lambda Layer v4)
+
+```javascript
+import { getTenantId, buildTenantPK, buildTenantS3Key, logTenantContext, validateTenantAccess } from '/opt/nodejs/tenant.mjs';
+
+// Get current tenant (hardcoded until authorizer built)
+const tenantId = getTenantId(event);  // Returns "TENANT#001"
+
+// Build tenant-prefixed DynamoDB partition key
+const pk = buildTenantPK(tenantId, 'VEHICLE', vehicleId);
+// Result: "TENANT#001#VEHICLE#standard"
+
+// Build tenant-prefixed S3 key (uses hyphens for S3 compatibility)
+const s3Key = buildTenantS3Key(tenantId, 'vehicles', 'image.jpg');
+// Result: "TENANT-001/vehicles/image.jpg"
+
+// Log tenant context at Lambda start
+logTenantContext(logger, tenantId, 'lambda_name');
+
+// Validate tenant access (cross-tenant guard)
+validateTenantAccess(requestTenantId, resourceTenantId);
+```
+
+### Dual-Format PK Pattern
+
+All read operations must support both old and new PK formats for backward compatibility:
+
+```javascript
+// Try tenant-prefixed PK first
+let result = await docClient.send(new GetCommand({
+  Key: { PK: buildTenantPK(tenantId, 'ENTITY', id), SK: 'METADATA' }
+}));
+
+// Fallback to old format if not found
+if (!result.Item) {
+  result = await docClient.send(new GetCommand({
+    Key: { PK: `ENTITY#${id}`, SK: 'METADATA' }
+  }));
+}
+```
+
+### GSI Query Tenant Filtering
+
+GSI keys don't include tenant prefix, so filter by attribute:
+
+```javascript
+FilterExpression: 'attribute_not_exists(tenantId) OR tenantId = :tenantId',
+ExpressionAttributeValues: {
+  ':tenantId': tenantId
+}
+```
+
+### New Record Pattern
+
+All new records MUST include tenant context:
+
+```javascript
+const item = {
+  PK: buildTenantPK(tenantId, 'ENTITY', entityId),
+  SK: 'METADATA',
+  tenantId,  // ALWAYS include tenant attribute
+  // ... other fields
+};
+```
+
+### What We Defer Until Client #2
+
+- API Gateway custom authorizer (extract tenantId from API key)
+- Multiple API keys (one per tenant)
+- Tenant management UI
+- Data migration (backfill existing records with tenant prefix)
+
+---
+
 ## Common Deployment Errors
 
 ### Error: "Runtime.ImportModuleError: Cannot find module 'index'"
@@ -261,7 +358,7 @@ export const handler = async (event, context) => {
 2. Verify all required .mjs files are listed in Compress-Archive command
 3. Recreate ZIP with correct file list
 
-### Error: "Cannot find module '/opt/nodejs/logger.mjs'"
+### Error: "Cannot find module '/opt/nodejs/logger.mjs'" or "Cannot find module '/opt/nodejs/tenant.mjs'"
 
 **Cause**: Lambda Layer not attached to function
 
@@ -269,7 +366,7 @@ export const handler = async (event, context) => {
 ```bash
 aws lambda update-function-configuration \
   --function-name [function-name]-dev \
-  --layers arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:3 \
+  --layers arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:5 \
   --region eu-west-2
 ```
 
@@ -356,7 +453,7 @@ Lambda environment variables are set in AWS console. Don't change without consul
 | API Gateway Authorizer | durdle-jwt-authorizer (c4xm5e) | JWT validation for admin routes |
 | DynamoDB Tables | durdle-*-dev | All dev tables |
 | Lambda Execution Role | durdle-lambda-execution-role-dev | IAM role for Lambdas |
-| Lambda Layer | durdle-common-layer:3 | Shared logger utility |
+| Lambda Layer | durdle-common-layer:5 | Shared logger + tenant utilities |
 
 ---
 
@@ -449,23 +546,24 @@ Start at this document, then drill down:
 
 ## Lambda Layer Details
 
-### Current Layer: durdle-common-layer:3
+### Current Layer: durdle-common-layer:5
 
 **What's in the layer**:
 - `nodejs/logger.mjs` - Structured logging utility (with logger.log() backward compatibility)
+- `nodejs/tenant.mjs` - Multi-tenant utilities (Phase 0.5)
 - `nodejs/node_modules/pino` - Pino logging framework
 
-**Layer Coverage**: 9/9 Lambdas (100%)
-- All backend Lambda functions now use Layer v3 for consistent observability
-- Centralized logging infrastructure achieved (Dec 6, 2025)
+**Layer Coverage**: 11/11 Lambdas (100%)
+- All backend Lambda functions now use Layer v5 with logging + tenant utilities
+- Centralized infrastructure for logging and multi-tenancy
 - **IMPORTANT**: Pino is ONLY in the Lambda Layer - DO NOT add it to package.json
-- Pino was removed from all Lambda package.json files (Dec 6, 2025) to eliminate duplication
+- Pino was removed from all Lambda package.json files to eliminate duplication
 - This reduces deployment package sizes by ~500 KB per Lambda
-- **Layer v3 Critical Fix**: Added logger.log() method for backward compatibility (Dec 6, 2025 evening)
 
 **How to use in Lambda code**:
 ```javascript
 import { createLogger } from '/opt/nodejs/logger.mjs';
+import { getTenantId, buildTenantPK, logTenantContext } from '/opt/nodejs/tenant.mjs';
 ```
 
 **How Lambdas access layer files**:
@@ -475,10 +573,12 @@ import { createLogger } from '/opt/nodejs/logger.mjs';
 **Layer versioning**:
 - Version 1: Initial release (had hardcoded service name bug)
 - Version 2: Fixed service name (deployed Dec 6 2025 morning)
-- Version 3: Added logger.log() backward compatibility method (current, deployed Dec 6 2025 evening)
+- Version 3: Added logger.log() backward compatibility method (deployed Dec 6 2025 evening)
+- Version 4: Intermediate release
+- Version 5: Added tenant.mjs for multi-tenant support (current, deployed Dec 9 2025)
 
 **When layer is updated**:
-- CTO will publish new version (e.g., version 4)
+- CTO will publish new version (e.g., version 6)
 - All Lambdas must update layer ARN to new version
 - STRUCTURE.md files will be updated with new ARN
 
@@ -533,18 +633,18 @@ aws lambda list-functions --region eu-west-2 --query 'Functions[?starts_with(Fun
 ---
 
 **Document Owner**: CTO
-**Last Updated**: December 8, 2025 (CTO infrastructure audit completed)
-**Next Review**: After remaining 3 Lambdas have STRUCTURE.md files
+**Last Updated**: December 9, 2025 (Phase 0.5 tenant awareness complete)
+**Next Review**: After remaining Lambdas have STRUCTURE.md files
 
 **Backend Foundation Status**:
-- ✅ API Gateway JWT Authorizer active for all admin routes (except /admin/auth/login)
-- ✅ 10/10 data Lambdas with Lambda Layer v3 (structured logging)
-- ✅ 8/11 Lambdas with STRUCTURE.md deployment documentation
-- ✅ ADMIN_ENDPOINT_STANDARD.md + LAMBDA_CODE_PATTERNS.md created
-- ✅ CORS, auth, and logging patterns fully documented
-- ✅ Gateway responses (401/403) configured with proper CORS
-- ✅ All Lambdas deployed and verified (Dec 8, 2025 15:17 UTC)
-- ✅ IAM policy includes all DynamoDB tables (document-comments added Dec 8)
-- ⏭️ Next: Create STRUCTURE.md for locations-lookup, uploads-presigned, document-comments, fixed-routes-manager
+- API Gateway JWT Authorizer active for all admin routes (except /admin/auth/login)
+- 11/11 Lambdas with Lambda Layer v5 (structured logging + tenant awareness)
+- 8/11 Lambdas with STRUCTURE.md deployment documentation
+- ADMIN_ENDPOINT_STANDARD.md + LAMBDA_CODE_PATTERNS.md created
+- CORS, auth, logging, and tenant patterns fully documented
+- Gateway responses (401/403) configured with proper CORS
+- Phase 0.5 multi-tenant refactor complete (Dec 9, 2025)
+- All data operations tenant-aware with dual-format backward compatibility
+- Next: Create STRUCTURE.md for remaining Lambdas, deploy Layer v4 + updated functions
 
 **Questions?** Consult CTO before deploying if anything is unclear.

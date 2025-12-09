@@ -1,6 +1,7 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { createLogger } from '/opt/nodejs/logger.mjs';
+import { getTenantId, logTenantContext } from '/opt/nodejs/tenant.mjs';
 
 const client = new DynamoDBClient({ region: 'eu-west-2' });
 const ddbDocClient = DynamoDBDocumentClient.from(client);
@@ -28,12 +29,15 @@ const getHeaders = (origin) => {
 
 export const handler = async (event, context) => {
   const logger = createLogger(event, context);
+  const tenantId = getTenantId(event);
 
   logger.info({
     event: 'lambda_invocation',
     httpMethod: event.httpMethod,
     path: event.path,
   }, 'Vehicle manager Lambda invoked');
+
+  logTenantContext(logger, tenantId, 'vehicle_manager');
 
   const origin = event.headers?.origin || event.headers?.Origin || '';
   const headers = getHeaders(origin);
@@ -53,9 +57,9 @@ export const handler = async (event, context) => {
     // Determine if this is public or admin endpoint
     const isPublic = path.includes('/v1/vehicles');
 
-    logger.info({ event: 'vehicle_list_request', isPublic }, 'Fetching vehicle list');
+    logger.info({ event: 'vehicle_list_request', isPublic, tenantId }, 'Fetching vehicle list');
 
-    return await listVehicles(isPublic, headers, logger);
+    return await listVehicles(isPublic, headers, logger, tenantId);
   } catch (error) {
     logger.error({
       event: 'lambda_error',
@@ -66,19 +70,23 @@ export const handler = async (event, context) => {
   }
 };
 
-async function listVehicles(isPublic, headers, logger) {
+async function listVehicles(isPublic, headers, logger, tenantId) {
   logger.info({
     event: 'dynamodb_operation',
     operation: 'scan',
     tableName: PRICING_TABLE_NAME,
+    tenantId,
   }, 'Scanning vehicles from DynamoDB');
 
+  // Dual-format filter: supports both old (VEHICLE#id) and new (TENANT#001#VEHICLE#id) PK formats
   const command = new ScanCommand({
     TableName: PRICING_TABLE_NAME,
-    FilterExpression: 'begins_with(PK, :pkPrefix) AND SK = :sk',
+    FilterExpression: '(begins_with(PK, :tenantPrefix) OR begins_with(PK, :oldPrefix)) AND SK = :sk AND (attribute_not_exists(tenantId) OR tenantId = :tenantId)',
     ExpressionAttributeValues: {
-      ':pkPrefix': 'VEHICLE#',
-      ':sk': 'METADATA'
+      ':tenantPrefix': `${tenantId}#VEHICLE#`,
+      ':oldPrefix': 'VEHICLE#',
+      ':sk': 'METADATA',
+      ':tenantId': tenantId
     }
   });
 
@@ -90,6 +98,7 @@ async function listVehicles(isPublic, headers, logger) {
     event: 'vehicle_list_fetched',
     totalCount: vehicles.length,
     isPublic,
+    tenantId,
   }, 'Vehicles fetched from database');
 
   // If public endpoint, only return active vehicles
@@ -141,6 +150,7 @@ async function listVehicles(isPublic, headers, logger) {
     count: formattedVehicles.length,
     isPublic,
     includePricing: !isPublic,
+    tenantId,
   }, 'Vehicle list returned successfully');
 
   return {

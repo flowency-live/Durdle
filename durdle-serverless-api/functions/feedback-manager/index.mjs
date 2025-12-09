@@ -2,6 +2,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, UpdateCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { randomUUID } from 'crypto';
 import { createLogger } from '/opt/nodejs/logger.mjs';
+import { getTenantId, buildTenantPK, logTenantContext } from '/opt/nodejs/tenant.mjs';
 
 const client = new DynamoDBClient({ region: 'eu-west-2' });
 const ddbDocClient = DynamoDBDocumentClient.from(client);
@@ -42,12 +43,15 @@ const getHeaders = (path, origin) => {
 
 export const handler = async (event, context) => {
   const logger = createLogger(event, context);
+  const tenantId = getTenantId(event);
 
   logger.info({
     event: 'lambda_invocation',
     httpMethod: event.httpMethod,
     path: event.path,
   }, 'Feedback manager Lambda invoked');
+
+  logTenantContext(logger, tenantId, 'feedback_manager');
 
   const origin = event.headers?.origin || event.headers?.Origin || '';
   const path = event.path || event.requestContext?.resourcePath || '';
@@ -63,29 +67,29 @@ export const handler = async (event, context) => {
 
     switch (httpMethod) {
       case 'GET':
-        logger.info({ event: 'feedback_operation', operation: 'GET', feedbackId }, 'Processing GET request');
+        logger.info({ event: 'feedback_operation', operation: 'GET', feedbackId, tenantId }, 'Processing GET request');
         if (feedbackId) {
-          return await getFeedback(feedbackId, headers, logger);
+          return await getFeedback(feedbackId, headers, logger, tenantId);
         }
-        return await listFeedback(headers, logger);
+        return await listFeedback(headers, logger, tenantId);
 
       case 'POST':
-        logger.info({ event: 'feedback_operation', operation: 'POST' }, 'Processing POST request');
-        return await createFeedback(requestBody, headers, logger);
+        logger.info({ event: 'feedback_operation', operation: 'POST', tenantId }, 'Processing POST request');
+        return await createFeedback(requestBody, headers, logger, tenantId);
 
       case 'PUT':
-        logger.info({ event: 'feedback_operation', operation: 'PUT', feedbackId }, 'Processing PUT request');
+        logger.info({ event: 'feedback_operation', operation: 'PUT', feedbackId, tenantId }, 'Processing PUT request');
         if (!feedbackId) {
           return errorResponse(400, 'feedbackId is required', null, headers);
         }
-        return await updateFeedback(feedbackId, requestBody, headers, logger);
+        return await updateFeedback(feedbackId, requestBody, headers, logger, tenantId);
 
       case 'DELETE':
-        logger.info({ event: 'feedback_operation', operation: 'DELETE', feedbackId }, 'Processing DELETE request');
+        logger.info({ event: 'feedback_operation', operation: 'DELETE', feedbackId, tenantId }, 'Processing DELETE request');
         if (!feedbackId) {
           return errorResponse(400, 'feedbackId is required', null, headers);
         }
-        return await deleteFeedback(feedbackId, headers, logger);
+        return await deleteFeedback(feedbackId, headers, logger, tenantId);
 
       default:
         return errorResponse(405, 'Method not allowed', null, headers);
@@ -95,26 +99,31 @@ export const handler = async (event, context) => {
       event: 'lambda_error',
       errorMessage: error.message,
       errorStack: error.stack,
+      tenantId,
     }, 'Unhandled error in feedback manager Lambda');
     return errorResponse(500, 'Internal server error', error.message, headers);
   }
 };
 
-async function listFeedback(headers, logger) {
-  logger.info({ event: 'feedback_list_start' }, 'Fetching all feedback');
+async function listFeedback(headers, logger, tenantId) {
+  logger.info({ event: 'feedback_list_start', tenantId }, 'Fetching all feedback');
 
   logger.info({
     event: 'dynamodb_operation',
     operation: 'Scan',
     tableName: FEEDBACK_TABLE_NAME,
+    tenantId,
   }, 'Querying DynamoDB for feedback');
 
+  // Dual-format filter: supports both old (FEEDBACK#id) and new (TENANT#001#FEEDBACK#id) PK formats
   const command = new ScanCommand({
     TableName: FEEDBACK_TABLE_NAME,
-    FilterExpression: 'begins_with(PK, :pkPrefix) AND SK = :sk',
+    FilterExpression: '(begins_with(PK, :tenantPrefix) OR begins_with(PK, :oldPrefix)) AND SK = :sk AND (attribute_not_exists(tenantId) OR tenantId = :tenantId)',
     ExpressionAttributeValues: {
-      ':pkPrefix': 'FEEDBACK#',
-      ':sk': 'METADATA'
+      ':tenantPrefix': `${tenantId}#FEEDBACK#`,
+      ':oldPrefix': 'FEEDBACK#',
+      ':sk': 'METADATA',
+      ':tenantId': tenantId
     }
   });
 
@@ -136,6 +145,7 @@ async function listFeedback(headers, logger) {
   logger.info({
     event: 'feedback_list_success',
     count: feedback.length,
+    tenantId,
   }, 'Successfully retrieved feedback');
 
   return {
@@ -148,28 +158,39 @@ async function listFeedback(headers, logger) {
   };
 }
 
-async function getFeedback(feedbackId, headers, logger) {
-  logger.info({ event: 'feedback_get_start', feedbackId }, 'Fetching feedback by ID');
+async function getFeedback(feedbackId, headers, logger, tenantId) {
+  logger.info({ event: 'feedback_get_start', feedbackId, tenantId }, 'Fetching feedback by ID');
 
   logger.info({
     event: 'dynamodb_operation',
     operation: 'GetCommand',
     tableName: FEEDBACK_TABLE_NAME,
     feedbackId,
+    tenantId,
   }, 'Querying DynamoDB for feedback');
 
-  const command = new GetCommand({
+  // Try tenant-prefixed PK first
+  let result = await ddbDocClient.send(new GetCommand({
     TableName: FEEDBACK_TABLE_NAME,
     Key: {
-      PK: `FEEDBACK#${feedbackId}`,
+      PK: buildTenantPK(tenantId, 'FEEDBACK', feedbackId),
       SK: 'METADATA'
     }
-  });
+  }));
 
-  const result = await ddbDocClient.send(command);
+  // Fallback to old PK format if not found
+  if (!result.Item) {
+    result = await ddbDocClient.send(new GetCommand({
+      TableName: FEEDBACK_TABLE_NAME,
+      Key: {
+        PK: `FEEDBACK#${feedbackId}`,
+        SK: 'METADATA'
+      }
+    }));
+  }
 
   if (!result.Item) {
-    logger.warn({ event: 'feedback_get_not_found', feedbackId }, 'Feedback not found');
+    logger.warn({ event: 'feedback_get_not_found', feedbackId, tenantId }, 'Feedback not found');
     return errorResponse(404, 'Feedback not found', null, headers);
   }
 
@@ -183,7 +204,7 @@ async function getFeedback(feedbackId, headers, logger) {
     updatedAt: result.Item.updatedAt
   };
 
-  logger.info({ event: 'feedback_get_success', feedbackId }, 'Successfully retrieved feedback');
+  logger.info({ event: 'feedback_get_success', feedbackId, tenantId }, 'Successfully retrieved feedback');
 
   return {
     statusCode: 200,
@@ -192,8 +213,8 @@ async function getFeedback(feedbackId, headers, logger) {
   };
 }
 
-async function createFeedback(requestBody, headers, logger) {
-  logger.info({ event: 'feedback_create_start' }, 'Creating new feedback');
+async function createFeedback(requestBody, headers, logger, tenantId) {
+  logger.info({ event: 'feedback_create_start', tenantId }, 'Creating new feedback');
 
   const data = JSON.parse(requestBody);
 
@@ -205,6 +226,7 @@ async function createFeedback(requestBody, headers, logger) {
         event: 'validation_error',
         field,
         error: 'Missing required field',
+        tenantId,
       }, 'Feedback creation validation failed');
       return errorResponse(400, `Missing required field: ${field}`, null, headers);
     }
@@ -218,6 +240,7 @@ async function createFeedback(requestBody, headers, logger) {
       field: 'type',
       providedValue: data.type,
       allowedValues: validTypes,
+      tenantId,
     }, 'Invalid feedback type provided');
     return errorResponse(400, `Invalid type. Must be one of: ${validTypes.join(', ')}`, null, headers);
   }
@@ -226,10 +249,11 @@ async function createFeedback(requestBody, headers, logger) {
   const now = new Date().toISOString();
 
   const item = {
-    PK: `FEEDBACK#${feedbackId}`,
+    PK: buildTenantPK(tenantId, 'FEEDBACK', feedbackId),
     SK: 'METADATA',
     GSI1PK: `STATUS#New`,
     GSI1SK: `CREATED#${now}`,
+    tenantId, // Always include tenant attribute for filtering
     feedbackId,
     type: data.type,
     page: data.page,
@@ -245,6 +269,7 @@ async function createFeedback(requestBody, headers, logger) {
     tableName: FEEDBACK_TABLE_NAME,
     feedbackId,
     type: data.type,
+    tenantId,
   }, 'Creating feedback in DynamoDB');
 
   const command = new PutCommand({
@@ -258,6 +283,7 @@ async function createFeedback(requestBody, headers, logger) {
     event: 'feedback_create_success',
     feedbackId,
     type: data.type,
+    tenantId,
   }, 'Feedback created successfully');
 
   return {
@@ -279,32 +305,47 @@ async function createFeedback(requestBody, headers, logger) {
   };
 }
 
-async function updateFeedback(feedbackId, requestBody, headers, logger) {
-  logger.info({ event: 'feedback_update_start', feedbackId }, 'Updating feedback');
+async function updateFeedback(feedbackId, requestBody, headers, logger, tenantId) {
+  logger.info({ event: 'feedback_update_start', feedbackId, tenantId }, 'Updating feedback');
 
   const data = JSON.parse(requestBody);
 
-  // Check if feedback exists
+  // Check if feedback exists with dual-format lookup
   logger.info({
     event: 'dynamodb_operation',
     operation: 'GetCommand',
     tableName: FEEDBACK_TABLE_NAME,
     feedbackId,
+    tenantId,
   }, 'Checking if feedback exists');
 
-  const getCommand = new GetCommand({
+  // Try tenant-prefixed PK first
+  let existingItem = await ddbDocClient.send(new GetCommand({
     TableName: FEEDBACK_TABLE_NAME,
     Key: {
-      PK: `FEEDBACK#${feedbackId}`,
+      PK: buildTenantPK(tenantId, 'FEEDBACK', feedbackId),
       SK: 'METADATA'
     }
-  });
+  }));
 
-  const existingItem = await ddbDocClient.send(getCommand);
+  // Fallback to old PK format if not found
   if (!existingItem.Item) {
-    logger.warn({ event: 'feedback_update_not_found', feedbackId }, 'Feedback not found');
+    existingItem = await ddbDocClient.send(new GetCommand({
+      TableName: FEEDBACK_TABLE_NAME,
+      Key: {
+        PK: `FEEDBACK#${feedbackId}`,
+        SK: 'METADATA'
+      }
+    }));
+  }
+
+  if (!existingItem.Item) {
+    logger.warn({ event: 'feedback_update_not_found', feedbackId, tenantId }, 'Feedback not found');
     return errorResponse(404, 'Feedback not found', null, headers);
   }
+
+  // Use the PK from the found record (could be old or new format)
+  const existingPK = existingItem.Item.PK;
 
   // Build update expression
   const updates = [];
@@ -319,6 +360,7 @@ async function updateFeedback(feedbackId, requestBody, headers, logger) {
         field: 'status',
         providedValue: data.status,
         allowedValues: validStatuses,
+        tenantId,
       }, 'Invalid feedback status provided');
       return errorResponse(400, `Invalid status. Must be one of: ${validStatuses.join(', ')}`, null, headers);
     }
@@ -337,7 +379,7 @@ async function updateFeedback(feedbackId, requestBody, headers, logger) {
   }
 
   if (updates.length === 0) {
-    logger.warn({ event: 'feedback_update_no_fields', feedbackId }, 'No fields provided for update');
+    logger.warn({ event: 'feedback_update_no_fields', feedbackId, tenantId }, 'No fields provided for update');
     return errorResponse(400, 'No fields to update', null, headers);
   }
 
@@ -352,12 +394,13 @@ async function updateFeedback(feedbackId, requestBody, headers, logger) {
     tableName: FEEDBACK_TABLE_NAME,
     feedbackId,
     fieldsUpdated,
+    tenantId,
   }, 'Updating feedback in DynamoDB');
 
   const updateCommand = new UpdateCommand({
     TableName: FEEDBACK_TABLE_NAME,
     Key: {
-      PK: `FEEDBACK#${feedbackId}`,
+      PK: existingPK,
       SK: 'METADATA'
     },
     UpdateExpression: `SET ${updates.join(', ')}`,
@@ -372,6 +415,7 @@ async function updateFeedback(feedbackId, requestBody, headers, logger) {
     event: 'feedback_update_success',
     feedbackId,
     fieldsUpdated,
+    tenantId,
   }, 'Feedback updated successfully');
 
   return {
@@ -392,49 +436,70 @@ async function updateFeedback(feedbackId, requestBody, headers, logger) {
   };
 }
 
-async function deleteFeedback(feedbackId, headers, logger) {
-  logger.info({ event: 'feedback_delete_start', feedbackId }, 'Deleting feedback');
+async function deleteFeedback(feedbackId, headers, logger, tenantId) {
+  logger.info({ event: 'feedback_delete_start', feedbackId, tenantId }, 'Deleting feedback');
+
+  // First find the record to get the correct PK format
+  let existingItem = await ddbDocClient.send(new GetCommand({
+    TableName: FEEDBACK_TABLE_NAME,
+    Key: {
+      PK: buildTenantPK(tenantId, 'FEEDBACK', feedbackId),
+      SK: 'METADATA'
+    }
+  }));
+
+  // Fallback to old PK format if not found
+  if (!existingItem.Item) {
+    existingItem = await ddbDocClient.send(new GetCommand({
+      TableName: FEEDBACK_TABLE_NAME,
+      Key: {
+        PK: `FEEDBACK#${feedbackId}`,
+        SK: 'METADATA'
+      }
+    }));
+  }
+
+  if (!existingItem.Item) {
+    logger.warn({ event: 'feedback_delete_not_found', feedbackId, tenantId }, 'Feedback not found');
+    return errorResponse(404, 'Feedback not found', null, headers);
+  }
+
+  // Use the PK from the found record
+  const existingPK = existingItem.Item.PK;
 
   logger.info({
     event: 'dynamodb_operation',
     operation: 'DeleteCommand',
     tableName: FEEDBACK_TABLE_NAME,
     feedbackId,
+    tenantId,
   }, 'Deleting feedback from DynamoDB');
 
   const deleteCommand = new DeleteCommand({
     TableName: FEEDBACK_TABLE_NAME,
     Key: {
-      PK: `FEEDBACK#${feedbackId}`,
+      PK: existingPK,
       SK: 'METADATA'
     },
-    ConditionExpression: 'attribute_exists(PK)',
     ReturnValues: 'ALL_OLD'
   });
 
-  try {
-    await ddbDocClient.send(deleteCommand);
+  await ddbDocClient.send(deleteCommand);
 
-    logger.info({
-      event: 'feedback_delete_success',
-      feedbackId,
-    }, 'Feedback deleted successfully');
+  logger.info({
+    event: 'feedback_delete_success',
+    feedbackId,
+    tenantId,
+  }, 'Feedback deleted successfully');
 
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({
-        message: 'Feedback deleted successfully',
-        feedbackId
-      })
-    };
-  } catch (error) {
-    if (error.name === 'ConditionalCheckFailedException') {
-      logger.warn({ event: 'feedback_delete_not_found', feedbackId }, 'Feedback not found');
-      return errorResponse(404, 'Feedback not found', null, headers);
-    }
-    throw error;
-  }
+  return {
+    statusCode: 200,
+    headers,
+    body: JSON.stringify({
+      message: 'Feedback deleted successfully',
+      feedbackId
+    })
+  };
 }
 
 function errorResponse(statusCode, message, details = null, headers) {

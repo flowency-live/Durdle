@@ -2,6 +2,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand, QueryCommand, GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { randomUUID } from 'crypto';
 import logger, { createLogger } from '/opt/nodejs/logger.mjs';
+import { getTenantId, buildTenantPK, logTenantContext } from '/opt/nodejs/tenant.mjs';
 
 const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION });
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
@@ -60,15 +61,16 @@ async function generateBookingId() {
 }
 
 // Store a new booking
-async function createBooking(bookingData, log) {
+async function createBooking(bookingData, log, tenantId) {
   const bookingId = await generateBookingId();
   const now = new Date().toISOString();
   const dateKey = now.split('T')[0]; // yyyy-mm-dd
 
   const item = {
-    PK: `BOOKING#${bookingId}`,
+    PK: buildTenantPK(tenantId, 'BOOKING', bookingId),
     SK: 'METADATA',
     EntityType: 'Booking',
+    tenantId, // Always include tenant attribute for filtering
     bookingId,
     // GSI1: Status-based queries (STATUS#pending + PICKUP#datetime)
     GSI1PK: `STATUS#${bookingData.status || 'pending'}`,
@@ -115,7 +117,7 @@ async function createBooking(bookingData, log) {
     Item: item,
   }));
 
-  log.info({ bookingId, quoteId: bookingData.quoteId }, 'Booking created successfully');
+  log.info({ bookingId, quoteId: bookingData.quoteId, tenantId }, 'Booking created successfully');
 
   return {
     bookingId,
@@ -130,27 +132,37 @@ async function createBooking(bookingData, log) {
 }
 
 // Get booking by ID
-async function getBooking(bookingId, log) {
-  const command = new GetCommand({
+async function getBooking(bookingId, log, tenantId) {
+  // Try tenant-prefixed PK first
+  let result = await docClient.send(new GetCommand({
     TableName: BOOKINGS_TABLE_NAME,
     Key: {
-      PK: `BOOKING#${bookingId}`,
+      PK: buildTenantPK(tenantId, 'BOOKING', bookingId),
       SK: 'METADATA',
     },
-  });
+  }));
 
-  const result = await docClient.send(command);
+  // Fallback to old PK format if not found
+  if (!result.Item) {
+    result = await docClient.send(new GetCommand({
+      TableName: BOOKINGS_TABLE_NAME,
+      Key: {
+        PK: `BOOKING#${bookingId}`,
+        SK: 'METADATA',
+      },
+    }));
+  }
 
   if (!result.Item) {
     return null;
   }
 
-  log.info({ bookingId }, 'Booking retrieved');
+  log.info({ bookingId, tenantId }, 'Booking retrieved');
   return result.Item;
 }
 
 // List bookings (admin) with optional status filter
-async function listBookings(options = {}, log) {
+async function listBookings(options = {}, log, tenantId) {
   const { status, limit = 50, startDate, endDate } = options;
 
   let command;
@@ -161,8 +173,11 @@ async function listBookings(options = {}, log) {
       TableName: BOOKINGS_TABLE_NAME,
       IndexName: 'GSI1',
       KeyConditionExpression: 'GSI1PK = :statusKey',
+      // Filter by tenant: support both old (no tenantId) and new (with tenantId) records
+      FilterExpression: 'attribute_not_exists(tenantId) OR tenantId = :tenantId',
       ExpressionAttributeValues: {
         ':statusKey': `STATUS#${status}`,
+        ':tenantId': tenantId,
       },
       Limit: limit,
       ScanIndexForward: false, // Most recent first
@@ -173,8 +188,10 @@ async function listBookings(options = {}, log) {
       TableName: BOOKINGS_TABLE_NAME,
       IndexName: 'GSI2',
       KeyConditionExpression: 'GSI2PK = :dateKey',
+      FilterExpression: 'attribute_not_exists(tenantId) OR tenantId = :tenantId',
       ExpressionAttributeValues: {
         ':dateKey': `DATE#${startDate}`,
+        ':tenantId': tenantId,
       },
       Limit: limit,
       ScanIndexForward: false,
@@ -186,8 +203,10 @@ async function listBookings(options = {}, log) {
       TableName: BOOKINGS_TABLE_NAME,
       IndexName: 'GSI2',
       KeyConditionExpression: 'GSI2PK = :dateKey',
+      FilterExpression: 'attribute_not_exists(tenantId) OR tenantId = :tenantId',
       ExpressionAttributeValues: {
         ':dateKey': `DATE#${today}`,
+        ':tenantId': tenantId,
       },
       Limit: limit,
       ScanIndexForward: false,
@@ -196,24 +215,25 @@ async function listBookings(options = {}, log) {
 
   const result = await docClient.send(command);
 
-  log.info({ count: result.Items?.length || 0, status, startDate }, 'Bookings listed');
+  log.info({ count: result.Items?.length || 0, status, startDate, tenantId }, 'Bookings listed');
   return result.Items || [];
 }
 
 // Update booking status
-async function updateBookingStatus(bookingId, newStatus, log) {
+async function updateBookingStatus(bookingId, newStatus, log, tenantId) {
   const now = new Date().toISOString();
 
-  // First get the existing booking to get pickupTime for GSI1SK
-  const existing = await getBooking(bookingId, log);
+  // First get the existing booking to get pickupTime for GSI1SK and determine correct PK format
+  const existing = await getBooking(bookingId, log, tenantId);
   if (!existing) {
     return null;
   }
 
+  // Use the PK from the found record (could be old or new format)
   const command = new UpdateCommand({
     TableName: BOOKINGS_TABLE_NAME,
     Key: {
-      PK: `BOOKING#${bookingId}`,
+      PK: existing.PK,
       SK: 'METADATA',
     },
     UpdateExpression: 'SET #status = :status, GSI1PK = :gsi1pk, updatedAt = :updatedAt',
@@ -229,13 +249,14 @@ async function updateBookingStatus(bookingId, newStatus, log) {
   });
 
   const result = await docClient.send(command);
-  log.info({ bookingId, newStatus }, 'Booking status updated');
+  log.info({ bookingId, newStatus, tenantId }, 'Booking status updated');
   return result.Attributes;
 }
 
 export const handler = async (event, context) => {
   const startTime = Date.now();
   const log = createLogger(event, context);
+  const tenantId = getTenantId(event);
 
   const origin = event.headers?.origin || event.headers?.Origin || '';
   const headers = getHeaders(origin);
@@ -254,6 +275,8 @@ export const handler = async (event, context) => {
     pathParameters,
   }, 'Bookings manager request');
 
+  logTenantContext(log, tenantId, 'bookings_manager');
+
   try {
     // Route: POST /bookings - Create a new booking
     if (httpMethod === 'POST' && !pathParameters?.bookingId) {
@@ -270,7 +293,7 @@ export const handler = async (event, context) => {
         };
       }
 
-      const booking = await createBooking(body, log);
+      const booking = await createBooking(body, log, tenantId);
 
       return {
         statusCode: 201,
@@ -285,7 +308,7 @@ export const handler = async (event, context) => {
     // Route: GET /bookings/{bookingId} - Get booking by ID
     if (httpMethod === 'GET' && pathParameters?.bookingId) {
       const { bookingId } = pathParameters;
-      const booking = await getBooking(bookingId, log);
+      const booking = await getBooking(bookingId, log, tenantId);
 
       if (!booking) {
         return {
@@ -310,7 +333,7 @@ export const handler = async (event, context) => {
         startDate: queryStringParameters?.date,
       };
 
-      const bookings = await listBookings(options, log);
+      const bookings = await listBookings(options, log, tenantId);
 
       return {
         statusCode: 200,
@@ -341,7 +364,7 @@ export const handler = async (event, context) => {
         };
       }
 
-      const updated = await updateBookingStatus(bookingId, body.status, log);
+      const updated = await updateBookingStatus(bookingId, body.status, log, tenantId);
 
       if (!updated) {
         return {

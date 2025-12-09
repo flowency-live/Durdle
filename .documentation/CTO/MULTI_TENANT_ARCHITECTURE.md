@@ -1,8 +1,8 @@
 # Multi-Tenant Backend Architecture - Durdle Platform
 
-**Status**: Planning Phase (6-month timeline)
+**Status**: Phase 0.5 COMPLETE - Lightweight Tenant-Awareness Implemented
 **Priority**: Medium (required before Client #2 onboarding)
-**Last Updated**: December 6, 2025
+**Last Updated**: December 9, 2025
 
 ---
 
@@ -230,41 +230,72 @@ durdle-uploads/
 
 ---
 
-## Phase 0.5: Lightweight Tenant-Awareness (NOW)
+## Phase 0.5: Lightweight Tenant-Awareness (COMPLETED December 9, 2025)
 
 **Rationale**: We don't need full multi-tenancy until Client #2, but we're building admin features (postcode zones, destinations, pricing matrices) that MUST be tenant-aware from day one. Retrofitting tenant isolation later is painful and risky.
 
-### What We Do NOW (Before Client #2)
+### Implementation Status
 
-1. **Add tenantId to all new DynamoDB records**
-   - New features (zones, destinations, pricing) get `tenantId: "TENANT#001"` field
-   - New partition keys include tenant prefix: `TENANT#001#ZONE#...`
-   - Existing data unchanged (backfill later)
+**Lambda Layer v4** deployed with `tenant.mjs` utilities:
+- `getTenantId(event)` - Returns hardcoded `TENANT#001` (until authorizer is built)
+- `buildTenantPK(tenantId, entityType, entityId)` - Builds prefixed PK
+- `buildTenantS3Key(tenantId, folder, filename)` - Builds S3 path with hyphens
+- `logTenantContext(logger, tenantId, lambdaName)` - Structured tenant logging
+- `validateTenantAccess(requestTenant, resourceTenant)` - Cross-tenant guard
 
-2. **Hardcode tenant in Lambda functions (temporarily)**
+### Lambda Functions Updated
+
+| Lambda | Status | Changes |
+|--------|--------|---------|
+| pricing-manager | DONE | Dual-format PK queries, tenant attribute on new records |
+| vehicle-manager | DONE | Dual-format PK queries for vehicle listing |
+| quotes-calculator | DONE | Tenant-aware pricing, routes, quote storage |
+| quotes-manager | DONE | Tenant-aware queries and exports |
+| bookings-manager | DONE | Tenant-prefixed booking PKs, GSI filters |
+| fixed-routes-manager | DONE | Tenant-prefixed route PKs |
+| feedback-manager | DONE | Tenant-prefixed feedback PKs |
+| document-comments | DONE | Tenant-prefixed documentPath |
+| admin-auth | DONE | Tenant-prefixed user PKs, tenantId in JWT |
+| uploads-presigned | DONE | S3 keys: `TENANT-001/folder/filename` |
+| locations-lookup | DONE | Tenant context logging (no DynamoDB) |
+
+### Key Patterns Implemented
+
+1. **Dual-Format PK Support** - All read operations try tenant-prefixed PK first, fall back to old format
    ```javascript
-   // Until we build the authorizer, hardcode the tenant
-   const CURRENT_TENANT = 'TENANT#001';
-
-   // All new queries include tenant
-   const zones = await docClient.send(new QueryCommand({
-     TableName: TABLE_NAME,
-     KeyConditionExpression: 'PK = :pk',
-     ExpressionAttributeValues: { ':pk': `${CURRENT_TENANT}#ZONE#${zoneId}` }
+   // Try new format first
+   let result = await docClient.send(new GetCommand({
+     Key: { PK: buildTenantPK(tenantId, 'ENTITY', id), SK: 'METADATA' }
    }));
+   // Fallback to old format if not found
+   if (!result.Item) {
+     result = await docClient.send(new GetCommand({
+       Key: { PK: `ENTITY#${id}`, SK: 'METADATA' }
+     }));
+   }
    ```
 
-3. **Design admin UI as tenant-scoped**
-   - All admin screens assume tenant context
-   - API endpoints include tenant in request path or derive from auth
-   - Easy to swap hardcoded tenant for authorizer-derived tenant later
+2. **Tenant Filter for GSI Queries** - GSI keys don't include tenant, so filter on attribute
+   ```javascript
+   FilterExpression: 'attribute_not_exists(tenantId) OR tenantId = :tenantId'
+   ```
+
+3. **New Records Always Include Tenant**
+   ```javascript
+   const item = {
+     PK: buildTenantPK(tenantId, 'ENTITY', id),
+     SK: 'METADATA',
+     tenantId, // Always include tenant attribute
+     // ... other fields
+   };
+   ```
 
 ### What We Defer (Until Client #2 Sales)
 
 - API Gateway custom authorizer
 - Multiple API keys
 - Tenant management UI
-- Migration of existing data
+- Migration of existing data (backfill)
 
 ### Benefits of This Approach
 
@@ -272,6 +303,7 @@ durdle-uploads/
 - **No throwaway work** - everything built now works in multi-tenant future
 - **Fast Client #2 onboarding** - just add authorizer and new API key
 - **Clean separation** - tenant boundary enforced from day one
+- **Backward compatible** - existing data continues to work
 
 ---
 
@@ -420,6 +452,30 @@ validateTenantAccess(tenantId, quote.tenantId);
 ---
 
 **Document Owner**: CTO
-**Status**: Architecture Documented, Phase 0.5 Ready for Implementation
+**Status**: Phase 0.5 COMPLETE - All Lambda functions tenant-aware
 **Last Updated**: December 9, 2025
 **Review Date**: When Client #2 sales discussions begin
+
+---
+
+## Next Steps for Client #2 Onboarding
+
+When ready to onboard Client #2, the following work remains:
+
+1. **Build API Gateway Custom Authorizer** (~4 hours)
+   - Extract tenantId from API key
+   - Replace hardcoded `CURRENT_TENANT` with authorizer context
+
+2. **Create Tenant 002 API Key** (~1 hour)
+   - Generate API key in API Gateway
+   - Map to `TENANT#002` in authorizer
+
+3. **Backfill Existing Data** (~2 hours)
+   - Add `tenantId: "TENANT#001"` attribute to existing records
+   - Update PKs from `ENTITY#id` to `TENANT#001#ENTITY#id` (optional - dual-format works)
+
+4. **Deploy Client #2 Frontend** (~8 hours)
+   - Clone durdle-web to durdle-web-002
+   - Update branding, domain, API key
+
+**Estimated Total**: 15-20 hours when Client #2 is ready

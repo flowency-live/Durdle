@@ -342,7 +342,7 @@ export default function QuoteResult({ quote, onNewQuote, onBack, onConfirmBookin
               <Button
                 type="button"
                 size="xl"
-                className="flex-1 border border-border bg-background hover:bg-muted"
+                className="flex-1 bg-sage-dark hover:bg-sage-dark/90 text-white"
                 onClick={() => setShowShareModal(true)}
               >
                 <Share2 className="w-4 h-4 mr-2" />

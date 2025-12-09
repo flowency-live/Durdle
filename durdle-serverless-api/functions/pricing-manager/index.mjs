@@ -2,6 +2,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { randomUUID } from 'crypto';
 import { createLogger } from '/opt/nodejs/logger.mjs';
+import { getTenantId, buildTenantPK, logTenantContext } from '/opt/nodejs/tenant.mjs';
 import { z } from 'zod';
 import {
   listSurgeRules,
@@ -73,13 +74,17 @@ const getHeaders = (origin) => {
 
 export const handler = async (event, context) => {
   const logger = createLogger(event, context);
+  const tenantId = getTenantId(event);
 
   logger.info({
     event: 'lambda_invocation',
     httpMethod: event.httpMethod,
     path: event.path,
     resource: event.resource,
+    tenantId,
   }, 'Pricing manager Lambda invoked');
+
+  logTenantContext(logger, tenantId, 'pricing_manager');
 
   const origin = event.headers?.origin || event.headers?.Origin || '';
   const headers = getHeaders(origin);
@@ -95,23 +100,24 @@ export const handler = async (event, context) => {
     const isSurgeRoute = path?.includes('/surge') || resource?.includes('/surge');
 
     if (isSurgeRoute) {
-      return await handleSurgeRoutes(httpMethod, pathParameters, requestBody, headers, logger, path);
+      return await handleSurgeRoutes(httpMethod, pathParameters, requestBody, headers, logger, path, tenantId);
     }
 
     // Vehicle routes (existing functionality)
-    return await handleVehicleRoutes(httpMethod, pathParameters, requestBody, headers, logger);
+    return await handleVehicleRoutes(httpMethod, pathParameters, requestBody, headers, logger, tenantId);
   } catch (error) {
     logger.error({
       event: 'lambda_error',
       errorMessage: error.message,
       errorStack: error.stack,
+      tenantId,
     }, 'Unhandled error in pricing manager Lambda');
     return errorResponse(500, 'Internal server error', error.message, headers);
   }
 };
 
 // Handle surge pricing routes
-async function handleSurgeRoutes(httpMethod, pathParameters, requestBody, headers, logger, path) {
+async function handleSurgeRoutes(httpMethod, pathParameters, requestBody, headers, logger, path, tenantId) {
   const ruleId = pathParameters?.ruleId;
   const templateId = pathParameters?.templateId;
 
@@ -162,55 +168,60 @@ async function handleSurgeRoutes(httpMethod, pathParameters, requestBody, header
 }
 
 // Handle vehicle routes (existing functionality)
-async function handleVehicleRoutes(httpMethod, pathParameters, requestBody, headers, logger) {
+async function handleVehicleRoutes(httpMethod, pathParameters, requestBody, headers, logger, tenantId) {
   const vehicleId = pathParameters?.vehicleId;
 
   switch (httpMethod) {
     case 'GET':
-      logger.info({ event: 'vehicle_operation', operation: 'GET', vehicleId }, 'Processing GET request');
+      logger.info({ event: 'vehicle_operation', operation: 'GET', vehicleId, tenantId }, 'Processing GET request');
       if (vehicleId) {
-        return await getVehicle(vehicleId, headers, logger);
+        return await getVehicle(vehicleId, headers, logger, tenantId);
       }
-      return await listVehicles(headers, logger);
+      return await listVehicles(headers, logger, tenantId);
 
     case 'POST':
-      logger.info({ event: 'vehicle_operation', operation: 'POST' }, 'Processing POST request');
-      return await createVehicle(requestBody, headers, logger);
+      logger.info({ event: 'vehicle_operation', operation: 'POST', tenantId }, 'Processing POST request');
+      return await createVehicle(requestBody, headers, logger, tenantId);
 
     case 'PUT':
-      logger.info({ event: 'vehicle_operation', operation: 'PUT', vehicleId }, 'Processing PUT request');
+      logger.info({ event: 'vehicle_operation', operation: 'PUT', vehicleId, tenantId }, 'Processing PUT request');
       if (!vehicleId) {
         return errorResponse(400, 'vehicleId is required', null, headers);
       }
-      return await updateVehicle(vehicleId, requestBody, headers, logger);
+      return await updateVehicle(vehicleId, requestBody, headers, logger, tenantId);
 
     case 'DELETE':
-      logger.info({ event: 'vehicle_operation', operation: 'DELETE', vehicleId }, 'Processing DELETE request');
+      logger.info({ event: 'vehicle_operation', operation: 'DELETE', vehicleId, tenantId }, 'Processing DELETE request');
       if (!vehicleId) {
         return errorResponse(400, 'vehicleId is required', null, headers);
       }
-      return await deleteVehicle(vehicleId, headers, logger);
+      return await deleteVehicle(vehicleId, headers, logger, tenantId);
 
     default:
       return errorResponse(405, 'Method not allowed', null, headers);
   }
 }
 
-async function listVehicles(headers, logger) {
-  logger.info({ event: 'vehicle_list_start' }, 'Fetching all vehicles');
+async function listVehicles(headers, logger, tenantId) {
+  logger.info({ event: 'vehicle_list_start', tenantId }, 'Fetching all vehicles');
 
   logger.info({
     event: 'dynamodb_operation',
     operation: 'Scan',
     tableName: PRICING_TABLE_NAME,
+    tenantId,
   }, 'Querying DynamoDB for vehicles');
 
+  // Support both old format (VEHICLE#id) and new format (TENANT#001#VEHICLE#id)
+  // During transition period, return vehicles for current tenant OR legacy vehicles without tenant
   const command = new ScanCommand({
     TableName: PRICING_TABLE_NAME,
-    FilterExpression: 'begins_with(PK, :pkPrefix) AND SK = :sk',
+    FilterExpression: '((begins_with(PK, :tenantPrefix) OR begins_with(PK, :oldPrefix)) AND SK = :sk) AND (attribute_not_exists(tenantId) OR tenantId = :tenantId)',
     ExpressionAttributeValues: {
-      ':pkPrefix': 'VEHICLE#',
-      ':sk': 'METADATA'
+      ':tenantPrefix': `${tenantId}#VEHICLE#`,
+      ':oldPrefix': 'VEHICLE#',
+      ':sk': 'METADATA',
+      ':tenantId': tenantId
     }
   });
 
@@ -237,6 +248,7 @@ async function listVehicles(headers, logger) {
   logger.info({
     event: 'vehicle_list_success',
     count: vehicles.length,
+    tenantId,
   }, 'Successfully retrieved vehicles');
 
   return {
@@ -249,28 +261,43 @@ async function listVehicles(headers, logger) {
   };
 }
 
-async function getVehicle(vehicleId, headers, logger) {
-  logger.info({ event: 'vehicle_get_start', vehicleId }, 'Fetching vehicle by ID');
+async function getVehicle(vehicleId, headers, logger, tenantId) {
+  logger.info({ event: 'vehicle_get_start', vehicleId, tenantId }, 'Fetching vehicle by ID');
 
   logger.info({
     event: 'dynamodb_operation',
     operation: 'GetCommand',
     tableName: PRICING_TABLE_NAME,
     vehicleId,
+    tenantId,
   }, 'Querying DynamoDB for vehicle');
 
-  const command = new GetCommand({
+  // Try tenant-prefixed key first (new format)
+  let command = new GetCommand({
     TableName: PRICING_TABLE_NAME,
     Key: {
-      PK: `VEHICLE#${vehicleId}`,
+      PK: buildTenantPK(tenantId, 'VEHICLE', vehicleId),
       SK: 'METADATA'
     }
   });
 
-  const result = await ddbDocClient.send(command);
+  let result = await ddbDocClient.send(command);
+
+  // Fall back to old format if not found
+  if (!result.Item) {
+    logger.info({ event: 'vehicle_fallback_old_format', vehicleId }, 'Trying legacy PK format');
+    command = new GetCommand({
+      TableName: PRICING_TABLE_NAME,
+      Key: {
+        PK: `VEHICLE#${vehicleId}`,
+        SK: 'METADATA'
+      }
+    });
+    result = await ddbDocClient.send(command);
+  }
 
   if (!result.Item) {
-    logger.warn({ event: 'vehicle_get_not_found', vehicleId }, 'Vehicle not found');
+    logger.warn({ event: 'vehicle_get_not_found', vehicleId, tenantId }, 'Vehicle not found');
     return errorResponse(404, 'Vehicle not found', null, headers);
   }
 
@@ -292,7 +319,7 @@ async function getVehicle(vehicleId, headers, logger) {
     updatedBy: result.Item.updatedBy
   };
 
-  logger.info({ event: 'vehicle_get_success', vehicleId }, 'Successfully retrieved vehicle');
+  logger.info({ event: 'vehicle_get_success', vehicleId, tenantId }, 'Successfully retrieved vehicle');
 
   return {
     statusCode: 200,
@@ -301,8 +328,8 @@ async function getVehicle(vehicleId, headers, logger) {
   };
 }
 
-async function createVehicle(requestBody, headers, logger) {
-  logger.info({ event: 'vehicle_create_start' }, 'Creating new vehicle');
+async function createVehicle(requestBody, headers, logger, tenantId) {
+  logger.info({ event: 'vehicle_create_start', tenantId }, 'Creating new vehicle');
 
   const rawData = JSON.parse(requestBody);
 
@@ -319,6 +346,7 @@ async function createVehicle(requestBody, headers, logger) {
     logger.warn({
       event: 'validation_error',
       errors,
+      tenantId,
     }, 'Vehicle creation validation failed');
 
     return {
@@ -335,9 +363,11 @@ async function createVehicle(requestBody, headers, logger) {
   const vehicleId = data.vehicleId || randomUUID();
   const now = new Date().toISOString();
 
+  // Use tenant-prefixed PK for new records
   const item = {
-    PK: `VEHICLE#${vehicleId}`,
+    PK: buildTenantPK(tenantId, 'VEHICLE', vehicleId),
     SK: 'METADATA',
+    tenantId, // Add tenantId attribute for filtering and future queries
     vehicleId,
     name: data.name,
     description: data.description,
@@ -360,6 +390,7 @@ async function createVehicle(requestBody, headers, logger) {
     operation: 'PutCommand',
     tableName: PRICING_TABLE_NAME,
     vehicleId,
+    tenantId,
   }, 'Creating vehicle in DynamoDB');
 
   const command = new PutCommand({
@@ -374,6 +405,7 @@ async function createVehicle(requestBody, headers, logger) {
     logger.info({
       event: 'vehicle_create_success',
       vehicleId,
+      tenantId,
     }, 'Vehicle created successfully');
 
     return {
@@ -403,15 +435,15 @@ async function createVehicle(requestBody, headers, logger) {
     };
   } catch (error) {
     if (error.name === 'ConditionalCheckFailedException') {
-      logger.warn({ event: 'vehicle_create_conflict', vehicleId }, 'Vehicle already exists');
+      logger.warn({ event: 'vehicle_create_conflict', vehicleId, tenantId }, 'Vehicle already exists');
       return errorResponse(409, 'Vehicle already exists', null, headers);
     }
     throw error;
   }
 }
 
-async function updateVehicle(vehicleId, requestBody, headers, logger) {
-  logger.info({ event: 'vehicle_update_start', vehicleId }, 'Updating vehicle');
+async function updateVehicle(vehicleId, requestBody, headers, logger, tenantId) {
+  logger.info({ event: 'vehicle_update_start', vehicleId, tenantId }, 'Updating vehicle');
 
   const rawData = JSON.parse(requestBody);
 
@@ -429,6 +461,7 @@ async function updateVehicle(vehicleId, requestBody, headers, logger) {
       event: 'validation_error',
       vehicleId,
       errors,
+      tenantId,
     }, 'Vehicle update validation failed');
 
     return {
@@ -443,25 +476,42 @@ async function updateVehicle(vehicleId, requestBody, headers, logger) {
 
   const data = validation.data;
 
-  // Check if vehicle exists
+  // Check if vehicle exists - try tenant-prefixed key first, then fallback
   logger.info({
     event: 'dynamodb_operation',
     operation: 'GetCommand',
     tableName: PRICING_TABLE_NAME,
     vehicleId,
+    tenantId,
   }, 'Checking if vehicle exists');
 
-  const getCommand = new GetCommand({
+  // Try tenant-prefixed key first
+  let actualPK = buildTenantPK(tenantId, 'VEHICLE', vehicleId);
+  let getCommand = new GetCommand({
     TableName: PRICING_TABLE_NAME,
     Key: {
-      PK: `VEHICLE#${vehicleId}`,
+      PK: actualPK,
       SK: 'METADATA'
     }
   });
 
-  const existingItem = await ddbDocClient.send(getCommand);
+  let existingItem = await ddbDocClient.send(getCommand);
+
+  // Fall back to old format if not found
   if (!existingItem.Item) {
-    logger.warn({ event: 'vehicle_update_not_found', vehicleId }, 'Vehicle not found');
+    actualPK = `VEHICLE#${vehicleId}`;
+    getCommand = new GetCommand({
+      TableName: PRICING_TABLE_NAME,
+      Key: {
+        PK: actualPK,
+        SK: 'METADATA'
+      }
+    });
+    existingItem = await ddbDocClient.send(getCommand);
+  }
+
+  if (!existingItem.Item) {
+    logger.warn({ event: 'vehicle_update_not_found', vehicleId, tenantId }, 'Vehicle not found');
     return errorResponse(404, 'Vehicle not found', null, headers);
   }
 
@@ -540,12 +590,13 @@ async function updateVehicle(vehicleId, requestBody, headers, logger) {
     tableName: PRICING_TABLE_NAME,
     vehicleId,
     fieldsUpdated,
+    tenantId,
   }, 'Updating vehicle in DynamoDB');
 
   const updateCommand = new UpdateCommand({
     TableName: PRICING_TABLE_NAME,
     Key: {
-      PK: `VEHICLE#${vehicleId}`,
+      PK: actualPK, // Use the PK we found the record with (new or old format)
       SK: 'METADATA'
     },
     UpdateExpression: `SET ${updates.join(', ')}`,
@@ -560,6 +611,7 @@ async function updateVehicle(vehicleId, requestBody, headers, logger) {
     event: 'vehicle_update_success',
     vehicleId,
     fieldsUpdated,
+    tenantId,
   }, 'Vehicle updated successfully');
 
   return {
@@ -588,8 +640,32 @@ async function updateVehicle(vehicleId, requestBody, headers, logger) {
   };
 }
 
-async function deleteVehicle(vehicleId, headers, logger) {
-  logger.info({ event: 'vehicle_delete_start', vehicleId }, 'Deactivating vehicle');
+async function deleteVehicle(vehicleId, headers, logger, tenantId) {
+  logger.info({ event: 'vehicle_delete_start', vehicleId, tenantId }, 'Deactivating vehicle');
+
+  // First, find the vehicle to get the correct PK format
+  let actualPK = buildTenantPK(tenantId, 'VEHICLE', vehicleId);
+  let getCommand = new GetCommand({
+    TableName: PRICING_TABLE_NAME,
+    Key: { PK: actualPK, SK: 'METADATA' }
+  });
+
+  let existingItem = await ddbDocClient.send(getCommand);
+
+  // Fall back to old format if not found
+  if (!existingItem.Item) {
+    actualPK = `VEHICLE#${vehicleId}`;
+    getCommand = new GetCommand({
+      TableName: PRICING_TABLE_NAME,
+      Key: { PK: actualPK, SK: 'METADATA' }
+    });
+    existingItem = await ddbDocClient.send(getCommand);
+  }
+
+  if (!existingItem.Item) {
+    logger.warn({ event: 'vehicle_delete_not_found', vehicleId, tenantId }, 'Vehicle not found');
+    return errorResponse(404, 'Vehicle not found', null, headers);
+  }
 
   // Soft delete by setting active = false
   logger.info({
@@ -597,12 +673,13 @@ async function deleteVehicle(vehicleId, headers, logger) {
     operation: 'UpdateCommand',
     tableName: PRICING_TABLE_NAME,
     vehicleId,
+    tenantId,
   }, 'Soft deleting vehicle in DynamoDB');
 
   const updateCommand = new UpdateCommand({
     TableName: PRICING_TABLE_NAME,
     Key: {
-      PK: `VEHICLE#${vehicleId}`,
+      PK: actualPK, // Use the PK we found the record with
       SK: 'METADATA'
     },
     UpdateExpression: 'SET active = :active, updatedAt = :updatedAt',
@@ -610,33 +687,25 @@ async function deleteVehicle(vehicleId, headers, logger) {
       ':active': false,
       ':updatedAt': new Date().toISOString()
     },
-    ConditionExpression: 'attribute_exists(PK)',
     ReturnValues: 'ALL_NEW'
   });
 
-  try {
-    await ddbDocClient.send(updateCommand);
+  await ddbDocClient.send(updateCommand);
 
-    logger.info({
-      event: 'vehicle_delete_success',
-      vehicleId,
-    }, 'Vehicle deactivated successfully');
+  logger.info({
+    event: 'vehicle_delete_success',
+    vehicleId,
+    tenantId,
+  }, 'Vehicle deactivated successfully');
 
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({
-        message: 'Vehicle deactivated successfully',
-        vehicleId
-      })
-    };
-  } catch (error) {
-    if (error.name === 'ConditionalCheckFailedException') {
-      logger.warn({ event: 'vehicle_delete_not_found', vehicleId }, 'Vehicle not found');
-      return errorResponse(404, 'Vehicle not found', null, headers);
-    }
-    throw error;
-  }
+  return {
+    statusCode: 200,
+    headers,
+    body: JSON.stringify({
+      message: 'Vehicle deactivated successfully',
+      vehicleId
+    })
+  };
 }
 
 function errorResponse(statusCode, message, details = null, headers) {

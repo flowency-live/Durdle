@@ -1,7 +1,7 @@
 'use client';
 
 import { X, Copy, Mail, MessageCircle, Share2, Check, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { API_BASE_URL, API_ENDPOINTS } from '@/lib/config/api';
@@ -32,8 +32,6 @@ export default function ShareQuoteModal({
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  if (!isOpen) return null;
 
   // Prepare quote data for saving
   const prepareQuoteForSave = () => {
@@ -70,6 +68,22 @@ export default function ShareQuoteModal({
       returnJourney: singleQuote.returnJourney,
     };
   };
+
+  // Auto-generate share link when modal opens
+  useEffect(() => {
+    if (isOpen && !shareUrl && !saving) {
+      handleSaveQuote();
+    }
+  }, [isOpen]);
+
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setShareUrl(null);
+      setCopied(false);
+      setError(null);
+    }
+  }, [isOpen]);
 
   const handleSaveQuote = async () => {
     setSaving(true);
@@ -144,6 +158,8 @@ export default function ShareQuoteModal({
     }
   };
 
+  if (!isOpen) return null;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
@@ -167,40 +183,25 @@ export default function ShareQuoteModal({
 
         {/* Content */}
         <div className="p-6">
-          {!shareUrl ? (
-            // Step 1: Generate share link
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-sage-dark/10 flex items-center justify-center mx-auto mb-4">
-                <Share2 className="w-8 h-8 text-sage-dark" />
-              </div>
-              <h3 className="text-lg font-medium text-foreground mb-2">
-                Share this quote
-              </h3>
-              <p className="text-sm text-muted-foreground mb-6">
-                Generate a shareable link that anyone can use to view this quote.
-              </p>
-
-              {error && (
-                <p className="text-sm text-red-500 mb-4">{error}</p>
-              )}
-
+          {saving ? (
+            // Loading state
+            <div className="text-center py-8">
+              <Loader2 className="w-8 h-8 animate-spin text-sage-dark mx-auto mb-4" />
+              <p className="text-muted-foreground">Generating share link...</p>
+            </div>
+          ) : error ? (
+            // Error state
+            <div className="text-center py-4">
+              <p className="text-red-500 mb-4">{error}</p>
               <Button
                 onClick={handleSaveQuote}
-                disabled={saving}
-                className="w-full bg-sage-dark hover:bg-sage-dark/90 text-white h-12"
+                className="bg-sage-dark hover:bg-sage-dark/90 text-white"
               >
-                {saving ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Generating Link...
-                  </>
-                ) : (
-                  'Generate Share Link'
-                )}
+                Try Again
               </Button>
             </div>
-          ) : (
-            // Step 2: Share options
+          ) : shareUrl ? (
+            // Share options
             <div>
               {/* Link display */}
               <div className="mb-6">
@@ -216,17 +217,17 @@ export default function ShareQuoteModal({
                   />
                   <Button
                     onClick={handleCopyLink}
-                    className="px-3 border border-border bg-background hover:bg-muted"
+                    className="px-3 bg-sage-dark hover:bg-sage-dark/90 text-white"
                   >
                     {copied ? (
-                      <Check className="w-4 h-4 text-green-500" />
+                      <Check className="w-4 h-4" />
                     ) : (
                       <Copy className="w-4 h-4" />
                     )}
                   </Button>
                 </div>
                 {copied && (
-                  <p className="text-sm text-green-500 mt-1">Link copied!</p>
+                  <p className="text-sm text-green-600 mt-1">Link copied!</p>
                 )}
               </div>
 
@@ -237,7 +238,7 @@ export default function ShareQuoteModal({
                 <div className="grid grid-cols-2 gap-3">
                   <Button
                     onClick={handleShareEmail}
-                    className="flex items-center justify-center gap-2 border border-border bg-background hover:bg-muted"
+                    className="flex items-center justify-center gap-2 bg-navy-dark hover:bg-navy-dark/90 text-white"
                   >
                     <Mail className="w-4 h-4" />
                     Email
@@ -245,7 +246,7 @@ export default function ShareQuoteModal({
 
                   <Button
                     onClick={handleShareWhatsApp}
-                    className="flex items-center justify-center gap-2 border border-border bg-background hover:bg-muted"
+                    className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white"
                   >
                     <MessageCircle className="w-4 h-4" />
                     WhatsApp
@@ -255,7 +256,7 @@ export default function ShareQuoteModal({
                 {typeof navigator !== 'undefined' && 'share' in navigator && (
                   <Button
                     onClick={handleShareNative}
-                    className="w-full flex items-center justify-center gap-2 border border-border bg-background hover:bg-muted"
+                    className="w-full flex items-center justify-center gap-2 bg-gray-600 hover:bg-gray-700 text-white"
                   >
                     <Share2 className="w-4 h-4" />
                     More Options
@@ -271,7 +272,7 @@ export default function ShareQuoteModal({
                 Done
               </Button>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

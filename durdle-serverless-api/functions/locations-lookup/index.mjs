@@ -1,6 +1,7 @@
 import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
 import axios from 'axios';
 import { createLogger } from '/opt/nodejs/logger.mjs';
+import { getTenantId, logTenantContext } from '/opt/nodejs/tenant.mjs';
 
 const secretsClient = new SecretsManagerClient({ region: 'eu-west-2' });
 
@@ -42,11 +43,14 @@ const getHeaders = (path, origin) => {
 
 export const handler = async (event, context) => {
   const logger = createLogger(event, context);
+  const tenantId = getTenantId(event);
 
   logger.info('lambda_invocation', {
     httpMethod: event.httpMethod,
     path: event.path || event.requestContext?.resourcePath || ''
   });
+
+  logTenantContext(logger, tenantId, 'locations_lookup');
 
   const origin = event.headers?.origin || event.headers?.Origin || '';
   const path = event.path || event.requestContext?.resourcePath || '';
@@ -63,21 +67,23 @@ export const handler = async (event, context) => {
     if (path.includes('/place-details')) {
       if (!queryStringParameters || !queryStringParameters.placeId) {
         logger.warn('location_place_details_validation_error', {
-          error: 'Missing required query parameter: placeId'
+          error: 'Missing required query parameter: placeId',
+          tenantId
         });
         return errorResponse(400, 'Missing required query parameter: placeId', null, headers);
       }
 
       const { placeId } = queryStringParameters;
 
-      logger.info('location_place_details_start', { placeId });
+      logger.info('location_place_details_start', { placeId, tenantId });
 
       const result = await fetchPlaceDetails(placeId, logger);
 
       logger.info('location_place_details_success', {
         placeId,
         lat: result.location.lat,
-        lng: result.location.lng
+        lng: result.location.lng,
+        tenantId
       });
 
       return {
@@ -94,14 +100,15 @@ export const handler = async (event, context) => {
     if (path.includes('/geocode')) {
       if (!queryStringParameters || !queryStringParameters.lat || !queryStringParameters.lng) {
         logger.warn('location_reverse_geocode_validation_error', {
-          error: 'Missing required query parameters: lat, lng'
+          error: 'Missing required query parameters: lat, lng',
+          tenantId
         });
         return errorResponse(400, 'Missing required query parameters: lat, lng', null, headers);
       }
 
       const { lat, lng } = queryStringParameters;
 
-      logger.info('location_reverse_geocode_start', { lat, lng });
+      logger.info('location_reverse_geocode_start', { lat, lng, tenantId });
 
       const result = await fetchReverseGeocode(lat, lng, logger);
 
@@ -109,7 +116,8 @@ export const handler = async (event, context) => {
         lat,
         lng,
         address: result.address,
-        placeId: result.place_id
+        placeId: result.place_id,
+        tenantId
       });
 
       return {
@@ -125,7 +133,8 @@ export const handler = async (event, context) => {
     // Handle autocomplete endpoint
     if (!queryStringParameters || !queryStringParameters.input) {
       logger.warn('location_autocomplete_validation_error', {
-        error: 'Missing required query parameter: input'
+        error: 'Missing required query parameter: input',
+        tenantId
       });
       return errorResponse(400, 'Missing required query parameter: input', null, headers);
     }
@@ -135,19 +144,21 @@ export const handler = async (event, context) => {
     if (input.length < 3) {
       logger.warn('location_autocomplete_validation_error', {
         error: 'Input must be at least 3 characters',
-        inputLength: input.length
+        inputLength: input.length,
+        tenantId
       });
       return errorResponse(400, 'Input must be at least 3 characters', null, headers);
     }
 
-    logger.info('location_autocomplete_start', { input, sessionToken });
+    logger.info('location_autocomplete_start', { input, sessionToken, tenantId });
 
     const predictions = await fetchAutocomplete(input, sessionToken, logger);
 
     logger.info('location_autocomplete_success', {
       input,
       sessionToken,
-      resultCount: predictions.length
+      resultCount: predictions.length,
+      tenantId
     });
 
     return {
@@ -161,7 +172,8 @@ export const handler = async (event, context) => {
   } catch (error) {
     logger.error('lambda_error', {
       error: error.message,
-      stack: error.stack
+      stack: error.stack,
+      tenantId
     });
     return errorResponse(500, 'Internal server error', error.message, headers);
   }

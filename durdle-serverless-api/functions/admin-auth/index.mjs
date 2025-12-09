@@ -4,6 +4,7 @@ import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-sec
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { createLogger } from '/opt/nodejs/logger.mjs';
+import { getTenantId, buildTenantPK, logTenantContext } from '/opt/nodejs/tenant.mjs';
 
 const client = new DynamoDBClient({ region: 'eu-west-2' });
 const ddbDocClient = DynamoDBDocumentClient.from(client);
@@ -36,12 +37,15 @@ const getHeaders = (origin) => {
 
 export const handler = async (event, context) => {
   const logger = createLogger(event, context);
+  const tenantId = getTenantId(event);
 
   logger.info({
     event: 'lambda_invocation',
     httpMethod: event.httpMethod,
     path: event.path,
   }, 'Admin auth Lambda invoked');
+
+  logTenantContext(logger, tenantId, 'admin_auth');
 
   const origin = event.headers?.origin || event.headers?.Origin || '';
   const headers = getHeaders(origin);
@@ -57,21 +61,21 @@ export const handler = async (event, context) => {
       if (httpMethod !== 'POST') {
         return errorResponse(405, 'Method not allowed', null, headers);
       }
-      return await login(event.body, headers, logger);
+      return await login(event.body, headers, logger, tenantId);
     }
 
     if (path.includes('/logout')) {
       if (httpMethod !== 'POST') {
         return errorResponse(405, 'Method not allowed', null, headers);
       }
-      return await logout(headers, logger);
+      return await logout(headers, logger, tenantId);
     }
 
     if (path.includes('/session')) {
       if (httpMethod !== 'GET') {
         return errorResponse(405, 'Method not allowed', null, headers);
       }
-      return await verifySession(event.headers, headers, logger);
+      return await verifySession(event.headers, headers, logger, tenantId);
     }
 
     return errorResponse(404, 'Endpoint not found', null, headers);
@@ -80,6 +84,7 @@ export const handler = async (event, context) => {
       event: 'lambda_error',
       errorMessage: error.message,
       errorStack: error.stack,
+      tenantId,
     }, 'Unhandled error in admin auth Lambda');
     return errorResponse(500, 'Internal server error', error.message, headers);
   }
@@ -105,7 +110,7 @@ async function getJwtSecret() {
   }
 }
 
-async function login(requestBody, headers, logger) {
+async function login(requestBody, headers, logger, tenantId) {
   const data = JSON.parse(requestBody);
 
   if (!data.username || !data.password) {
@@ -115,29 +120,41 @@ async function login(requestBody, headers, logger) {
   logger.info({
     event: 'login_attempt',
     username: data.username,
+    tenantId,
   }, 'Login attempt');
 
-  // Fetch user from DynamoDB
-  const getCommand = new GetCommand({
+  // Try tenant-prefixed PK first
+  let result = await ddbDocClient.send(new GetCommand({
     TableName: ADMIN_USERS_TABLE_NAME,
     Key: {
-      PK: `USER#${data.username.toLowerCase()}`,
+      PK: buildTenantPK(tenantId, 'USER', data.username.toLowerCase()),
       SK: 'METADATA'
     }
-  });
+  }));
 
-  const result = await ddbDocClient.send(getCommand);
+  // Fallback to old PK format if not found
+  if (!result.Item) {
+    result = await ddbDocClient.send(new GetCommand({
+      TableName: ADMIN_USERS_TABLE_NAME,
+      Key: {
+        PK: `USER#${data.username.toLowerCase()}`,
+        SK: 'METADATA'
+      }
+    }));
+  }
 
   if (!result.Item) {
     logger.warn({
       event: 'login_failure',
       username: data.username,
       reason: 'user_not_found',
+      tenantId,
     }, 'Login failed: user not found');
     return errorResponse(401, 'Invalid username or password', null, headers);
   }
 
   const user = result.Item;
+  const userPK = user.PK; // Use the actual PK from the found record
 
   // Check if user is active
   if (!user.active) {
@@ -145,6 +162,7 @@ async function login(requestBody, headers, logger) {
       event: 'login_failure',
       username: data.username,
       reason: 'account_disabled',
+      tenantId,
     }, 'Login failed: account disabled');
     return errorResponse(403, 'Account is disabled', null, headers);
   }
@@ -157,16 +175,17 @@ async function login(requestBody, headers, logger) {
       event: 'login_failure',
       username: data.username,
       reason: 'invalid_password',
+      tenantId,
     }, 'Login failed: invalid password');
     return errorResponse(401, 'Invalid username or password', null, headers);
   }
 
-  // Update lastLogin timestamp
+  // Update lastLogin timestamp using the correct PK format
   const now = new Date().toISOString();
   const updateCommand = new UpdateCommand({
     TableName: ADMIN_USERS_TABLE_NAME,
     Key: {
-      PK: `USER#${data.username.toLowerCase()}`,
+      PK: userPK,
       SK: 'METADATA'
     },
     UpdateExpression: 'SET lastLogin = :lastLogin',
@@ -177,13 +196,14 @@ async function login(requestBody, headers, logger) {
 
   await ddbDocClient.send(updateCommand);
 
-  // Generate JWT
+  // Generate JWT - include tenantId for future use
   const jwtSecret = await getJwtSecret();
   const token = jwt.sign(
     {
       username: user.username,
       role: user.role,
-      email: user.email
+      email: user.email,
+      tenantId // Include tenant in token for future authorizer
     },
     jwtSecret,
     { expiresIn: JWT_EXPIRY }
@@ -193,6 +213,7 @@ async function login(requestBody, headers, logger) {
     event: 'login_success',
     username: user.username,
     role: user.role,
+    tenantId,
   }, 'Login successful');
 
   // Set httpOnly cookie
@@ -218,8 +239,8 @@ async function login(requestBody, headers, logger) {
   };
 }
 
-async function logout(headers, logger) {
-  logger.info({ event: 'logout' }, 'User logged out');
+async function logout(headers, logger, tenantId) {
+  logger.info({ event: 'logout', tenantId }, 'User logged out');
 
   // Clear the session cookie
   const cookieHeader = 'sessionToken=; HttpOnly; Secure; SameSite=Strict; Max-Age=0; Path=/';
@@ -237,7 +258,7 @@ async function logout(headers, logger) {
   };
 }
 
-async function verifySession(requestHeaders, headers, logger) {
+async function verifySession(requestHeaders, headers, logger, tenantId) {
   // Extract token from Authorization header or Cookie
   let token = null;
 
@@ -253,7 +274,7 @@ async function verifySession(requestHeaders, headers, logger) {
   }
 
   if (!token) {
-    logger.warn({ event: 'session_verification_failure', reason: 'no_token' }, 'No session token provided');
+    logger.warn({ event: 'session_verification_failure', reason: 'no_token', tenantId }, 'No session token provided');
     return errorResponse(401, 'No session token provided', null, headers);
   }
 
@@ -261,22 +282,32 @@ async function verifySession(requestHeaders, headers, logger) {
     const jwtSecret = await getJwtSecret();
     const decoded = jwt.verify(token, jwtSecret);
 
-    // Fetch fresh user data from DynamoDB
-    const getCommand = new GetCommand({
+    // Try tenant-prefixed PK first
+    let result = await ddbDocClient.send(new GetCommand({
       TableName: ADMIN_USERS_TABLE_NAME,
       Key: {
-        PK: `USER#${decoded.username}`,
+        PK: buildTenantPK(tenantId, 'USER', decoded.username),
         SK: 'METADATA'
       }
-    });
+    }));
 
-    const result = await ddbDocClient.send(getCommand);
+    // Fallback to old PK format if not found
+    if (!result.Item) {
+      result = await ddbDocClient.send(new GetCommand({
+        TableName: ADMIN_USERS_TABLE_NAME,
+        Key: {
+          PK: `USER#${decoded.username}`,
+          SK: 'METADATA'
+        }
+      }));
+    }
 
     if (!result.Item || !result.Item.active) {
       logger.warn({
         event: 'session_verification_failure',
         username: decoded.username,
         reason: 'account_disabled_or_not_found',
+        tenantId,
       }, 'Session verification failed: account disabled or not found');
       return errorResponse(403, 'Account is disabled or not found', null, headers);
     }
@@ -284,6 +315,7 @@ async function verifySession(requestHeaders, headers, logger) {
     logger.info({
       event: 'session_verification_success',
       username: result.Item.username,
+      tenantId,
     }, 'Session verified successfully');
 
     return {
@@ -301,11 +333,11 @@ async function verifySession(requestHeaders, headers, logger) {
     };
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
-      logger.warn({ event: 'session_expired' }, 'Session token expired');
+      logger.warn({ event: 'session_expired', tenantId }, 'Session token expired');
       return errorResponse(401, 'Session expired', null, headers);
     }
     if (error.name === 'JsonWebTokenError') {
-      logger.warn({ event: 'invalid_token' }, 'Invalid session token');
+      logger.warn({ event: 'invalid_token', tenantId }, 'Invalid session token');
       return errorResponse(401, 'Invalid session token', null, headers);
     }
     throw error;

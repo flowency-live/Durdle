@@ -1,4 +1,5 @@
 import { createLogger } from '/opt/nodejs/logger.mjs';
+import { getTenantId, logTenantContext } from '/opt/nodejs/tenant.mjs';
 import { queryQuotes, getQuoteById, getAllQuotesForExport } from './queries.mjs';
 import { generateCSV, generateCSVFilename } from './csv-export.mjs';
 import {
@@ -32,6 +33,7 @@ const getHeaders = (origin) => {
 
 export const handler = async (event, context) => {
   const logger = createLogger(event, context);
+  const tenantId = getTenantId(event);
   const origin = event.headers?.origin || event.headers?.Origin || '';
   const headers = getHeaders(origin);
 
@@ -45,6 +47,8 @@ export const handler = async (event, context) => {
     'Quotes Manager Lambda invoked'
   );
 
+  logTenantContext(logger, tenantId, 'quotes_manager');
+
   // Handle OPTIONS preflight
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -56,17 +60,17 @@ export const handler = async (event, context) => {
 
     // GET /admin/quotes - List quotes with filters
     if (httpMethod === 'GET' && resource === '/admin/quotes') {
-      return await handleListQuotes(event, headers, logger);
+      return await handleListQuotes(event, headers, logger, tenantId);
     }
 
     // GET /admin/quotes/{quoteId} - Get single quote details
     if (httpMethod === 'GET' && resource === '/admin/quotes/{quoteId}') {
-      return await handleGetQuoteDetails(event, headers, logger);
+      return await handleGetQuoteDetails(event, headers, logger, tenantId);
     }
 
     // GET /admin/quotes/export - Export quotes to CSV
     if (httpMethod === 'GET' && resource === '/admin/quotes/export') {
-      return await handleExportQuotes(event, headers, logger);
+      return await handleExportQuotes(event, headers, logger, tenantId);
     }
 
     // Route not found
@@ -94,8 +98,8 @@ export const handler = async (event, context) => {
 };
 
 // Handle list quotes request
-async function handleListQuotes(event, headers, logger) {
-  logger.info({ event: 'list_quotes_request' }, 'Handling list quotes request');
+async function handleListQuotes(event, headers, logger, tenantId) {
+  logger.info({ event: 'list_quotes_request', tenantId }, 'Handling list quotes request');
 
   // Parse and validate query parameters
   const filters = parseQueryParams(event.queryStringParameters, listQuotesSchema);
@@ -114,6 +118,7 @@ async function handleListQuotes(event, headers, logger) {
   logger.info(
     {
       event: 'list_quotes_filters',
+      tenantId,
       filters: {
         status: filters.status,
         dateFrom: filters.dateFrom,
@@ -131,13 +136,14 @@ async function handleListQuotes(event, headers, logger) {
   );
 
   // Query quotes from DynamoDB
-  const result = await queryQuotes(filters, logger);
+  const result = await queryQuotes(filters, logger, tenantId);
 
   logger.info(
     {
       event: 'list_quotes_success',
       quoteCount: result.quotes.length,
       hasMoreResults: !!result.pagination.cursor,
+      tenantId,
     },
     'List quotes request successful'
   );
@@ -146,30 +152,30 @@ async function handleListQuotes(event, headers, logger) {
 }
 
 // Handle get quote details request
-async function handleGetQuoteDetails(event, headers, logger) {
-  logger.info({ event: 'quote_details_request' }, 'Handling get quote details request');
+async function handleGetQuoteDetails(event, headers, logger, tenantId) {
+  logger.info({ event: 'quote_details_request', tenantId }, 'Handling get quote details request');
 
   // Parse and validate path parameters
   const { quoteId } = parsePathParams(event.pathParameters, quoteIdSchema);
 
-  logger.info({ event: 'quote_details_lookup', quoteId }, 'Looking up quote');
+  logger.info({ event: 'quote_details_lookup', quoteId, tenantId }, 'Looking up quote');
 
   // Fetch quote from DynamoDB
-  const quote = await getQuoteById(quoteId, logger);
+  const quote = await getQuoteById(quoteId, logger, tenantId);
 
   if (!quote) {
-    logger.warn({ event: 'quote_not_found', quoteId }, 'Quote not found');
+    logger.warn({ event: 'quote_not_found', quoteId, tenantId }, 'Quote not found');
     return createErrorResponse(404, 'Quote not found', headers, logger);
   }
 
-  logger.info({ event: 'quote_details_success', quoteId }, 'Quote details retrieved successfully');
+  logger.info({ event: 'quote_details_success', quoteId, tenantId }, 'Quote details retrieved successfully');
 
   return createSuccessResponse(quote, headers, logger);
 }
 
 // Handle export quotes to CSV request
-async function handleExportQuotes(event, headers, logger) {
-  logger.info({ event: 'export_quotes_request' }, 'Handling export quotes request');
+async function handleExportQuotes(event, headers, logger, tenantId) {
+  logger.info({ event: 'export_quotes_request', tenantId }, 'Handling export quotes request');
 
   // Parse and validate query parameters
   const filters = parseQueryParams(event.queryStringParameters, exportQuotesSchema);
@@ -188,6 +194,7 @@ async function handleExportQuotes(event, headers, logger) {
   logger.info(
     {
       event: 'export_quotes_filters',
+      tenantId,
       filters: {
         status: filters.status,
         dateFrom: filters.dateFrom,
@@ -201,12 +208,13 @@ async function handleExportQuotes(event, headers, logger) {
   );
 
   // Get all quotes matching filters (no pagination)
-  const quotes = await getAllQuotesForExport(filters, logger);
+  const quotes = await getAllQuotesForExport(filters, logger, tenantId);
 
   logger.info(
     {
       event: 'export_quotes_data_fetched',
       quoteCount: quotes.length,
+      tenantId,
     },
     'Export data fetched'
   );
@@ -221,6 +229,7 @@ async function handleExportQuotes(event, headers, logger) {
       quoteCount: quotes.length,
       filename,
       csvSize: csv.length,
+      tenantId,
     },
     'CSV export generated successfully'
   );

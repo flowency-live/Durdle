@@ -5,6 +5,7 @@ import {
   ScanCommand,
   GetCommand,
 } from '@aws-sdk/lib-dynamodb';
+import { buildTenantPK } from '/opt/nodejs/tenant.mjs';
 
 const client = DynamoDBDocumentClient.from(new DynamoDBClient({ region: 'eu-west-2' }));
 
@@ -13,7 +14,7 @@ const TABLE_NAME = process.env.TABLE_NAME || 'durdle-main-table-dev';
 const GSI_NAME = 'GSI1'; // Existing GSI with GSI1PK (status) and GSI1SK (createdAt)
 
 // Query quotes with filters, pagination, and sorting
-export async function queryQuotes(filters, logger) {
+export async function queryQuotes(filters, logger, tenantId) {
   const {
     status,
     dateFrom,
@@ -30,6 +31,7 @@ export async function queryQuotes(filters, logger) {
   logger.info(
     {
       event: 'quotes_query_start',
+      tenantId,
       filters: {
         status,
         dateFrom,
@@ -54,13 +56,13 @@ export async function queryQuotes(filters, logger) {
 
   // Strategy 1: Use GSI1 if filtering by specific status
   if (status !== 'all') {
-    const result = await queryByStatus(status, dateFrom, dateTo, limit, exclusiveStartKey, logger);
+    const result = await queryByStatus(status, dateFrom, dateTo, limit, exclusiveStartKey, logger, tenantId);
     items = result.items;
     lastEvaluatedKey = result.lastEvaluatedKey;
   }
   // Strategy 2: Scan for quotes if status is 'all'
   else {
-    const result = await scanQuotes(dateFrom, dateTo, limit, exclusiveStartKey, logger);
+    const result = await scanQuotes(dateFrom, dateTo, limit, exclusiveStartKey, logger, tenantId);
     items = result.items;
     lastEvaluatedKey = result.lastEvaluatedKey;
   }
@@ -68,9 +70,9 @@ export async function queryQuotes(filters, logger) {
   // Extract quote data from items (quotes are stored in Data field)
   let quotes = items.map(item => {
     const quoteData = item.Data || item;
-    // Add quoteId from PK if not in Data
+    // Add quoteId from PK if not in Data (handle both old and tenant-prefixed PKs)
     if (!quoteData.quoteId && item.PK) {
-      quoteData.quoteId = item.PK.replace('QUOTE#', '');
+      quoteData.quoteId = extractQuoteIdFromPK(item.PK);
     }
     // Map status from GSI1PK if needed (valid -> active)
     if (!quoteData.status && item.GSI1PK) {
@@ -133,7 +135,7 @@ export async function queryQuotes(filters, logger) {
 }
 
 // Query quotes by status using GSI1
-async function queryByStatus(status, dateFrom, dateTo, limit, exclusiveStartKey, logger) {
+async function queryByStatus(status, dateFrom, dateTo, limit, exclusiveStartKey, logger, tenantId) {
   // Map API status to DynamoDB status
   const dbStatus = status === 'active' ? 'valid' : status;
 
@@ -141,8 +143,11 @@ async function queryByStatus(status, dateFrom, dateTo, limit, exclusiveStartKey,
     TableName: TABLE_NAME,
     IndexName: GSI_NAME,
     KeyConditionExpression: 'GSI1PK = :status',
+    // Filter by tenant: support both old (no tenantId) and new (with tenantId) records
+    FilterExpression: 'attribute_not_exists(tenantId) OR tenantId = :tenantId',
     ExpressionAttributeValues: {
       ':status': `STATUS#${dbStatus}`,
+      ':tenantId': tenantId,
     },
     Limit: limit,
     ScanIndexForward: false, // Sort descending by default (newest first)
@@ -165,7 +170,7 @@ async function queryByStatus(status, dateFrom, dateTo, limit, exclusiveStartKey,
     params.ExclusiveStartKey = exclusiveStartKey;
   }
 
-  logger.info({ event: 'dynamodb_query', indexName: GSI_NAME, status: dbStatus }, 'Querying DynamoDB by status');
+  logger.info({ event: 'dynamodb_query', indexName: GSI_NAME, status: dbStatus, tenantId }, 'Querying DynamoDB by status');
 
   const result = await client.send(new QueryCommand(params));
 
@@ -176,13 +181,16 @@ async function queryByStatus(status, dateFrom, dateTo, limit, exclusiveStartKey,
 }
 
 // Scan for all quotes (when status is 'all')
-async function scanQuotes(dateFrom, dateTo, limit, exclusiveStartKey, logger) {
+async function scanQuotes(dateFrom, dateTo, limit, exclusiveStartKey, logger, tenantId) {
+  // Dual-format filter: supports both old (QUOTE#id) and new (TENANT#001#QUOTE#id) PK formats
   const params = {
     TableName: TABLE_NAME,
-    FilterExpression: 'begins_with(PK, :quotePrefix) AND SK = :metadata',
+    FilterExpression: '(begins_with(PK, :tenantPrefix) OR begins_with(PK, :quotePrefix)) AND SK = :metadata AND (attribute_not_exists(tenantId) OR tenantId = :tenantId)',
     ExpressionAttributeValues: {
+      ':tenantPrefix': `${tenantId}#QUOTE#`,
       ':quotePrefix': 'QUOTE#',
       ':metadata': 'METADATA',
+      ':tenantId': tenantId,
     },
     Limit: limit * 3, // Fetch more since we're filtering
   };
@@ -206,7 +214,7 @@ async function scanQuotes(dateFrom, dateTo, limit, exclusiveStartKey, logger) {
     params.ExclusiveStartKey = exclusiveStartKey;
   }
 
-  logger.info({ event: 'dynamodb_scan', hasDateFilter: !!(dateFrom || dateTo) }, 'Scanning DynamoDB for all quotes');
+  logger.info({ event: 'dynamodb_scan', hasDateFilter: !!(dateFrom || dateTo), tenantId }, 'Scanning DynamoDB for all quotes');
 
   const result = await client.send(new ScanCommand(params));
 
@@ -217,33 +225,45 @@ async function scanQuotes(dateFrom, dateTo, limit, exclusiveStartKey, logger) {
 }
 
 // Get single quote by ID
-export async function getQuoteById(quoteId, logger) {
-  logger.info({ event: 'quote_detail_fetch_start', quoteId }, 'Fetching quote details');
+export async function getQuoteById(quoteId, logger, tenantId) {
+  logger.info({ event: 'quote_detail_fetch_start', quoteId, tenantId }, 'Fetching quote details');
 
-  // Ensure quoteId has proper format
-  const pk = quoteId.startsWith('QUOTE#') ? quoteId : `QUOTE#${quoteId}`;
+  // Clean quoteId (remove any existing prefixes)
+  const cleanQuoteId = quoteId.replace(/^(TENANT#\d+#)?QUOTE#/, '');
 
-  const params = {
+  // Try tenant-prefixed PK first
+  const tenantPK = buildTenantPK(tenantId, 'QUOTE', cleanQuoteId);
+  let result = await client.send(new GetCommand({
     TableName: TABLE_NAME,
     Key: {
-      PK: pk,
+      PK: tenantPK,
       SK: 'METADATA'
     },
-  };
+  }));
 
-  const result = await client.send(new GetCommand(params));
+  // Fallback to old PK format if not found
+  if (!result.Item) {
+    const oldPK = `QUOTE#${cleanQuoteId}`;
+    result = await client.send(new GetCommand({
+      TableName: TABLE_NAME,
+      Key: {
+        PK: oldPK,
+        SK: 'METADATA'
+      },
+    }));
+  }
 
   if (!result.Item) {
-    logger.warn({ event: 'quote_not_found', quoteId }, 'Quote not found');
+    logger.warn({ event: 'quote_not_found', quoteId, tenantId }, 'Quote not found');
     return null;
   }
 
-  logger.info({ event: 'quote_detail_fetched', quoteId }, 'Quote details retrieved');
+  logger.info({ event: 'quote_detail_fetched', quoteId, tenantId }, 'Quote details retrieved');
 
   // Extract and normalize quote data
   const quoteData = result.Item.Data || result.Item;
   if (!quoteData.quoteId) {
-    quoteData.quoteId = pk.replace('QUOTE#', '');
+    quoteData.quoteId = cleanQuoteId;
   }
 
   return normalizeQuoteForApi(quoteData);
@@ -329,13 +349,27 @@ function decodeCursor(cursor) {
   }
 }
 
+// Extract quote ID from PK (handles both old and tenant-prefixed formats)
+// Old format: QUOTE#DTC-Q091225XX -> DTC-Q091225XX
+// New format: TENANT#001#QUOTE#DTC-Q091225XX -> DTC-Q091225XX
+function extractQuoteIdFromPK(pk) {
+  // Handle tenant-prefixed format: TENANT#001#QUOTE#id
+  if (pk.startsWith('TENANT#')) {
+    const match = pk.match(/^TENANT#\d+#QUOTE#(.+)$/);
+    return match ? match[1] : pk;
+  }
+  // Handle old format: QUOTE#id
+  return pk.replace('QUOTE#', '');
+}
+
 // Get all quotes for export (no pagination, respects filters)
-export async function getAllQuotesForExport(filters, logger) {
+export async function getAllQuotesForExport(filters, logger, tenantId) {
   const { status, dateFrom, dateTo, priceMin, priceMax, search } = filters;
 
   logger.info(
     {
       event: 'quotes_export_start',
+      tenantId,
       filters: { status, dateFrom, dateTo, priceMin, priceMax, hasSearch: !!search },
     },
     'Starting quotes export'
@@ -349,9 +383,9 @@ export async function getAllQuotesForExport(filters, logger) {
     let result;
 
     if (status !== 'all') {
-      result = await queryByStatus(status, dateFrom, dateTo, 1000, lastEvaluatedKey, logger);
+      result = await queryByStatus(status, dateFrom, dateTo, 1000, lastEvaluatedKey, logger, tenantId);
     } else {
-      result = await scanQuotes(dateFrom, dateTo, 1000, lastEvaluatedKey, logger);
+      result = await scanQuotes(dateFrom, dateTo, 1000, lastEvaluatedKey, logger, tenantId);
     }
 
     allItems = allItems.concat(result.items);
@@ -362,7 +396,7 @@ export async function getAllQuotesForExport(filters, logger) {
   let quotes = allItems.map(item => {
     const quoteData = item.Data || item;
     if (!quoteData.quoteId && item.PK) {
-      quoteData.quoteId = item.PK.replace('QUOTE#', '');
+      quoteData.quoteId = extractQuoteIdFromPK(item.PK);
     }
     return quoteData;
   });
