@@ -8,6 +8,25 @@ const docClient = DynamoDBDocumentClient.from(dynamoClient);
 
 const BOOKINGS_TABLE_NAME = process.env.BOOKINGS_TABLE_NAME || 'durdle-bookings-dev';
 
+const getAllowedOrigins = () => [
+  'http://localhost:3000',
+  'https://durdle.flowency.build',
+  'https://durdle.co.uk'
+];
+
+const getHeaders = (origin) => {
+  const allowedOrigins = getAllowedOrigins();
+  const allowedOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+
+  return {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+    'Access-Control-Allow-Methods': 'GET,POST,PUT,OPTIONS',
+    'Access-Control-Allow-Credentials': 'true'
+  };
+};
+
 // Generate booking ID in format: DTC-{ddmmyy}{seq}
 async function generateBookingId() {
   const now = new Date();
@@ -218,12 +237,8 @@ export const handler = async (event, context) => {
   const startTime = Date.now();
   const log = createLogger(event, context);
 
-  const headers = {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  };
+  const origin = event.headers?.origin || event.headers?.Origin || '';
+  const headers = getHeaders(origin);
 
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
