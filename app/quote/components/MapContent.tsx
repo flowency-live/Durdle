@@ -1,8 +1,7 @@
 'use client';
 
 import L from 'leaflet';
-import { useCallback, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import { useEffect, useRef } from 'react';
 
 import { Location } from '../lib/types';
 import 'leaflet/dist/leaflet.css';
@@ -31,70 +30,80 @@ interface MapContentProps {
   mapCenter: [number, number];
 }
 
+// Pure Leaflet implementation - no react-leaflet hooks
 export default function MapContent({ locations, mapCenter }: MapContentProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
 
-  // Fit bounds when map is ready - uses ref callback pattern
-  const handleMapReady = useCallback((map: L.Map) => {
+  useEffect(() => {
+    if (!containerRef.current || mapRef.current) return;
+
+    // Initialize map
+    const map = L.map(containerRef.current, {
+      center: mapCenter,
+      zoom: 10,
+      scrollWheelZoom: false,
+      attributionControl: false,
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '',
+    }).addTo(map);
+
     mapRef.current = map;
 
-    if (locations.length > 0) {
-      const bounds = locations
-        .filter(loc => loc.coords)
-        .map(loc => [loc.coords!.lat, loc.coords!.lng] as [number, number]);
+    // Add markers
+    const validLocations = locations.filter(loc => loc.coords);
+    validLocations.forEach(loc => {
+      if (loc.coords) {
+        const marker = L.marker([loc.coords.lat, loc.coords.lng]).addTo(map);
+        marker.bindPopup(`<strong>${loc.type}</strong><br/>${loc.location.address}`);
+      }
+    });
 
-      if (bounds.length > 0) {
-        // Use requestAnimationFrame to ensure DOM is ready
-        requestAnimationFrame(() => {
-          try {
-            map.fitBounds(bounds, { padding: [30, 30], maxZoom: 12 });
-          } catch {
-            // Silently ignore if map not ready
-          }
-        });
+    // Draw route line
+    if (validLocations.length > 1) {
+      const polylineCoords = validLocations.map(loc => [loc.coords!.lat, loc.coords!.lng] as [number, number]);
+      L.polyline(polylineCoords, { color: '#8fb894', weight: 4, opacity: 0.7 }).addTo(map);
+    }
+
+    // Fit bounds
+    if (validLocations.length > 0) {
+      const bounds = validLocations.map(loc => [loc.coords!.lat, loc.coords!.lng] as [number, number]);
+      requestAnimationFrame(() => {
+        try {
+          map.fitBounds(bounds, { padding: [30, 30], maxZoom: 12 });
+        } catch {
+          // Silently ignore
+        }
+      });
+    }
+
+    // Cleanup
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, []); // Empty deps - only run once on mount
+
+  // Update map if locations change after initial render
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    const map = mapRef.current;
+    const validLocations = locations.filter(loc => loc.coords);
+
+    if (validLocations.length > 0) {
+      const bounds = validLocations.map(loc => [loc.coords!.lat, loc.coords!.lng] as [number, number]);
+      try {
+        map.fitBounds(bounds, { padding: [30, 30], maxZoom: 12 });
+      } catch {
+        // Silently ignore
       }
     }
   }, [locations]);
 
-  return (
-    <MapContainer
-      center={mapCenter}
-      zoom={10}
-      scrollWheelZoom={false}
-      attributionControl={false}
-      className="w-full h-full z-0"
-      style={{ height: '100%', width: '100%' }}
-      ref={handleMapReady}
-    >
-      <TileLayer
-        attribution=""
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-
-      {/* Markers for each location */}
-      {locations.map((loc, idx) => (
-        loc.coords && (
-          <Marker key={idx} position={[loc.coords.lat, loc.coords.lng]}>
-            <Popup>
-              <div className="text-sm">
-                <strong className="capitalize">{loc.type}</strong>
-                <br />
-                {loc.location.address}
-              </div>
-            </Popup>
-          </Marker>
-        )
-      ))}
-
-      {/* Draw route line */}
-      {locations.length > 1 && (
-        <Polyline
-          positions={locations
-            .filter(loc => loc.coords)
-            .map(loc => [loc.coords!.lat, loc.coords!.lng])}
-          pathOptions={{ color: '#8fb894', weight: 4, opacity: 0.7 }}
-        />
-      )}
-    </MapContainer>
-  );
+  return <div ref={containerRef} className="w-full h-full" style={{ minHeight: '200px' }} />;
 }
