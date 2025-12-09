@@ -7,7 +7,7 @@ Manages booking creation, retrieval, and status updates for the Durdle platform.
 - **Name**: `bookings-manager-dev`
 - **Runtime**: Node.js 20.x (arm64)
 - **Handler**: `index.handler`
-- **Layer**: `durdle-common-layer:3` (logger.mjs + Pino)
+- **Layer**: `durdle-common-layer:4` (logger.mjs + Pino)
 - **Timeout**: 30 seconds
 - **Memory**: 256 MB
 
@@ -114,7 +114,7 @@ aws lambda create-function \
   --zip-file fileb://deployment.zip \
   --timeout 30 \
   --memory-size 256 \
-  --layers arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:3 \
+  --layers arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:4 \
   --environment Variables="{BOOKINGS_TABLE_NAME=durdle-bookings-dev}" \
   --region eu-west-2
 
@@ -138,5 +138,5 @@ rm deployment.zip
 
 ## Related Resources
 - DynamoDB: `durdle-bookings-dev`
-- Lambda Layer: `durdle-common-layer:3`
+- Lambda Layer: `durdle-common-layer:4`
 - IAM Role: `durdle-lambda-execution-role-dev`

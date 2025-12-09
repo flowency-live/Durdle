@@ -3,7 +3,7 @@
 **Function Name:** `quotes-manager-dev`
 **Runtime:** Node.js 20.x
 **Architecture:** arm64
-**Lambda Layer:** `durdle-common-layer:3` (REQUIRED)
+**Lambda Layer:** `durdle-common-layer:4` (REQUIRED)
 **Purpose:** Admin quotes management - list, filter, search, and export quotes
 
 ---
@@ -37,7 +37,7 @@ tests/
 
 This Lambda function imports from `/opt/nodejs/logger.mjs`, which is provided by the Lambda Layer.
 
-**Layer ARN:** `arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:3`
+**Layer ARN:** `arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:4`
 
 **IMPORTANT:**
 - Do NOT include `logger.mjs` in the deployment ZIP
@@ -80,14 +80,14 @@ aws lambda get-function-configuration \
   --query 'Layers[*].Arn'
 ```
 
-Expected output: `["arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:3"]`
+Expected output: `["arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:4"]`
 
 If layer is NOT attached, attach it:
 
 ```bash
 aws lambda update-function-configuration \
   --function-name quotes-manager-dev \
-  --layers arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:3 \
+  --layers arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:4 \
   --region eu-west-2
 ```
 
@@ -246,7 +246,7 @@ This Lambda handles these routes:
 ```bash
 aws lambda update-function-configuration \
   --function-name quotes-manager-dev \
-  --layers arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:3 \
+  --layers arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:4 \
   --region eu-west-2
 ```
 

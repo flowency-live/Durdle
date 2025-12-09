@@ -3,7 +3,7 @@
 **Last Updated**: December 6, 2025 (Lambda Layer Implemented)
 **Lambda Name**: pricing-manager-dev
 **Runtime**: Node.js 20.x (arm64)
-**Lambda Layer**: durdle-common-layer:3 <- **REQUIRED!**
+**Lambda Layer**: durdle-common-layer:4 <- **REQUIRED!**
 
 ---
 
@@ -11,7 +11,7 @@
 
 This function uses a Lambda Layer for shared utilities.
 
-**Layer ARN**: `arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:3`
+**Layer ARN**: `arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:4`
 **Layer Contains**: logger.mjs + Pino dependency
 
 If the layer is not attached, the Lambda WILL CRASH with "Cannot find module '/opt/nodejs/logger.mjs'".
@@ -55,7 +55,7 @@ surge-rules.mjs
 ├── imports zod (from deployment node_modules)
 └── imports /opt/nodejs/logger.mjs (PROVIDED BY LAYER)
 
-/opt/nodejs/logger.mjs (Lambda Layer durdle-common-layer:3)
+/opt/nodejs/logger.mjs (Lambda Layer durdle-common-layer:4)
 └── imports pino (from layer node_modules)
 ```
 
@@ -93,13 +93,13 @@ aws lambda get-function-configuration \
   --query 'Layers[*].Arn'
 ```
 
-**Expected Output**: `["arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:3"]`
+**Expected Output**: `["arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:4"]`
 
 **If layer is missing**, attach it:
 ```bash
 aws lambda update-function-configuration \
   --function-name pricing-manager-dev \
-  --layers arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:3 \
+  --layers arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:4 \
   --region eu-west-2
 ```
 
@@ -176,7 +176,7 @@ Before deploying, verify:
 ```bash
 aws lambda update-function-configuration \
   --function-name pricing-manager-dev \
-  --layers arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:3 \
+  --layers arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:4 \
   --region eu-west-2
 ```
 
@@ -196,8 +196,8 @@ aws lambda update-function-configuration \
 
 **Source Files in Deployment**: 2 .mjs files (index, surge-rules)
 **Source Files in Layer**: 1 .mjs file (logger)
-**Lambda Layer**: durdle-common-layer:3 (365KB)
-**Layer ARN**: `arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:3`
+**Lambda Layer**: durdle-common-layer:4 (365KB)
+**Layer ARN**: `arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:4`
 **Deployment Package Size**: ~4.2MB
 **Structured Logging**: ✅ Deployed via Lambda Layer (Pino + logger.mjs)
 **Input Validation**: ✅ Zod schemas for create/update operations
@@ -279,5 +279,5 @@ These are NOT in the deployment package - they're configured in AWS Lambda:
 **Questions?** Check [BACKEND_TEAM_START_HERE.md](../../BACKEND_TEAM_START_HERE.md)
 
 **Last Deployed**: December 6, 2025 (with Lambda Layer v2)
-**Layer Version**: durdle-common-layer:3
+**Layer Version**: durdle-common-layer:4
 **Next Review**: After frontend integration testing

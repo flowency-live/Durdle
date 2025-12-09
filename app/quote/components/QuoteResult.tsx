@@ -68,35 +68,48 @@ export default function QuoteResult({ quote, onNewQuote, onBack, onConfirmBookin
           </div>
 
           {/* Vehicle + Map Section - Side by side on desktop */}
-          <div className="p-4 border-b border-border">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Vehicle Info */}
+          <div className="p-4 md:p-6 border-b border-border">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Vehicle Card */}
               {quote.vehicleDetails && (
-                <div className="flex items-center gap-4">
+                <div className="bg-gradient-to-br from-sage-light/30 to-sage-light/10 rounded-2xl p-4 border border-sage-light">
+                  {/* Vehicle Image */}
                   {quote.vehicleDetails.imageUrl ? (
-                    <div className="relative w-24 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-muted">
+                    <div className="relative w-full h-32 md:h-40 rounded-xl overflow-hidden bg-white/50 mb-4">
                       <Image
                         src={quote.vehicleDetails.imageUrl}
                         alt={quote.vehicleDetails.name}
                         fill
-                        className="object-contain"
+                        className="object-contain p-2"
                         unoptimized
                       />
                     </div>
                   ) : (
-                    <div className="w-24 h-20 rounded-xl bg-sage-dark/10 flex items-center justify-center flex-shrink-0">
-                      <Car className="w-10 h-10 text-sage-dark" />
+                    <div className="w-full h-32 md:h-40 rounded-xl bg-white/50 flex items-center justify-center mb-4">
+                      <Car className="w-16 h-16 text-sage-dark" />
                     </div>
                   )}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-semibold text-foreground">{quote.vehicleDetails.name}</h3>
+
+                  {/* Vehicle Details */}
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-bold text-navy-dark">{quote.vehicleDetails.name}</h3>
                     <p className="text-sm text-muted-foreground">{quote.vehicleDetails.description}</p>
+
+                    {/* Capacity */}
+                    {quote.vehicleDetails.capacity && (
+                      <div className="flex items-center gap-2 text-sm text-navy-light">
+                        <Users className="w-4 h-4" />
+                        <span>Up to {quote.vehicleDetails.capacity} passengers</span>
+                      </div>
+                    )}
+
+                    {/* Features */}
                     {quote.vehicleDetails.features && quote.vehicleDetails.features.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {quote.vehicleDetails.features.slice(0, 3).map((feature, idx) => (
+                      <div className="flex flex-wrap gap-2 pt-2">
+                        {quote.vehicleDetails.features.map((feature, idx) => (
                           <span
                             key={idx}
-                            className="text-xs px-2 py-0.5 bg-muted rounded-full text-muted-foreground"
+                            className="text-xs px-3 py-1 bg-white/70 rounded-full text-navy-light border border-sage-light"
                           >
                             {feature}
                           </span>

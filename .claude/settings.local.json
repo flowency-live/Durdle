@@ -101,7 +101,8 @@
       "Bash(for RESOURCE_ID in t1rb6n t64n8c v16n7o)",
       "Bash(do echo \"Updating resource $RESOURCE_ID...\" MSYS_NO_PATHCONV=1 aws apigateway update-integration-response --rest-api-id qcfd5p4514 --resource-id $RESOURCE_ID --http-method OPTIONS --status-code 200 --patch-operations \"[{\"\"op\"\":\"\"replace\"\",\"\"path\"\":\"\"/responseParameters/method.response.header.Access-Control-Allow-Origin\"\",\"\"value\"\":\"\"''''https://durdle.flowency.build''''\"\"}]\" --region eu-west-2)",
       "Bash(aws dynamodb put-item:*)",
-      "Bash(dir \"c:\\VSProjects\\_Websites\\Durdle\\durdle-serverless-api\\functions\\quotes-calculator\")"
+      "Bash(dir \"c:\\VSProjects\\_Websites\\Durdle\\durdle-serverless-api\\functions\\quotes-calculator\")",
+      "Bash(aws lambda list-layer-versions:*)"
     ],
     "deny": [],
     "ask": []

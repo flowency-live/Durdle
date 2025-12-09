@@ -3,7 +3,7 @@
 **Last Updated**: December 6, 2025 (Layer v3 + Pino Optimization Complete)
 **Lambda Name**: quotes-calculator-dev
 **Runtime**: Node.js 20.x (arm64)
-**Lambda Layer**: durdle-common-layer:3 ← **REQUIRED!**
+**Lambda Layer**: durdle-common-layer:4 ← **REQUIRED!**
 
 ---
 
@@ -11,7 +11,7 @@
 
 This function uses a Lambda Layer for shared utilities.
 
-**Layer ARN**: `arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:3`
+**Layer ARN**: `arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:4`
 **Layer Contains**: logger.mjs (with logger.log() backward compatibility) + Pino dependency
 
 If the layer is not attached, the Lambda WILL CRASH with "Cannot find module '/opt/nodejs/logger.mjs'".
@@ -55,7 +55,7 @@ index.mjs
 ├── imports ./pricing-engine.mjs (REQUIRED in deployment)
 └── imports /opt/nodejs/logger.mjs (PROVIDED BY LAYER)
 
-/opt/nodejs/logger.mjs (Lambda Layer durdle-common-layer:3)
+/opt/nodejs/logger.mjs (Lambda Layer durdle-common-layer:4)
 └── imports pino (from layer node_modules)
 
 validation.mjs
@@ -105,13 +105,13 @@ aws lambda get-function-configuration \
   --query 'Layers[*].Arn'
 ```
 
-**Expected Output**: `["arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:3"]`
+**Expected Output**: `["arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:4"]`
 
 **If layer is missing**, attach it:
 ```bash
 aws lambda update-function-configuration \
   --function-name quotes-calculator-dev \
-  --layers arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:3 \
+  --layers arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:4 \
   --region eu-west-2
 ```
 
@@ -192,7 +192,7 @@ Before deploying, verify:
 ```bash
 aws lambda update-function-configuration \
   --function-name quotes-calculator-dev \
-  --layers arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:3 \
+  --layers arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:4 \
   --region eu-west-2
 ```
 
@@ -220,8 +220,8 @@ aws lambda update-function-configuration \
 
 **Source Files in Deployment**: 3 .mjs files (index, validation, pricing-engine)
 **Source Files in Layer**: 1 .mjs file (logger)
-**Lambda Layer**: durdle-common-layer:3 (373KB)
-**Layer ARN**: `arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:3`
+**Lambda Layer**: durdle-common-layer:4 (373KB)
+**Layer ARN**: `arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:4`
 **Test Coverage**: 100% on pricing-engine.mjs (32 tests)
 **Structured Logging**: ✅ Deployed via Lambda Layer v3 (Pino + logger.mjs with logger.log() support)
 **Input Validation**: ✅ Deployed (Zod + validation.mjs)
@@ -273,5 +273,5 @@ These are NOT in the deployment package - they're configured in AWS Lambda:
 **Questions?** Check [C:\VSProjects\_Websites\Durdle\.documentation\CTO\LAMBDA_DEPLOYMENT_GUIDE.md](../../.documentation/CTO/LAMBDA_DEPLOYMENT_GUIDE.md)
 
 **Last Deployed**: December 6, 2025 (Layer v3 + Pino optimization complete)
-**Layer Version**: durdle-common-layer:3 (with logger.log() backward compatibility)
+**Layer Version**: durdle-common-layer:4 (with logger.log() backward compatibility)
 **Package Size**: 13.4 MB (optimized)
