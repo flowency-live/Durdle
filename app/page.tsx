@@ -89,6 +89,12 @@ export default function Home() {
               >
                 Contact
               </a>
+              <a
+                href="/v2"
+                className="text-xs font-medium text-muted-foreground/60 hover:text-foreground transition-colors"
+              >
+                V2
+              </a>
             </nav>
 
             {/* Desktop Actions */}
@@ -152,6 +158,13 @@ export default function Home() {
                   className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
                 >
                   Contact
+                </a>
+                <a
+                  href="/v2"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-sm font-medium text-muted-foreground/60 hover:text-foreground transition-colors py-2"
+                >
+                  View V2 Site
                 </a>
                 <div className="border-t border-border pt-4 mt-2 flex flex-col gap-3">
                   <a href="/quote" className={buttonVariants({ variant: "hero-golden", size: "xl", className: "w-full" })}>
