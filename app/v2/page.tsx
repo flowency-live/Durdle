@@ -50,7 +50,8 @@ const destinations = [
     icon: Plane,
     title: "Airport Transfers",
     description: "Heathrow, Gatwick, Bristol, Southampton and all major UK airports",
-    image: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1600&h=900&fit=crop",
+    // Airport departures board / terminal interior
+    image: "https://images.unsplash.com/photo-1529074963764-98f45c47344b?w=1600&h=900&fit=crop",
     color: "sage",
   },
   {
@@ -58,7 +59,8 @@ const destinations = [
     icon: Ship,
     title: "Cruise Transfers",
     description: "Southampton and Poole - serving the world's leading cruise lines",
-    image: "https://images.unsplash.com/photo-1548574505-5e239809ee19?w=1600&h=900&fit=crop",
+    // Large cruise ship at port - more realistic UK port feel
+    image: "https://images.unsplash.com/photo-1599640842225-85d111c60e6b?w=1600&h=900&fit=crop",
     color: "navy",
   },
   {
@@ -66,7 +68,8 @@ const destinations = [
     icon: Train,
     title: "Rail Connections",
     description: "London Waterloo, Bournemouth, Southampton Central and beyond",
-    image: "https://images.unsplash.com/photo-1474487548417-781cb71495f3?w=1600&h=900&fit=crop",
+    // Modern passenger train at platform
+    image: "https://images.unsplash.com/photo-1515165562839-978bbcf18277?w=1600&h=900&fit=crop",
     color: "sage",
   },
 ];
