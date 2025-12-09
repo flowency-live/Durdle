@@ -515,11 +515,14 @@ async function calculatePricing(distanceMiles, waitTimeMinutes, vehicleType = 's
   };
 }
 
+// Generate quote ID in format: DTC-Q{ddmmyy}{seq}
+// Example: DTC-Q08120801 (Dec 8, 2025, first quote of the day)
 async function generateFriendlyQuoteId() {
   const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
   const day = String(now.getDate()).padStart(2, '0');
-  const datePrefix = `${month}${day}`;
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const year = String(now.getFullYear()).slice(-2);
+  const datePrefix = `${day}${month}${year}`; // ddmmyy format
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
 
   try {
@@ -529,36 +532,37 @@ async function generateFriendlyQuoteId() {
       IndexName: 'GSI1',
       KeyConditionExpression: 'GSI1PK = :status AND GSI1SK >= :todayStart',
       ExpressionAttributeValues: {
-        ':status': 'STATUS#valid',
+        ':status': 'STATUS#saved',
         ':todayStart': `CREATED#${todayStart}`
       }
     });
 
     const result = await docClient.send(command);
     const todayCount = result.Items ? result.Items.length : 0;
-    const sequenceNumber = String(todayCount + 1).padStart(3, '0');
+    const sequenceNumber = String(todayCount + 1).padStart(2, '0');
 
-    return `DTS${datePrefix}_${sequenceNumber}`;
+    return `DTC-Q${datePrefix}${sequenceNumber}`;
   } catch (error) {
-    logger.warn({
-      event: 'quote_id_generation_fallback',
-      errorMessage: error.message,
-    }, 'Failed to generate sequential quote ID, using UUID fallback');
-    // Fallback to UUID-based ID if query fails
-    return `DTS${datePrefix}_${randomUUID().slice(0, 3).toUpperCase()}`;
+    // Fallback to UUID-based suffix if query fails
+    return `DTC-Q${datePrefix}${randomUUID().slice(0, 2).toUpperCase()}`;
   }
 }
 
-async function storeQuote(quote) {
-  const ttl = Math.floor(Date.now() / 1000) + (15 * 60);
+// Generate a secure magic token for sharing quotes
+function generateMagicToken() {
+  return randomUUID().replace(/-/g, '').slice(0, 16);
+}
 
+// Store a saved quote (no TTL - persists until booking or explicit delete)
+async function storeSavedQuote(quote, magicToken, logger) {
   const item = {
     PK: `QUOTE#${quote.quoteId}`,
     SK: 'METADATA',
     EntityType: 'Quote',
     GSI1PK: `STATUS#${quote.status}`,
     GSI1SK: `CREATED#${quote.createdAt}`,
-    TTL: ttl,
+    // No TTL for saved quotes - they persist
+    magicToken, // For secure retrieval without auth
     Data: quote,
     CreatedAt: Math.floor(new Date(quote.createdAt).getTime() / 1000),
     UpdatedAt: Math.floor(new Date(quote.createdAt).getTime() / 1000),
@@ -569,6 +573,11 @@ async function storeQuote(quote) {
       TableName: TABLE_NAME,
       Item: item,
     }));
+
+    logger.info({
+      event: 'quote_saved',
+      quoteId: quote.quoteId,
+    }, 'Quote saved to DynamoDB');
   } catch (error) {
     logger.error({
       event: 'dynamodb_put_error',
@@ -580,16 +589,158 @@ async function storeQuote(quote) {
   }
 }
 
+// Retrieve a quote by ID and magic token (public access)
+async function getQuoteByToken(quoteId, magicToken, logger) {
+  try {
+    const result = await docClient.send(new GetCommand({
+      TableName: TABLE_NAME,
+      Key: {
+        PK: `QUOTE#${quoteId}`,
+        SK: 'METADATA',
+      },
+    }));
+
+    if (!result.Item) {
+      return { found: false, error: 'Quote not found' };
+    }
+
+    // Verify magic token
+    if (result.Item.magicToken !== magicToken) {
+      logger.warn({
+        event: 'invalid_magic_token',
+        quoteId,
+      }, 'Invalid magic token for quote retrieval');
+      return { found: false, error: 'Invalid token' };
+    }
+
+    return { found: true, quote: result.Item.Data };
+  } catch (error) {
+    logger.error({
+      event: 'quote_retrieval_error',
+      quoteId,
+      errorMessage: error.message,
+    }, 'Failed to retrieve quote');
+    return { found: false, error: 'Failed to retrieve quote' };
+  }
+}
+
 export const handler = async (event, context) => {
   const startTime = Date.now();
   const logger = createLogger(event, context);
 
+  const { httpMethod, path, pathParameters } = event;
+
   logger.info({
     event: 'lambda_invocation',
-    httpMethod: event.httpMethod,
-    path: event.path,
+    httpMethod,
+    path,
+    pathParameters,
   }, 'Quote calculator invoked');
 
+  // CORS headers
+  const headers = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+  };
+
+  // Handle OPTIONS for CORS
+  if (httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers, body: '' };
+  }
+
+  // Route: GET /quotes/{quoteId} - Retrieve saved quote by ID + token
+  if (httpMethod === 'GET' && pathParameters?.quoteId) {
+    const quoteId = pathParameters.quoteId;
+    const token = event.queryStringParameters?.token;
+
+    if (!token) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Missing token parameter' }),
+      };
+    }
+
+    const result = await getQuoteByToken(quoteId, token, logger);
+    if (!result.found) {
+      return {
+        statusCode: 404,
+        headers,
+        body: JSON.stringify({ error: result.error }),
+      };
+    }
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify(result.quote),
+    };
+  }
+
+  // Route: POST /quotes/save - Save a quote for sharing
+  if (httpMethod === 'POST' && path?.includes('/save')) {
+    try {
+      const rawBody = JSON.parse(event.body || '{}');
+
+      // Validate that quote data is present
+      if (!rawBody.quote || !rawBody.quote.pricing) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Missing quote data' }),
+        };
+      }
+
+      // Generate quote ID and magic token
+      const quoteId = await generateFriendlyQuoteId();
+      const magicToken = generateMagicToken();
+      const now = new Date().toISOString();
+
+      const savedQuote = {
+        ...rawBody.quote,
+        quoteId,
+        status: 'saved',
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      await storeSavedQuote(savedQuote, magicToken, logger);
+
+      // Return quote ID, token, and shareable URL
+      const shareUrl = `https://dorsettc.co.uk/quote/${quoteId}?token=${magicToken}`;
+
+      logger.info({
+        event: 'quote_saved_success',
+        quoteId,
+        duration: Date.now() - startTime,
+      }, 'Quote saved successfully');
+
+      return {
+        statusCode: 201,
+        headers,
+        body: JSON.stringify({
+          quoteId,
+          token: magicToken,
+          shareUrl,
+          quote: savedQuote,
+        }),
+      };
+    } catch (error) {
+      logger.error({
+        event: 'save_quote_error',
+        errorMessage: error.message,
+      }, 'Failed to save quote');
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: 'Failed to save quote' }),
+      };
+    }
+  }
+
+  // Route: POST /quotes - Calculate quote (no auto-save)
   let validation; // Declare outside try block so it's accessible in catch
 
   try {
@@ -930,14 +1081,11 @@ export const handler = async (event, context) => {
       };
     }
 
-    const quoteId = await generateFriendlyQuoteId();
+    // Build quote response (NOT stored - use POST /quotes/save to persist)
     const now = new Date().toISOString();
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
     const quote = {
-      quoteId,
-      status: 'valid',
-      expiresAt,
+      // No quoteId - assigned when saved via POST /quotes/save
       journeyType,
       journey: {
         distance: route.distance,
@@ -957,21 +1105,19 @@ export const handler = async (event, context) => {
       luggage: body.luggage || 0,
       extras, // Baby seats and child seats
       returnJourney: body.returnJourney || false,
-      createdAt: now,
+      calculatedAt: now,
     };
 
-    await storeQuote(quote);
+    // NOTE: Quote is NOT auto-saved to DB
+    // Frontend should call POST /quotes/save to persist and get shareable URL
 
     // Log successful quote calculation
     const duration = Date.now() - startTime;
     logQuoteCalculationSuccess(logger, quote, duration);
 
     return {
-      statusCode: 201,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
+      statusCode: 200, // Changed from 201 since nothing is created/stored
+      headers,
       body: JSON.stringify(quote),
     };
   } catch (error) {

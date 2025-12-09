@@ -69,6 +69,7 @@ export const FALLBACK_VEHICLE_RATES = {
     baseFare: 500,
     perMile: 100,
     perMinute: 10,
+    perHour: 3500, // £35/hour in pence
     name: 'Standard Sedan',
     description: 'Comfortable sedan for up to 4 passengers',
     capacity: 4,
@@ -79,6 +80,7 @@ export const FALLBACK_VEHICLE_RATES = {
     baseFare: 800,
     perMile: 150,
     perMinute: 15,
+    perHour: 5000, // £50/hour in pence
     name: 'Executive Sedan',
     description: 'Premium sedan with luxury amenities',
     capacity: 4,
@@ -89,6 +91,7 @@ export const FALLBACK_VEHICLE_RATES = {
     baseFare: 1000,
     perMile: 120,
     perMinute: 12,
+    perHour: 7000, // £70/hour in pence
     name: 'Minibus',
     description: 'Spacious minibus for up to 8 passengers',
     capacity: 8,
@@ -96,6 +99,34 @@ export const FALLBACK_VEHICLE_RATES = {
     imageUrl: '',
   },
 };
+
+/**
+ * Calculate hourly pricing for "by-the-hour" journeys
+ * @param {number} durationHours - Duration in hours (2-12)
+ * @param {object} vehicleRates - Vehicle pricing rates (must include perHour)
+ * @returns {object} Pricing breakdown
+ */
+export function calculateHourlyPricing(durationHours, vehicleRates) {
+  const perHour = vehicleRates.perHour || 3500; // Default £35/hour
+  const hourlyCharge = durationHours * perHour;
+  const total = hourlyCharge;
+
+  return {
+    currency: 'GBP',
+    breakdown: {
+      baseFare: 0,
+      distanceCharge: 0,
+      waitTimeCharge: 0,
+      hourlyCharge,
+      durationHours,
+      subtotal: total,
+      tax: 0,
+      total,
+    },
+    displayTotal: `£${(total / 100).toFixed(2)}`,
+    isHourlyRate: true,
+  };
+}
 
 /**
  * Calculate total wait time from waypoints

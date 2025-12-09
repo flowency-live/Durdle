@@ -72,6 +72,7 @@ All functions are in `durdle-serverless-api/functions/`:
 |----------|-------------|-------------|--------------|
 | api-gateway-authorizer | JWT validation for API Gateway | No | [STRUCTURE.md](functions/api-gateway-authorizer/STRUCTURE.md) |
 | quotes-calculator | Calculate transfer quotes | ✅ Yes (v3) | [STRUCTURE.md](functions/quotes-calculator/STRUCTURE.md) |
+| quotes-manager | Admin quotes CRUD + export | ✅ Yes (v3) | [STRUCTURE.md](functions/quotes-manager/STRUCTURE.md) |
 | admin-auth | Admin authentication (JWT) | ✅ Yes (v3) | [STRUCTURE.md](functions/admin-auth/STRUCTURE.md) |
 | pricing-manager | Manage pricing config | ✅ Yes (v3) | [STRUCTURE.md](functions/pricing-manager/STRUCTURE.md) |
 | vehicle-manager | Manage vehicle fleet | ✅ Yes (v3) | [STRUCTURE.md](functions/vehicle-manager/STRUCTURE.md) |
@@ -84,6 +85,7 @@ All functions are in `durdle-serverless-api/functions/`:
 **Deployment Status**:
 - ✅ **api-gateway-authorizer**: Fully documented, validates JWT for all admin routes
 - ✅ **quotes-calculator**: Fully documented, layer attached, structured logging (14 log events), Zod validation, 32 tests
+- ✅ **quotes-manager**: Fully documented, layer attached, handles /admin/quotes routes
 - ✅ **admin-auth**: Fully documented, layer attached, structured logging (security audit trails)
 - ✅ **pricing-manager**: Fully documented, layer attached, structured logging (19 log events), Zod validation
 - ✅ **vehicle-manager**: Fully documented, layer attached, structured logging (6 log events)
@@ -93,7 +95,7 @@ All functions are in `durdle-serverless-api/functions/`:
 - ⚠️ **document-comments**: Layer attached, structured logging deployed (23 log events) - No STRUCTURE.md yet
 - ⚠️ **fixed-routes-manager**: Layer attached, structured logging deployed (43 log events) - No STRUCTURE.md yet
 
-**Summary**: 10 Lambdas total | 9/9 data Lambdas have Layer v3 | 6/10 have STRUCTURE.md | API Gateway authorizer active
+**Summary**: 11 Lambdas total | 10/10 data Lambdas have Layer v3 | 8/11 have STRUCTURE.md | API Gateway authorizer active
 
 ---
 
@@ -160,6 +162,18 @@ aws lambda update-function-code \
 
 ### Step 6: Verify Deployment
 
+**CRITICAL: Local code changes do NOT automatically deploy to AWS.**
+
+After making local code changes, you MUST:
+1. Create deployment ZIP
+2. Run `aws lambda update-function-code`
+3. Verify deployment completed
+
+**Verify deployment timestamp**:
+```bash
+aws lambda get-function-configuration --function-name [function-name]-dev --region eu-west-2 --query '{LastModified:LastModified,LastUpdateStatus:LastUpdateStatus}'
+```
+
 **Test the Lambda**:
 ```bash
 aws lambda invoke \
@@ -182,6 +196,7 @@ MSYS_NO_PATHCONV=1 aws logs tail "/aws/lambda/[function-name]-dev" \
 - ✅ No ERROR logs
 - ✅ Structured JSON logs (if logging enabled)
 - ✅ Function executed successfully
+- ✅ LastModified timestamp matches your deployment time
 
 ---
 
@@ -518,15 +533,18 @@ aws lambda list-functions --region eu-west-2 --query 'Functions[?starts_with(Fun
 ---
 
 **Document Owner**: CTO
-**Last Updated**: December 8, 2025 (API Gateway JWT Authorizer deployed)
-**Next Review**: After remaining 4 Lambdas have STRUCTURE.md files
+**Last Updated**: December 8, 2025 (CTO infrastructure audit completed)
+**Next Review**: After remaining 3 Lambdas have STRUCTURE.md files
 
 **Backend Foundation Status**:
-- ✅ API Gateway JWT Authorizer active for all admin routes
-- ✅ 9/9 data Lambdas with Lambda Layer v3 (structured logging)
-- ✅ 6/10 Lambdas with STRUCTURE.md deployment documentation
+- ✅ API Gateway JWT Authorizer active for all admin routes (except /admin/auth/login)
+- ✅ 10/10 data Lambdas with Lambda Layer v3 (structured logging)
+- ✅ 8/11 Lambdas with STRUCTURE.md deployment documentation
 - ✅ ADMIN_ENDPOINT_STANDARD.md + LAMBDA_CODE_PATTERNS.md created
 - ✅ CORS, auth, and logging patterns fully documented
+- ✅ Gateway responses (401/403) configured with proper CORS
+- ✅ All Lambdas deployed and verified (Dec 8, 2025 15:17 UTC)
+- ✅ IAM policy includes all DynamoDB tables (document-comments added Dec 8)
 - ⏭️ Next: Create STRUCTURE.md for locations-lookup, uploads-presigned, document-comments, fixed-routes-manager
 
 **Questions?** Consult CTO before deploying if anything is unclear.

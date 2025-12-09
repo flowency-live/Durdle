@@ -13,6 +13,9 @@ export const API_BASE_URL =
 export const API_ENDPOINTS = {
   // Public Quote Endpoints
   quotes: '/v1/quotes',
+  quotesSave: '/quotes/save',
+  quotesRetrieve: '/quotes', // /quotes/{quoteId}?token=xxx
+  bookings: '/bookings',
   vehicles: '/v1/vehicles',
   fixedRoutes: '/v1/fixed-routes',
   locations: '/v1/locations/autocomplete',

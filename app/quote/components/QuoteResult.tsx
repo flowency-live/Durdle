@@ -1,12 +1,13 @@
 'use client';
 
-import { MapPin, Clock, Calendar, Users, Car, Luggage, Edit2 } from 'lucide-react';
+import { MapPin, Clock, Calendar, Users, Car, Luggage, Edit2, Share2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 
 import { QuoteResponse } from '../lib/types';
+import ShareQuoteModal from './ShareQuoteModal';
 
 
 interface QuoteResultProps {
@@ -18,6 +19,7 @@ interface QuoteResultProps {
 
 export default function QuoteResult({ quote, onNewQuote, onBack, onConfirmBooking }: QuoteResultProps) {
   const [timeRemaining, setTimeRemaining] = useState<string>('');
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // Scroll to top when quote result appears
   useEffect(() => {
@@ -261,16 +263,27 @@ export default function QuoteResult({ quote, onNewQuote, onBack, onConfirmBookin
             >
               Confirm Booking
             </Button>
-            <Link href="/" className="block">
+            <div className="flex gap-3">
+              <Link href="/" className="flex-1">
+                <Button
+                  type="button"
+                  variant="default"
+                  size="xl"
+                  className="w-full"
+                >
+                  Cancel
+                </Button>
+              </Link>
               <Button
                 type="button"
-                variant="default"
                 size="xl"
-                className="w-full"
+                className="flex-1 border border-border bg-background hover:bg-muted"
+                onClick={() => setShowShareModal(true)}
               >
-                Cancel Quote
+                <Share2 className="w-4 h-4 mr-2" />
+                Share
               </Button>
-            </Link>
+            </div>
             <div className="text-center space-y-1 pt-2">
               <p className="text-sm text-muted-foreground">
                 Quote expires in: <span className="font-semibold text-foreground">{timeRemaining}</span>
@@ -286,6 +299,13 @@ export default function QuoteResult({ quote, onNewQuote, onBack, onConfirmBookin
           </div>
         </div>
       </div>
+
+      {/* Share Modal */}
+      <ShareQuoteModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        quoteData={quote}
+      />
     </section>
   );
 }

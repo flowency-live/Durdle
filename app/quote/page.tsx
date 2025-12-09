@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useState, Suspense } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { API_BASE_URL, API_ENDPOINTS } from '@/lib/config/api';
 
 import FeedbackButton from '../components/FeedbackButton';
 
@@ -56,6 +57,8 @@ function QuotePageContent() {
   const [contactDetails, setContactDetails] = useState<ContactDetails | null>(null);
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | null>(null);
   const [bookingId, setBookingId] = useState<string>('');
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingError, setBookingError] = useState<string | null>(null);
 
   // Validation for Step 1
   const canProceedFromStep1 = () => {
@@ -228,11 +231,60 @@ function QuotePageContent() {
     setBookingStage('quote');
   };
 
-  const handlePaymentSubmit = (details: PaymentDetails) => {
+  const handlePaymentSubmit = async (details: PaymentDetails) => {
     setPaymentDetails(details);
-    const mockBookingId = `DTC-${Date.now().toString().slice(-8)}`;
-    setBookingId(mockBookingId);
-    setBookingStage('confirmation');
+    setBookingLoading(true);
+    setBookingError(null);
+
+    try {
+      if (!quote || !contactDetails) {
+        throw new Error('Missing quote or contact details');
+      }
+
+      // Create booking via API
+      const bookingData = {
+        // quoteId is optional - may not exist if quote wasn't saved
+        ...(quote.quoteId && { quoteId: quote.quoteId }),
+        customerName: contactDetails.name,
+        customerEmail: contactDetails.email,
+        customerPhone: contactDetails.phone,
+        pickupLocation: quote.pickupLocation,
+        dropoffLocation: quote.dropoffLocation,
+        waypoints: quote.waypoints,
+        pickupTime: quote.pickupTime,
+        passengers: quote.passengers,
+        luggage: quote.luggage,
+        vehicleType: quote.vehicleType,
+        pricing: quote.pricing,
+        journey: quote.journey,
+        returnJourney: quote.returnJourney,
+        paymentMethod: 'card',
+        paymentStatus: 'pending', // Will be updated after Stripe integration
+        specialRequests: '', // TODO: Add to ContactDetailsForm
+      };
+
+      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.bookings}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(bookingData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to create booking');
+      }
+
+      const data = await response.json();
+      setBookingId(data.booking.bookingId);
+      setBookingStage('confirmation');
+    } catch (err) {
+      console.error('Booking error:', err);
+      setBookingError(err instanceof Error ? err.message : 'Failed to create booking');
+    } finally {
+      setBookingLoading(false);
+    }
   };
 
   const handlePaymentBack = () => {
@@ -253,11 +305,28 @@ function QuotePageContent() {
   // Render payment form
   if (bookingStage === 'payment' && quote && contactDetails) {
     return (
-      <PaymentForm
-        onSubmit={handlePaymentSubmit}
-        onBack={handlePaymentBack}
-        initialValues={paymentDetails || undefined}
-      />
+      <div className="min-h-screen bg-background py-8">
+        <div className="container px-4 mx-auto max-w-md">
+          {bookingError && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
+              <p className="font-medium">Booking Error</p>
+              <p className="text-sm mt-1">{bookingError}</p>
+            </div>
+          )}
+          {bookingLoading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sage-dark mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Creating your booking...</p>
+            </div>
+          ) : (
+            <PaymentForm
+              onSubmit={handlePaymentSubmit}
+              onBack={handlePaymentBack}
+              initialValues={paymentDetails || undefined}
+            />
+          )}
+        </div>
+      </div>
     );
   }
 
