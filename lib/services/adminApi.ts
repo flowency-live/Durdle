@@ -3,6 +3,7 @@
  * exposes quote-related endpoints used by the admin UI.
  */
 import { getApiUrl, API_ENDPOINTS } from '../config/api';
+import { BookingFilters } from '../types/bookings';
 import { QuoteFilters } from '../types/quotes';
 
 function getToken(): string | null {
@@ -66,10 +67,31 @@ export async function exportQuotes(filters: QuoteFilters = {}): Promise<Blob> {
   throw new Error('Unexpected response when exporting CSV');
 }
 
+// Bookings API
+export async function listBookings(filters: BookingFilters = {}): Promise<unknown> {
+  const url = `${getApiUrl(API_ENDPOINTS.adminBookings)}${buildQuery(filters as Record<string, unknown>)}`;
+  return authFetch(url, { method: 'GET' });
+}
+
+export async function getBookingDetails(bookingId: string): Promise<unknown> {
+  const encoded = encodeURIComponent(bookingId);
+  const url = `${getApiUrl(`${API_ENDPOINTS.adminBookings}/${encoded}`)}`;
+  return authFetch(url, { method: 'GET' });
+}
+
+export async function updateBookingStatus(bookingId: string, status: string): Promise<unknown> {
+  const encoded = encodeURIComponent(bookingId);
+  const url = `${getApiUrl(`${API_ENDPOINTS.adminBookings}/${encoded}`)}`;
+  return authFetch(url, { method: 'PUT', body: JSON.stringify({ status }) });
+}
+
 const adminApi = {
   listQuotes,
   getQuoteDetails,
   exportQuotes,
+  listBookings,
+  getBookingDetails,
+  updateBookingStatus,
 };
 
 export default adminApi;
