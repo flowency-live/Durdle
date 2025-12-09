@@ -163,20 +163,30 @@ export default function AllInputsStep({
             />
           </div>
 
-          {/* Hourly mode: Show return to pickup checkbox and optional dropoff */}
+          {/* Hourly mode: Show return to pickup toggle and optional dropoff */}
           {isHourly && pickup && (
             <>
               <div className="border-b border-border my-2"></div>
               <div className="py-3 animate-fade-up">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={returnToPickup}
-                    onChange={(e) => onReturnToPickupChange(e.target.checked)}
-                    className="w-5 h-5 rounded border-border text-sage-dark focus:ring-sage-dark focus:ring-offset-0"
-                  />
+                <button
+                  type="button"
+                  onClick={() => onReturnToPickupChange(!returnToPickup)}
+                  className="w-full flex items-center justify-between gap-3 group"
+                >
                   <span className="text-sm text-foreground">Return to pick-up location</span>
-                </label>
+                  {/* Custom toggle switch */}
+                  <div
+                    className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${
+                      returnToPickup ? 'bg-sage-dark' : 'bg-muted'
+                    }`}
+                  >
+                    <div
+                      className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                        returnToPickup ? 'translate-x-5' : 'translate-x-0.5'
+                      }`}
+                    />
+                  </div>
+                </button>
 
                 {/* Show dropoff input if not returning to pickup */}
                 {!returnToPickup && (
