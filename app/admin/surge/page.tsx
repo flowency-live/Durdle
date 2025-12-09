@@ -109,6 +109,24 @@ export default function SurgePricingPage() {
   };
 
   const handleCreate = async () => {
+    // Client-side validation
+    if (formData.ruleType === 'specific_dates' && formData.dates.length === 0) {
+      setError('Please add at least one date');
+      return;
+    }
+    if (formData.ruleType === 'date_range' && (!formData.startDate || !formData.endDate)) {
+      setError('Please select both start and end dates');
+      return;
+    }
+    if (formData.ruleType === 'day_of_week' && formData.daysOfWeek.length === 0) {
+      setError('Please select at least one day of the week');
+      return;
+    }
+    if (formData.ruleType === 'time_of_day' && (!formData.startTime || !formData.endTime)) {
+      setError('Please select both start and end times');
+      return;
+    }
+
     setSaving(true);
     setError(null);
     try {
@@ -275,11 +293,12 @@ export default function SurgePricingPage() {
     });
   };
 
-  const addDate = () => {
-    if (formData.newDate && !formData.dates.includes(formData.newDate)) {
+  const addDate = (dateToAdd?: string) => {
+    const date = dateToAdd || formData.newDate;
+    if (date && !formData.dates.includes(date)) {
       setFormData({
         ...formData,
-        dates: [...formData.dates, formData.newDate].sort(),
+        dates: [...formData.dates, date].sort(),
         newDate: '',
       });
     }
@@ -578,11 +597,16 @@ export default function SurgePricingPage() {
                     <input
                       type="date"
                       value={formData.newDate}
-                      onChange={(e) => setFormData({ ...formData, newDate: e.target.value })}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val) {
+                          addDate(val);
+                        }
+                      }}
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <button
-                      onClick={addDate}
+                      onClick={() => addDate()}
                       type="button"
                       className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                     >

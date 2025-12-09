@@ -221,14 +221,30 @@ async function fetchAutocomplete(input, sessionToken, logger) {
     return [];
   }
 
-  // Add icon emoji based on types
-  return response.data.predictions.map(prediction => ({
-    place_id: prediction.place_id,
-    description: prediction.description,
-    structured_formatting: prediction.structured_formatting,
-    types: prediction.types,
-    icon: getIconForTypes(prediction.types)
-  }));
+  // Add icon emoji and locationType based on types
+  return response.data.predictions.map(prediction => {
+    const types = prediction.types || [];
+    const description = (prediction.description || '').toLowerCase();
+
+    // Check types first, then fall back to name matching
+    const isAirport = types.includes('airport') ||
+      description.includes('airport');
+    const isTrainStation = types.includes('train_station') ||
+      types.includes('transit_station') ||
+      description.includes('railway station') ||
+      description.includes('train station');
+
+    const locationType = isAirport ? 'airport' : isTrainStation ? 'train_station' : 'standard';
+
+    return {
+      place_id: prediction.place_id,
+      description: prediction.description,
+      structured_formatting: prediction.structured_formatting,
+      types: types,
+      icon: getIconForTypes(types),
+      locationType
+    };
+  });
 }
 
 async function fetchPlaceDetails(placeId, logger) {

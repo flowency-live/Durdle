@@ -1,0 +1,5 @@
+{
+  "httpMethod": "POST",
+  "path": "/v1/quotes",
+  "body": "{\"pickupLocation\":{\"address\":\"Bournemouth Railway Station, Bournemouth, UK\",\"placeId\":\"ChIJGXj7x2oQdkgR0FCqKNBc_5I\"},\"dropoffLocation\":{\"address\":\"Poole Bus Station, Poole, UK\",\"placeId\":\"ChIJ2bPyIYYQdkgRKxgF9h2P8-k\"},\"pickupTime\":\"2025-12-15T10:00:00.000Z\",\"passengers\":2,\"luggage\":1,\"compareMode\":true}"
+}
