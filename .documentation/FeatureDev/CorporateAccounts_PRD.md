@@ -189,16 +189,25 @@ In DTC admin dashboard (`durdle.flowency.build/admin/corporate`):
 
 ## Booking Flow
 
-### Admin/Booker Flow (Full booking)
+### Admin/Booker Flow (Simple - most common)
+
+This is the default corporate experience. Identical to consumer except:
+- Corporate discount applied
+- Bookings tracked under corporate account
+- Optional passenger name field
 
 1. Navigate to `/corporate/quote`
 2. Enter journey details (same as consumer flow)
-3. **New field**: Passenger name (if different from booker)
+3. **New field**: Passenger name (optional - if booking for someone else)
 4. Select vehicle, see corporate pricing applied
 5. Confirm booking → Stripe payment (booker's card)
 6. Booking confirmed → notifications sent
 
+**Note**: If the Admin/Booker is travelling themselves, passenger name can be left blank or auto-filled from their profile.
+
 ### Requestor Flow (Request for approval)
+
+Only relevant when the corporate account has Requestor users added.
 
 1. Navigate to `/corporate/quote`
 2. Enter journey details
@@ -210,6 +219,8 @@ In DTC admin dashboard (`durdle.flowency.build/admin/corporate`):
 8. Wait for approval notification
 
 ### Approval Flow
+
+Only triggered when Requestors submit requests.
 
 1. Admin/Booker sees pending request in dashboard
 2. Reviews journey details and price
