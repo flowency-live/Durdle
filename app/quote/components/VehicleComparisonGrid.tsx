@@ -6,21 +6,24 @@ import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 
-import { MultiVehicleQuoteResponse } from '../lib/types';
+import { JourneyType, MultiVehicleQuoteResponse } from '../lib/types';
 
 interface VehicleComparisonGridProps {
   multiQuote: MultiVehicleQuoteResponse;
   passengers: number;
+  journeyType: JourneyType;
   onSelect: (vehicleId: string, isReturn: boolean) => void;
 }
 
 export default function VehicleComparisonGrid({
   multiQuote,
   passengers,
+  journeyType,
   onSelect,
 }: VehicleComparisonGridProps) {
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
-  const [selectedIsReturn, setSelectedIsReturn] = useState<boolean>(false);
+  // For round-trip, default to return pricing; for one-way/hourly, default to one-way
+  const [selectedIsReturn, setSelectedIsReturn] = useState<boolean>(journeyType === 'round-trip');
 
   const vehicleTypes = ['standard', 'executive', 'minibus'] as const;
 
@@ -65,10 +68,15 @@ export default function VehicleComparisonGrid({
   const getSelectedPricing = () => {
     if (!selectedVehicle) return null;
     const vehicle = multiQuote.vehicles[selectedVehicle as keyof typeof multiQuote.vehicles];
+    const getJourneyLabel = () => {
+      if (journeyType === 'round-trip') return 'Return';
+      if (journeyType === 'hourly') return 'Hourly';
+      return 'One-Way';
+    };
     return {
       name: vehicle.name,
       price: selectedIsReturn ? vehicle.return.displayPrice : vehicle.oneWay.displayPrice,
-      journeyType: selectedIsReturn ? 'Return' : 'One-Way',
+      journeyType: getJourneyLabel(),
     };
   };
 
@@ -121,10 +129,20 @@ export default function VehicleComparisonGrid({
 
       {/* Vehicle Cards */}
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-foreground px-1">Select your vehicle & journey type</h3>
+        <h3 className="text-sm font-semibold text-foreground px-1">
+          {journeyType === 'round-trip'
+            ? 'Select your vehicle for your return journey'
+            : journeyType === 'hourly'
+              ? 'Select your vehicle for hourly hire'
+              : 'Select your vehicle'
+          }
+        </h3>
 
         {availableVehicles.map((type) => {
           const pricing = multiQuote.vehicles[type];
+          // For round-trip, only show return price. For one-way/hourly, only show one-way price.
+          const isReturnOnly = journeyType === 'round-trip';
+          const isOneWayOnly = journeyType === 'one-way' || journeyType === 'hourly';
 
           return (
             <div
@@ -169,35 +187,37 @@ export default function VehicleComparisonGrid({
                 </div>
               )}
 
-              {/* Price Buttons */}
-              <div className="grid grid-cols-2 gap-3">
-                {/* One-Way Button */}
+              {/* Price Buttons - Single button layout when journey type is pre-selected */}
+              {isOneWayOnly && (
                 <button
                   type="button"
                   onClick={() => handleVehicleSelect(type, false)}
-                  className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all active:scale-[0.98] relative ${
-                    selectedVehicle === type && !selectedIsReturn
+                  className={`w-full flex flex-col items-center p-4 rounded-xl border-2 transition-all active:scale-[0.98] relative ${
+                    selectedVehicle === type
                       ? 'border-sage-dark bg-sage-dark/10 ring-2 ring-sage-dark ring-offset-2'
                       : 'border-border hover:border-sage-dark hover:bg-sage-dark/5'
                   }`}
                 >
-                  {selectedVehicle === type && !selectedIsReturn && (
+                  {selectedVehicle === type && (
                     <div className="absolute -top-2 -right-2 w-6 h-6 bg-sage-dark rounded-full flex items-center justify-center">
                       <Check className="w-4 h-4 text-white" />
                     </div>
                   )}
-                  <span className="text-xs text-muted-foreground mb-1">One-Way</span>
+                  <span className="text-xs text-muted-foreground mb-1">
+                    {journeyType === 'hourly' ? 'Hourly Rate' : 'One-Way'}
+                  </span>
                   <span className="text-2xl font-bold text-foreground">
                     {pricing.oneWay.displayPrice}
                   </span>
                 </button>
+              )}
 
-                {/* Return Button */}
+              {isReturnOnly && (
                 <button
                   type="button"
                   onClick={() => handleVehicleSelect(type, true)}
-                  className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all active:scale-[0.98] relative ${
-                    selectedVehicle === type && selectedIsReturn
+                  className={`w-full flex flex-col items-center p-4 rounded-xl border-2 transition-all active:scale-[0.98] relative ${
+                    selectedVehicle === type
                       ? 'border-sage-dark bg-sage-dark/10 ring-2 ring-sage-dark ring-offset-2'
                       : 'border-sage-dark bg-sage-dark/5 hover:bg-sage-dark/10'
                   }`}
@@ -205,17 +225,17 @@ export default function VehicleComparisonGrid({
                   {/* Discount Badge - only show if there's a discount */}
                   {pricing.return.discount.percentage > 0 && (
                     <span className={`absolute -top-2 px-2 py-0.5 bg-sage-dark text-white text-xs font-semibold rounded-full ${
-                      selectedVehicle === type && selectedIsReturn ? '-left-2' : '-right-2'
+                      selectedVehicle === type ? '-left-2' : '-right-2'
                     }`}>
                       Save {pricing.return.discount.percentage}%
                     </span>
                   )}
-                  {selectedVehicle === type && selectedIsReturn && (
+                  {selectedVehicle === type && (
                     <div className="absolute -top-2 -right-2 w-6 h-6 bg-sage-dark rounded-full flex items-center justify-center">
                       <Check className="w-4 h-4 text-white" />
                     </div>
                   )}
-                  <span className="text-xs text-muted-foreground mb-1">Return</span>
+                  <span className="text-xs text-muted-foreground mb-1">Return Journey</span>
                   <span className="text-2xl font-bold text-sage-dark">
                     {pricing.return.displayPrice}
                   </span>
@@ -226,7 +246,7 @@ export default function VehicleComparisonGrid({
                     </span>
                   )}
                 </button>
-              </div>
+              )}
             </div>
           );
         })}

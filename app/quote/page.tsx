@@ -121,6 +121,11 @@ function QuotePageContent() {
         return hasValidAddress && hasValidPlaceId;
       });
 
+      // Map frontend journey type to backend API values
+      // Frontend: 'one-way' | 'round-trip' | 'hourly'
+      // Backend: 'one-way' | 'by-the-hour'
+      const apiJourneyType = isHourly ? 'by-the-hour' : 'one-way';
+
       // Use compareMode API to get all vehicle prices in one call
       const response = await calculateMultiVehicleQuote({
         pickupLocation,
@@ -129,7 +134,7 @@ function QuotePageContent() {
         pickupTime: pickupDate.toISOString(),
         passengers,
         luggage,
-        journeyType,
+        journeyType: apiJourneyType,
         durationHours: isHourly ? duration : undefined,
         extras: (extras.babySeats > 0 || extras.childSeats > 0) ? extras : undefined,
         compareMode: true,
@@ -181,6 +186,14 @@ function QuotePageContent() {
         displayTotal: displayPrice,
       },
       vehicleType: vehicleId,
+      // Include vehicle details for display in QuoteResult
+      vehicleDetails: {
+        name: vehiclePricing.name,
+        description: vehiclePricing.description,
+        imageUrl: vehiclePricing.imageUrl,
+        capacity: vehiclePricing.capacity,
+        features: vehiclePricing.features,
+      },
       pickupLocation: multiQuote.pickupLocation,
       dropoffLocation: multiQuote.dropoffLocation || multiQuote.pickupLocation,
       waypoints: multiQuote.waypoints,
@@ -488,6 +501,7 @@ function QuotePageContent() {
             <VehicleComparisonGrid
               multiQuote={multiQuote}
               passengers={passengers}
+              journeyType={journeyType}
               onSelect={handleVehicleSelect}
             />
           )}

@@ -95,6 +95,13 @@ export interface QuoteResponse {
     displayTotal: string; // "£18.61"
   };
   vehicleType: string;
+  vehicleDetails?: {
+    name: string;
+    description: string;
+    imageUrl: string;
+    capacity: number;
+    features: string[];
+  };
   pickupLocation: Location;
   dropoffLocation: Location;
   waypoints?: Waypoint[]; // Include waypoints in response
