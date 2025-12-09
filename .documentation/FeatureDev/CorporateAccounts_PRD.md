@@ -1,6 +1,6 @@
 # Corporate Accounts - Product Requirements Document
 
-**Status**: Requirements Gathering
+**Status**: Requirements Defined
 **Priority**: Medium (Client #1 requirement)
 **Last Updated**: December 9, 2025
 
@@ -14,180 +14,277 @@ Corporate accounts enable businesses to book transfers on credit, receive consol
 
 ## Business Value
 
-### For Transfer Companies (Durdle Clients)
+### For Transfer Companies (DTC, future Durdle clients)
 - **Recurring Revenue**: Corporate contracts provide predictable monthly income
 - **Higher Volume**: Business accounts typically book 10-50x more than individual consumers
-- **Reduced Payment Friction**: No card processing per trip (invoiced monthly)
+- **Reduced Payment Friction**: No card processing per trip (Phase 2: invoiced monthly)
 - **Client Retention**: Contract relationships are stickier than transactional
 
 ### For Corporate Customers
-- **Convenience**: Book without payment details each time
-- **Cost Control**: Approved bookers, spending limits, reporting
-- **Simplified Accounting**: Single monthly invoice vs. multiple receipts
+- **Convenience**: Book without payment details each time (Phase 2)
+- **Cost Control**: Approved bookers, spending visibility, reporting
+- **Simplified Accounting**: Single monthly invoice vs. multiple receipts (Phase 2)
 - **Negotiated Rates**: Volume discounts for committed spend
 
 ---
 
 ## User Personas
 
-### 1. Corporate Admin
-- Sets up account, manages users, reviews invoices
-- Typically: Office Manager, Travel Manager, Finance
+### 1. DTC Admin (Dorset Transfer Company staff)
+- Creates corporate account records in DTC admin dashboard
+- Sends magic link to corporate main contact
+- Views all corporate accounts, bookings, revenue
+- Sets pricing tiers and discounts
 
-### 2. Authorized Booker
-- Makes bookings on behalf of the company
-- May have spending limits or approval requirements
-- Typically: PA, Executive Assistant, Employee
+### 2. Corporate Admin/Booker (Combined role for v1)
+- Receives magic link from DTC to set up account
+- Manages company details and users
+- Makes bookings and pays via Stripe
+- Approves/rejects requests from Requestors
+- Views all company bookings and spending
 
-### 3. Passenger
+### 3. Requestor
+- Added to corporate account by Admin/Booker
+- Can create quotes and submit booking requests
+- Cannot pay - requests go to Admin/Booker for approval
+- Views only their own requests and bookings
+
+### 4. Passenger
 - The person being transported
 - May or may not be the booker
-
-### 4. Transfer Company Admin (Durdle Client)
-- Creates corporate accounts
-- Sets pricing tiers
-- Manages invoicing
+- Receives booking confirmation if email provided
 
 ---
 
-## Core Features
+## Authentication
 
-### 1. Corporate Account Setup
+### Magic Link as Primary Auth
 
-**Account Creation** (by Transfer Company Admin)
-```
-Account Details:
-- Company name
-- Company registration number (optional)
-- Billing address
-- Primary contact (name, email, phone)
-- Payment terms (e.g., Net 30)
-- Credit limit (optional)
-- Pricing tier (standard, discounted, custom)
-```
+**Recommendation**: Magic link primary, optional password for convenience.
 
-**Account Status**
-- Active: Can book freely
-- On Hold: Outstanding balance, new bookings blocked
-- Suspended: Account frozen
-- Closed: Archived, no access
+**Flow:**
+1. User clicks "Log in" on corporate portal
+2. Enters corporate email address
+3. Receives magic link (expires in 15 minutes)
+4. Clicks link → authenticated and logged in
+5. First-time prompt: "Want to set a password for faster access?" (optional)
+6. Users who set password can choose either method going forward
 
-### 2. User Management
+**Benefits:**
+- Zero password fatigue
+- No forgot-password flow needed (just request new magic link)
+- Secure if email is secure
+- Simpler onboarding
 
-**Roles within Corporate Account**
-| Role | Permissions |
-|------|------------|
-| Account Admin | Full access: add/remove users, view all bookings, receive invoices |
-| Booker | Can book transfers, view own bookings |
-| Viewer | Read-only access to bookings |
+**Technical:**
+- Magic link tokens stored in DynamoDB with 15-minute TTL
+- Token invalidated after single use
+- Rate limiting on magic link requests (max 3 per hour per email)
 
-**User Invitation Flow**
-1. Account Admin adds user email + role
-2. System sends invite email with magic link
-3. User creates password or links to existing account
-4. User inherits corporate account permissions
+---
 
-**Spending Controls**
-- Per-booking limit (e.g., max 100 per trip)
-- Monthly limit per user
-- Require approval above threshold
-- Restrict vehicle types (e.g., no Executive class)
+## Account Setup Flow
 
-### 3. Booking Flow (Corporate)
+### Step 1: DTC Admin Creates Corporate Account
 
-**Identification**
-- Option A: User logs in, corporate account auto-applied
-- Option B: User enters "account code" during booking
-- Option C: Subdomain per corporate (acme.dorsettransfers.com)
+In DTC admin dashboard (`durdle.flowency.build/admin/corporate`):
 
-**Booking Fields (Additional)**
-- Passenger name (if different from booker)
-- Cost center / department code (optional)
-- Project/matter reference (optional)
-- Reason for travel (optional)
+1. **Company Lookup** (Companies House API - free)
+   - Admin types company name
+   - Search Companies House, show matches
+   - Admin selects correct company
+   - Auto-fills: Company name, Company number, Registered address
 
-**Payment**
-- No card required at booking
-- Charge added to corporate account balance
-- Confirmation shows "Billed to: ACME Corp"
+2. **Manual Entry**
+   - Billing address (if different from registered)
+   - Main contact: Name, Email, Phone
+   - Pricing tier / discount percentage
+   - Notes
 
-### 4. Pricing & Discounts
+3. **Save** → Corporate account created with status "Pending Setup"
 
-**Pricing Tiers**
-```
-Standard:     0% discount (public rates)
-Bronze:       5% discount
-Silver:       10% discount
-Gold:         15% discount
-Custom:       Per-account negotiated rates
-```
+### Step 2: Corporate Admin Onboarding
 
-**Discount Application**
-- Applied automatically at checkout
-- Shown on quote: "Corporate Rate: -15%"
-- Reflected in invoice line items
+1. DTC admin clicks "Send Invite" → magic link email sent to main contact
+2. Main contact clicks link → lands on corporate portal
+3. Completes setup:
+   - Confirm/edit company details
+   - Set notification preferences
+   - Optionally set password
+4. Account status → "Active"
 
-**Volume Commitments** (Optional)
-- Minimum monthly spend for discount tier
-- Review period (quarterly/annually)
-- Automatic tier adjustment based on spend
+---
 
-### 5. Invoicing
+## Corporate Portal
 
-**Invoice Generation**
-- Frequency: Weekly / Fortnightly / Monthly
-- Triggered: Automatic on schedule or manual
-- Format: PDF + CSV data export
+### Access Point
 
-**Invoice Contents**
-```
-Invoice Header:
-- Invoice number (sequential per tenant)
-- Invoice date
-- Due date
-- Corporate account name/address
-- Transfer company details
+**Separate route**: `dorsettransfercompany.co.uk/corporate`
 
-Line Items (per booking):
-- Booking reference
-- Date & time
-- Route (pickup to dropoff)
-- Vehicle type
-- Booker name
-- Passenger name
-- Cost center (if provided)
-- Gross amount
-- Discount
-- Net amount
+**Why separate route:**
+- Corporate pricing applied automatically
+- Business rules enforced (allowed destinations, times, vehicle types - future)
+- UI adapts based on role (Admin/Booker vs Requestor)
+- Clear separation without duplicate codebase
+- Foundation for per-corporate customization
 
-Summary:
-- Subtotal
-- Total discount
-- VAT (if applicable)
-- Total due
-- Payment instructions
-```
+### Corporate Dashboard
 
-**Invoice Delivery**
-- Email to Account Admin(s)
-- Available in admin portal
-- Optional: CC to finance email
+**For Admin/Booker:**
+| Section | Description |
+|---------|-------------|
+| Pending Requests | Requests awaiting approval (with Approve/Reject actions) |
+| Upcoming Bookings | Confirmed bookings in the future |
+| Past Bookings | Booking history with search/filter |
+| Team Members | Users in the account (add/remove) |
+| Spending Summary | Total spend MTD/YTD, breakdown by user |
+| Company Details | View/edit company info, billing address |
+| Notification Settings | Configure email/SMS preferences |
 
-### 6. Reporting & Analytics
+**For Requestor:**
+| Section | Description |
+|---------|-------------|
+| My Requests | Pending, approved, rejected requests |
+| My Bookings | Bookings they requested (approved and completed) |
+| Notification Settings | Personal notification preferences |
 
-**For Corporate Admin**
-- Total spend (MTD, YTD)
-- Bookings by user
-- Bookings by cost center
-- Most common routes
-- Average booking value
-- Spending vs. budget
+---
 
-**For Transfer Company Admin**
-- Revenue by corporate account
-- Outstanding balances
-- Aging report (30/60/90 days)
-- Corporate vs. consumer split
+## Booking Flow
+
+### Admin/Booker Flow (Full booking)
+
+1. Navigate to `/corporate/quote`
+2. Enter journey details (same as consumer flow)
+3. **New field**: Passenger name (if different from booker)
+4. Select vehicle, see corporate pricing applied
+5. Confirm booking → Stripe payment (booker's card)
+6. Booking confirmed → notifications sent
+
+### Requestor Flow (Request for approval)
+
+1. Navigate to `/corporate/quote`
+2. Enter journey details
+3. **New field**: Passenger name (required - usually themselves or someone else)
+4. Select vehicle, see corporate pricing
+5. Click "Submit Request" (not "Book & Pay")
+6. See "Request Submitted" confirmation screen
+7. Request appears in Admin/Booker dashboard
+8. Wait for approval notification
+
+### Approval Flow
+
+1. Admin/Booker sees pending request in dashboard
+2. Reviews journey details and price
+3. Clicks "Approve" or "Reject"
+4. **If Approved**: Proceeds to Stripe payment (Admin/Booker's card)
+5. **If Rejected**: Request marked as rejected, Requestor notified
+6. Requestor cannot edit or resubmit - must create new quote if rejected
+
+---
+
+## Roles & Permissions
+
+### v1 Role Matrix
+
+| Permission | Admin/Booker | Requestor |
+|------------|--------------|-----------|
+| Create quotes | Yes | Yes |
+| Book & pay | Yes | No |
+| Submit requests | N/A (books directly) | Yes |
+| Approve/reject requests | Yes | No |
+| View all bookings | Yes | Own only |
+| View pending requests | Yes | Own only |
+| Add/remove users | Yes | No |
+| Edit company details | Yes | No |
+| View spending reports | Yes | No |
+| Manage notifications | Yes (all) | Own only |
+
+---
+
+## User Management
+
+### Adding Users
+
+1. Admin/Booker clicks "Add Team Member"
+2. Enters: Email, Name, Role (Admin/Booker or Requestor)
+3. System sends magic link to new user
+4. New user clicks link → creates account
+5. User appears in Team Members list
+
+### Removing Users
+
+1. Admin/Booker clicks "Remove" on user row
+2. Confirmation dialog
+3. User removed → can no longer access corporate portal
+4. Historical bookings/requests preserved for audit
+
+---
+
+## Notifications
+
+### Configurable Preferences
+
+Users can choose notification method per event type:
+- **Email**: Default, always available
+- **SMS**: Optional (requires phone number)
+- **None**: No notification (check dashboard instead)
+
+### Notification Types
+
+| Event | Recipients | Default |
+|-------|------------|---------|
+| Magic link | User requesting | Email |
+| Request submitted | All Admin/Bookers | Email |
+| Request approved | Requestor | Email |
+| Request rejected | Requestor | Email |
+| Booking confirmed | Booker + Passenger (if different) | Email |
+
+### Future Notifications (Phase 2)
+- Monthly spending summary
+- Invoice issued
+- Payment reminder
+
+---
+
+## Pricing
+
+### Pricing Model (Flexible)
+
+Design to support multiple models:
+
+| Model | Description | Implementation |
+|-------|-------------|----------------|
+| Standard | No discount (public rates) | `discountPercent: 0` |
+| Flat discount | Same % off for all corporates | `discountPercent: 10` |
+| Per-account discount | Custom % per corporate | `discountPercent: 15` on account |
+| Custom pricing | Completely custom rates | Future: per-account rate overrides |
+
+### v1 Implementation
+
+- `discountPercent` field on corporate account (0-100)
+- Applied automatically when corporate user gets quote
+- Shown on quote: "Corporate Rate Applied" with discount amount
+- DTC admin sets discount when creating account
+
+---
+
+## Payment
+
+### Phase 1 (Current)
+
+- **Payment at booking time** via Stripe
+- Booker enters card details (personal or corporate card)
+- Standard Stripe checkout flow
+- Receipt emailed to booker
+
+### Phase 2 (Future - larger corporates)
+
+- **Book on account** (no payment at booking)
+- Monthly invoice generated
+- Payment via bank transfer / BACS
+- Invoice PDF with all bookings itemized
+- Payment tracking and aging reports
 
 ---
 
@@ -195,13 +292,20 @@ Summary:
 
 ### Corporate Account
 ```
-PK: TENANT#001#CORP#corp-acme-001
+PK: TENANT#001#CORP#corp-001
 SK: METADATA
 {
   tenantId: "TENANT#001",
-  corpAccountId: "corp-acme-001",
+  corpAccountId: "corp-001",
   companyName: "ACME Corporation Ltd",
-  status: "active",
+  companyNumber: "12345678",  // Companies House
+  status: "active",  // pending_setup | active | suspended | closed
+  registeredAddress: {
+    line1: "10 Downing Street",
+    city: "London",
+    postcode: "SW1A 2AA",
+    country: "UK"
+  },
   billingAddress: {
     line1: "123 Business Park",
     city: "Bournemouth",
@@ -213,279 +317,338 @@ SK: METADATA
     email: "jane@acme.com",
     phone: "+44 7700 900123"
   },
-  paymentTerms: 30,  // Net 30 days
-  creditLimit: 500000,  // pence (5000)
-  pricingTier: "silver",  // 10% discount
-  customDiscount: null,  // or override percentage
-  invoiceFrequency: "monthly",
-  invoiceEmail: "accounts@acme.com",
-  currentBalance: 0,  // outstanding amount in pence
+  discountPercent: 10,  // Corporate discount
+  pricingTier: "silver",  // For display/categorization
+  paymentTerms: 30,  // Future: Net 30 days for invoicing
+  notes: "Key account - CEO is golf buddy",
   createdAt: "2025-12-09T...",
-  updatedAt: "2025-12-09T..."
+  updatedAt: "2025-12-09T...",
+  createdBy: "dtc-admin-user-id"
 }
 ```
 
 ### Corporate User
 ```
-PK: TENANT#001#CORP#corp-acme-001
-SK: USER#user-jane-123
+PK: TENANT#001#CORP#corp-001
+SK: USER#user-001
 {
   tenantId: "TENANT#001",
-  corpAccountId: "corp-acme-001",
-  userId: "user-jane-123",
+  corpAccountId: "corp-001",
+  oderId: "user-001",
   email: "jane@acme.com",
   name: "Jane Smith",
-  role: "admin",  // admin | booker | viewer
-  spendingLimit: null,  // null = unlimited
-  requiresApproval: false,
-  status: "active",
+  phone: "+44 7700 900123",
+  role: "admin",  // admin | requestor
+  status: "active",  // invited | active | disabled
+  passwordHash: null,  // Optional - if user set password
+  notificationPrefs: {
+    requestSubmitted: "email",
+    requestApproved: "email",
+    bookingConfirmed: "email"
+  },
   invitedAt: "2025-12-09T...",
-  acceptedAt: "2025-12-09T...",
-  lastBookingAt: "2025-12-09T..."
+  activatedAt: "2025-12-09T...",
+  lastLoginAt: "2025-12-09T..."
 }
 ```
 
-### Corporate Booking (Extension)
+### Magic Link Token
 ```
-// Existing booking record with additional fields
+PK: TENANT#001#MAGIC#token-uuid
+SK: METADATA
+{
+  tenantId: "TENANT#001",
+  token: "uuid-v4-token",
+  email: "jane@acme.com",
+  corpAccountId: "corp-001",
+  purpose: "login",  // login | invite | password_reset
+  expiresAt: "2025-12-09T12:15:00Z",  // 15 minutes
+  usedAt: null,
+  createdAt: "2025-12-09T12:00:00Z"
+}
+TTL: expiresAt (DynamoDB auto-delete)
+```
+
+### Booking Request
+```
+PK: TENANT#001#CORP#corp-001
+SK: REQUEST#req-001
+{
+  tenantId: "TENANT#001",
+  corpAccountId: "corp-001",
+  requestId: "req-001",
+  status: "pending",  // pending | approved | rejected
+  requestedBy: "user-002",  // Requestor user ID
+  requestedAt: "2025-12-09T...",
+
+  // Quote details (snapshot at request time)
+  quoteSnapshot: {
+    pickupLocation: {...},
+    dropoffLocation: {...},
+    pickupTime: "2025-12-15T09:00:00Z",
+    vehicleType: "executive",
+    passengers: 2,
+    passengerName: "John Director",
+    price: 12500,  // pence
+    discountApplied: 1250,
+    finalPrice: 11250
+  },
+
+  // Approval details (filled when actioned)
+  actionedBy: null,
+  actionedAt: null,
+  bookingId: null,  // Linked if approved and booked
+
+  createdAt: "2025-12-09T..."
+}
+```
+
+### Corporate Booking (Extension to existing booking)
+```
+// Existing booking record with corporate extensions
 PK: TENANT#001#BOOKING#BK-12345
 SK: METADATA
 {
   // ... existing booking fields ...
 
   // Corporate extensions
-  corpAccountId: "corp-acme-001",
-  bookerId: "user-jane-123",
-  passengerName: "John Director",  // if different
-  costCenter: "SALES-UK",
-  projectRef: "Q4-Conference",
-  invoiceId: null,  // linked when invoiced
-  corporateDiscount: 1000,  // pence saved
+  corpAccountId: "corp-001",
+  bookerId: "user-001",  // Who booked/paid
+  requestId: "req-001",  // If originated from request
+  passengerName: "John Director",
+  corporateDiscount: 1250,  // pence saved
 }
 ```
 
-### Invoice
+### GSIs
+
+**GSI: CorpUserLookup**
 ```
-PK: TENANT#001#CORP#corp-acme-001
-SK: INVOICE#INV-2025-001234
-{
-  tenantId: "TENANT#001",
-  corpAccountId: "corp-acme-001",
-  invoiceId: "INV-2025-001234",
-  invoiceNumber: "INV-001234",  // display number
-  status: "issued",  // draft | issued | paid | overdue | void
-  periodStart: "2025-12-01",
-  periodEnd: "2025-12-31",
-  issuedAt: "2026-01-01T...",
-  dueAt: "2026-01-31T...",
-  subtotal: 125000,  // pence
-  totalDiscount: 12500,
-  vatAmount: 22500,  // if applicable
-  totalDue: 135000,
-  bookingIds: ["BK-12345", "BK-12346", ...],
-  bookingCount: 15,
-  pdfUrl: "s3://durdle-invoices/TENANT-001/corp-acme-001/INV-2025-001234.pdf",
-  paidAt: null,
-  paidAmount: 0,
-  createdAt: "2026-01-01T..."
-}
+PK: TENANT#001#CORP_EMAIL#jane@acme.com
+SK: CORP#corp-001
 ```
+Use: Find corporate account by user email at login
 
-### GSIs for Queries
-
-**GSI: CorpAccountLookup**
-- PK: TENANT#001#CORP_EMAIL#{email}
-- SK: CORP#{corpAccountId}
-- Use: Find corporate account by user email
-
-**GSI: InvoicesByStatus**
-- PK: TENANT#001#INVOICE_STATUS#{status}
-- SK: DUE#{dueDate}#INV#{invoiceId}
-- Use: List overdue invoices, upcoming dues
+**GSI: PendingRequests**
+```
+PK: TENANT#001#CORP#corp-001#REQUEST_STATUS#pending
+SK: REQUESTED#2025-12-09T...#req-001
+```
+Use: List pending requests for dashboard
 
 ---
 
 ## API Endpoints
 
-### Corporate Account Management
+### DTC Admin - Corporate Management
 ```
-POST   /admin/corporate-accounts                 - Create account
-GET    /admin/corporate-accounts                 - List accounts
-GET    /admin/corporate-accounts/{id}            - Get account details
-PUT    /admin/corporate-accounts/{id}            - Update account
-DELETE /admin/corporate-accounts/{id}            - Deactivate account
-POST   /admin/corporate-accounts/{id}/users      - Add user
-DELETE /admin/corporate-accounts/{id}/users/{uid} - Remove user
-```
-
-### Corporate Booking Flow
-```
-GET    /v1/corporate/account                     - Get my corporate account (authed)
-POST   /v1/corporate/verify                      - Verify account code
-GET    /v1/corporate/bookings                    - List my corporate bookings
+POST   /admin/corporate                     - Create corporate account
+GET    /admin/corporate                     - List all corporate accounts
+GET    /admin/corporate/{corpId}            - Get account details
+PUT    /admin/corporate/{corpId}            - Update account
+DELETE /admin/corporate/{corpId}            - Deactivate account
+POST   /admin/corporate/{corpId}/invite     - Send invite to main contact
+GET    /admin/corporate/{corpId}/bookings   - List bookings for account
+GET    /admin/corporate/{corpId}/users      - List users in account
 ```
 
-### Invoicing
+### DTC Admin - Reporting
 ```
-GET    /admin/corporate-accounts/{id}/invoices   - List invoices
-POST   /admin/corporate-accounts/{id}/invoices   - Generate invoice
-GET    /admin/invoices/{invoiceId}               - Get invoice details
-GET    /admin/invoices/{invoiceId}/pdf           - Download PDF
-PUT    /admin/invoices/{invoiceId}/status        - Mark paid/void
+GET    /admin/reports/corporate-revenue     - Revenue by corporate account
+GET    /admin/reports/corporate-vs-consumer - Split analysis
+```
+
+### Corporate Portal - Auth
+```
+POST   /corporate/auth/magic-link           - Request magic link
+POST   /corporate/auth/verify               - Verify magic link token
+POST   /corporate/auth/login                - Password login (if set)
+POST   /corporate/auth/set-password         - Set optional password
+POST   /corporate/auth/logout               - Logout
+```
+
+### Corporate Portal - Dashboard
+```
+GET    /corporate/me                        - Current user + account info
+GET    /corporate/dashboard                 - Dashboard data (role-appropriate)
+PUT    /corporate/me/notifications          - Update notification prefs
+```
+
+### Corporate Portal - Users (Admin only)
+```
+GET    /corporate/users                     - List team members
+POST   /corporate/users                     - Add user (sends invite)
+DELETE /corporate/users/{userId}            - Remove user
+```
+
+### Corporate Portal - Requests
+```
+GET    /corporate/requests                  - List requests (filtered by role)
+POST   /corporate/requests                  - Create request (Requestor)
+GET    /corporate/requests/{reqId}          - Get request details
+POST   /corporate/requests/{reqId}/approve  - Approve (Admin only)
+POST   /corporate/requests/{reqId}/reject   - Reject (Admin only)
+```
+
+### Corporate Portal - Bookings
+```
+GET    /corporate/bookings                  - List bookings (filtered by role)
+POST   /corporate/bookings                  - Create booking (Admin only)
+GET    /corporate/bookings/{bookingId}      - Get booking details
+```
+
+### Corporate Portal - Company (Admin only)
+```
+GET    /corporate/company                   - Get company details
+PUT    /corporate/company                   - Update company details
+```
+
+### Public - Companies House Lookup
+```
+GET    /v1/companies/search?q={query}       - Search Companies House
 ```
 
 ---
 
-## Admin UI Requirements
+## Frontend Routes
 
-### Corporate Accounts List
-- Table: Company Name | Status | Balance | Last Booking | Users
-- Filters: Status, Balance (overdue)
-- Actions: View, Edit, Generate Invoice
+### Corporate Portal (`/corporate/*`)
 
-### Corporate Account Detail
-- Account info card (editable)
-- Users table with add/remove
-- Bookings tab (filterable)
-- Invoices tab
-- Balance/Payment history
-
-### Invoice Generation
-- Select corporate account
-- Choose date range
-- Preview bookings included
-- Generate draft
-- Review and issue
-- Send email notification
-
-### Reporting Dashboard
-- Total corporate revenue (period)
-- Outstanding balances chart
-- Top corporate accounts
-- Aging breakdown
+```
+/corporate                    - Redirect to /corporate/login or /corporate/dashboard
+/corporate/login              - Magic link request form
+/corporate/verify?token=...   - Magic link verification
+/corporate/dashboard          - Main dashboard (role-appropriate view)
+/corporate/quote              - Quote journey (corporate pricing applied)
+/corporate/requests           - View requests (Requestor: own, Admin: all pending)
+/corporate/requests/{id}      - Request detail + approve/reject
+/corporate/bookings           - Booking history
+/corporate/bookings/{id}      - Booking detail
+/corporate/team               - User management (Admin only)
+/corporate/company            - Company details (Admin only)
+/corporate/settings           - Notification preferences
+```
 
 ---
 
-## Frontend Integration
+## DTC Admin UI
 
-### Quote Flow Changes
-```javascript
-// If user is logged in with corporate account
-if (user.corporateAccount) {
-  // Show corporate indicator
-  // Apply corporate discount to displayed prices
-  // Add optional fields: passenger name, cost center
-  // Payment step shows "Bill to account" instead of card
-}
-```
+### Corporate Accounts Section
 
-### Corporate Login
-- Option 1: Standard login, detect corporate account from email domain
-- Option 2: Separate "Corporate Login" with account code
-- Option 3: SSO integration (future)
+**List View** (`/admin/corporate`)
+- Table: Company Name | Status | Users | Bookings (30d) | Discount | Actions
+- Filters: Status, Has pending requests
+- Quick actions: View, Edit, Send Invite
+
+**Account Detail** (`/admin/corporate/{id}`)
+- Company info card (editable)
+- Status badge with change action
+- Contact details
+- Pricing/discount settings
+- Users table
+- Recent bookings
+- Pending requests
+
+**Create Account** (`/admin/corporate/new`)
+- Companies House search
+- Manual entry form
+- Discount/tier selection
+- Notes field
+
+### Reporting
+
+**Corporate Dashboard** (`/admin/reports/corporate`)
+- Total corporate revenue (MTD/YTD)
+- Revenue by account (top 10)
+- Corporate vs Consumer split pie chart
+- Bookings trend line
 
 ---
 
 ## Implementation Phases
 
 ### Phase 1: Foundation
-- [ ] Corporate account data model
-- [ ] Admin CRUD for corporate accounts
-- [ ] User management (add/remove)
-- [ ] Basic discount application
+- [ ] Corporate account data model (DynamoDB)
+- [ ] Companies House API integration
+- [ ] DTC admin CRUD for corporate accounts
+- [ ] Magic link authentication system
+- [ ] Corporate user data model
 
-### Phase 2: Booking Integration
-- [ ] Corporate user authentication
-- [ ] Booking flow modifications
-- [ ] Cost center capture
-- [ ] "Bill to account" payment option
+### Phase 2: Corporate Portal - Auth & Dashboard
+- [ ] Corporate login page (magic link)
+- [ ] Optional password setup
+- [ ] Dashboard layout (role-aware)
+- [ ] View bookings list
+- [ ] Notification preferences
 
-### Phase 3: Invoicing
-- [ ] Invoice generation logic
-- [ ] PDF generation (template)
-- [ ] Email delivery
-- [ ] Payment tracking
+### Phase 3: User Management
+- [ ] Add/remove users (Admin)
+- [ ] User invite flow (magic link)
+- [ ] Role assignment
 
-### Phase 4: Reporting & Polish
-- [ ] Corporate admin dashboard
-- [ ] Transfer company reporting
-- [ ] Balance alerts
-- [ ] Spending controls
+### Phase 4: Booking Flow
+- [ ] Corporate quote route with pricing
+- [ ] Passenger name field
+- [ ] Admin/Booker direct booking
+- [ ] Requestor submit request flow
+- [ ] "Request Submitted" confirmation
+
+### Phase 5: Approval Workflow
+- [ ] Pending requests dashboard widget
+- [ ] Request detail view
+- [ ] Approve action → payment flow
+- [ ] Reject action
+- [ ] Notifications (email)
+
+### Phase 6: DTC Admin Enhancements
+- [ ] Corporate accounts list in admin
+- [ ] Account detail view
+- [ ] Bookings by corporate
+- [ ] Basic revenue reporting
 
 ---
 
 ## Edge Cases
 
-1. **User belongs to multiple corporate accounts**: Currently unsupported - one corporate account per user
-2. **Corporate + personal bookings**: User can choose "personal" or "corporate" at booking time
-3. **Credit limit exceeded**: Block booking, notify admin
-4. **Overdue account**: Options - block new bookings, warning only, or continue
-5. **Invoice dispute**: Mark invoice as "disputed", exclude from aging
-6. **VAT handling**: Configurable per tenant (UK: 20% on services)
-7. **Refunds**: Credit note against invoice, or reduce balance
-
----
-
-## Open Questions
-
-### Q1: Authentication Model
-How should corporate users log in?
-- A) Email/password (same as consumer)
-- B) Account code + email
-- C) Email domain auto-detection
-- D) SSO integration required?
-
-### Q2: Booking Approval Workflow
-Is approval workflow needed?
-- A) No - all authorized bookers can book freely
-- B) Yes - bookings above X require admin approval
-- C) Yes - all bookings need approval
-
-### Q3: Payment Collection
-How will corporate invoices be paid?
-- A) Bank transfer only (manual reconciliation)
-- B) Saved card on file (auto-charge on due date)
-- C) Direct debit
-- D) Integration with accounting software?
-
-### Q4: Self-Service vs Admin-Only
-Can corporate admins manage their own account?
-- A) Yes - full self-service portal
-- B) Partial - view bookings/invoices, manage users
-- C) No - all changes through transfer company
-
-### Q5: Minimum Viable Scope
-For Client #1 (Dorset Transfer Company), what's essential vs. nice-to-have?
-- Essential: ???
-- Nice-to-have: ???
-
-### Q6: Existing Corporate Customers?
-Does Client #1 already have corporate accounts?
-- If yes, what's their current process?
-- Migration requirements?
+1. **User email already exists as consumer**: Corporate account is separate - same email can have both
+2. **Admin removes themselves**: Prevent - must have at least one Admin
+3. **All Admins removed**: DTC admin can re-invite
+4. **Magic link expired**: Clear error, easy to request new one
+5. **Request approved but payment fails**: Request stays approved, prompt to retry payment
+6. **Corporate account suspended**: Users can't login, DTC admin must reactivate
+7. **Requestor tries to access /corporate/team**: 403 - role-based route protection
 
 ---
 
 ## Dependencies
 
-- Multi-tenant foundation (tenantId in all records) - **Phase 0.5**
-- Admin authentication (existing)
-- PDF generation capability (new)
-- Email service integration (existing via SES?)
+- **Multi-tenant foundation** (tenantId in all records) - Phase 0.5
+- **Stripe integration** (existing)
+- **SES email service** (existing, need templates)
+- **Companies House API** (free, rate limited)
 
 ---
 
-## Competitive Reference
+## Security Considerations
 
-Standard features in competitor platforms:
-- Bolt Business, Uber for Business, Addison Lee Corporate
-- Account codes for guest booking
-- Receipt forwarding to expense systems
-- API for booking integration
-- Traveler profiles
+1. **Magic link tokens**: Single-use, 15-minute expiry, rate limited
+2. **Role enforcement**: Backend validates role on every request
+3. **Data isolation**: Corporate users only see their company's data
+4. **DTC admin access**: Can view but clearly logged for audit
+5. **Password storage**: bcrypt hashed if user sets password
+
+---
+
+## Open Items
+
+1. **Corporate pricing model**: Design supports multiple models, decision deferred
+2. **Business rules per corporate**: Future - restrict destinations, times, vehicles
+3. **Phase 2 invoicing**: Separate PRD when needed
+4. **SMS notifications**: Need to set up SMS provider (Twilio/SNS)
 
 ---
 
 **Document Owner**: CTO
-**Next Review**: After Q&A session with Client #1
+**Last Q&A Session**: December 9, 2025
+**Next Step**: Review and approve for implementation planning
 

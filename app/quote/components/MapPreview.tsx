@@ -2,7 +2,6 @@
 
 import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';
-import { useMap } from 'react-leaflet';
 
 import { Location, Waypoint } from '../lib/types';
 import 'leaflet/dist/leaflet.css';
@@ -20,46 +19,19 @@ interface MapPreviewProps {
   className?: string;
 }
 
-// Dynamically import MapContainer to avoid SSR issues
-const MapContainer = dynamic(
-  () => import('react-leaflet').then((mod) => mod.MapContainer),
-  { ssr: false }
+// Dynamically import the entire map implementation to avoid SSR issues
+const MapContent = dynamic(
+  () => import('./MapContent'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-48 md:h-56 flex items-center justify-center text-muted-foreground text-sm">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-sage-light border-t-sage-dark mr-3"></div>
+        Loading map...
+      </div>
+    )
+  }
 );
-const TileLayer = dynamic(
-  () => import('react-leaflet').then((mod) => mod.TileLayer),
-  { ssr: false }
-);
-const Marker = dynamic(
-  () => import('react-leaflet').then((mod) => mod.Marker),
-  { ssr: false }
-);
-const Popup = dynamic(
-  () => import('react-leaflet').then((mod) => mod.Popup),
-  { ssr: false }
-);
-const Polyline = dynamic(
-  () => import('react-leaflet').then((mod) => mod.Polyline),
-  { ssr: false }
-);
-
-// Component to automatically fit map bounds to show all markers
-function FitBounds({ locations }: { locations: Array<{ coords?: Coordinates }> }) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (locations.length > 0) {
-      const bounds = locations
-        .filter(loc => loc.coords)
-        .map(loc => [loc.coords!.lat, loc.coords!.lng] as [number, number]);
-
-      if (bounds.length > 0) {
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
-      }
-    }
-  }, [locations, map]);
-
-  return null;
-}
 
 export default function MapPreview({ pickup, dropoff, waypoints = [], pickupTime = null, className = '' }: MapPreviewProps) {
   const [mounted, setMounted] = useState(false);
@@ -68,19 +40,6 @@ export default function MapPreview({ pickup, dropoff, waypoints = [], pickupTime
 
   useEffect(() => {
     setMounted(true);
-
-    // Fix Leaflet default icon issue with Next.js
-    if (typeof window !== 'undefined') {
-      import('leaflet').then((L) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        delete (L.Icon.Default.prototype as any)._getIconUrl;
-        L.Icon.Default.mergeOptions({
-          iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-          iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-          shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-        });
-      });
-    }
   }, []);
 
   // Geocode locations - use stored coords if available, otherwise fetch from API
@@ -172,7 +131,7 @@ export default function MapPreview({ pickup, dropoff, waypoints = [], pickupTime
     return points;
   }, [pickup, dropoff, waypoints, coordinates]);
 
-  // Calculate map center and bounds
+  // Calculate map center
   const mapCenter: [number, number] = useMemo(() => {
     if (locations.length === 0) return [50.7155, -2.4397]; // Dorset center
 
@@ -208,43 +167,10 @@ export default function MapPreview({ pickup, dropoff, waypoints = [], pickupTime
   return (
     <div className={`bg-card rounded-2xl overflow-hidden shadow-mobile border-2 border-sage-light ${className}`}>
       <div className="relative w-full h-48 md:h-56">
-        <MapContainer
-          center={mapCenter}
-          zoom={8}
-          scrollWheelZoom={false}
-          attributionControl={false}
-          className="w-full h-full z-0"
-          style={{ height: '100%', width: '100%' }}
-        >
-          <TileLayer
-            attribution=""
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-
-          {/* Auto-fit bounds to show all markers */}
-          <FitBounds locations={locations} />
-
-          {/* Markers for each location */}
-          {locations.map((loc, idx) => (
-            <Marker key={idx} position={[loc.coords!.lat, loc.coords!.lng]}>
-              <Popup>
-                <div className="text-sm">
-                  <strong className="capitalize">{loc.type}</strong>
-                  <br />
-                  {loc.location.address}
-                </div>
-              </Popup>
-            </Marker>
-          ))}
-
-          {/* Draw route line */}
-          {locations.length > 1 && (
-            <Polyline
-              positions={locations.map(loc => [loc.coords!.lat, loc.coords!.lng])}
-              pathOptions={{ color: '#8fb894', weight: 4, opacity: 0.7 }}
-            />
-          )}
-        </MapContainer>
+        <MapContent
+          locations={locations}
+          mapCenter={mapCenter}
+        />
       </div>
 
       {/* Route summary */}
