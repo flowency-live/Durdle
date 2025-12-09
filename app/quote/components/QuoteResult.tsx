@@ -67,44 +67,55 @@ export default function QuoteResult({ quote, onNewQuote, onBack, onConfirmBookin
             </p>
           </div>
 
-          {/* Vehicle Section */}
-          {quote.vehicleDetails && (
-            <div className="p-4 border-b border-border">
-              <div className="flex items-center gap-4">
-                {quote.vehicleDetails.imageUrl ? (
-                  <div className="relative w-24 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-muted">
-                    <Image
-                      src={quote.vehicleDetails.imageUrl}
-                      alt={quote.vehicleDetails.name}
-                      fill
-                      className="object-contain"
-                      unoptimized
-                    />
-                  </div>
-                ) : (
-                  <div className="w-24 h-20 rounded-xl bg-sage-dark/10 flex items-center justify-center flex-shrink-0">
-                    <Car className="w-10 h-10 text-sage-dark" />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-semibold text-foreground">{quote.vehicleDetails.name}</h3>
-                  <p className="text-sm text-muted-foreground">{quote.vehicleDetails.description}</p>
-                  {quote.vehicleDetails.features && quote.vehicleDetails.features.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {quote.vehicleDetails.features.slice(0, 3).map((feature, idx) => (
-                        <span
-                          key={idx}
-                          className="text-xs px-2 py-0.5 bg-muted rounded-full text-muted-foreground"
-                        >
-                          {feature}
-                        </span>
-                      ))}
+          {/* Vehicle + Map Section - Side by side on desktop */}
+          <div className="p-4 border-b border-border">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Vehicle Info */}
+              {quote.vehicleDetails && (
+                <div className="flex items-center gap-4">
+                  {quote.vehicleDetails.imageUrl ? (
+                    <div className="relative w-24 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-muted">
+                      <Image
+                        src={quote.vehicleDetails.imageUrl}
+                        alt={quote.vehicleDetails.name}
+                        fill
+                        className="object-contain"
+                        unoptimized
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-24 h-20 rounded-xl bg-sage-dark/10 flex items-center justify-center flex-shrink-0">
+                      <Car className="w-10 h-10 text-sage-dark" />
                     </div>
                   )}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-lg font-semibold text-foreground">{quote.vehicleDetails.name}</h3>
+                    <p className="text-sm text-muted-foreground">{quote.vehicleDetails.description}</p>
+                    {quote.vehicleDetails.features && quote.vehicleDetails.features.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {quote.vehicleDetails.features.slice(0, 3).map((feature, idx) => (
+                          <span
+                            key={idx}
+                            className="text-xs px-2 py-0.5 bg-muted rounded-full text-muted-foreground"
+                          >
+                            {feature}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Route Map */}
+              <MapPreview
+                pickup={quote.pickupLocation}
+                dropoff={quote.dropoffLocation}
+                waypoints={quote.waypoints}
+                pickupTime={new Date(quote.pickupTime)}
+              />
             </div>
-          )}
+          </div>
 
           {/* Journey Details */}
           <div className="p-6 space-y-6">
@@ -120,14 +131,6 @@ export default function QuoteResult({ quote, onNewQuote, onBack, onConfirmBookin
                 <span>Edit</span>
               </button>
             </div>
-
-            {/* Route Map */}
-            <MapPreview
-              pickup={quote.pickupLocation}
-              dropoff={quote.dropoffLocation}
-              waypoints={quote.waypoints}
-              pickupTime={new Date(quote.pickupTime)}
-            />
 
             {/* Route Summary */}
             <div className="space-y-2">

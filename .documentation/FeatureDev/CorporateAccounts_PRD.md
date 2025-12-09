@@ -40,19 +40,56 @@ Corporate accounts enable businesses to book transfers on credit, receive consol
 - Receives magic link from DTC to set up account
 - Manages company details and users
 - Makes bookings and pays via Stripe
-- Approves/rejects requests from Requestors
+- Approves/rejects requests from Requestors (if any exist)
 - Views all company bookings and spending
 
-### 3. Requestor
+### 3. Requestor (Optional - larger companies only)
 - Added to corporate account by Admin/Booker
 - Can create quotes and submit booking requests
 - Cannot pay - requests go to Admin/Booker for approval
 - Views only their own requests and bookings
+- **Not required**: Many small corporate accounts will have no Requestors
 
 ### 4. Passenger
 - The person being transported
 - May or may not be the booker
 - Receives booking confirmation if email provided
+
+---
+
+## User Journeys
+
+### Journey 1: Simple Corporate (One-Person Account)
+
+**Scenario**: Small business, one person handles all travel booking (e.g., PA, office manager, or the traveller themselves).
+
+**What's different from consumer:**
+- Logs in via `/corporate` portal
+- Corporate discount applied automatically
+- Bookings tracked under corporate account
+- Optional: Passenger name field (if booking for someone else)
+
+**UX Impact**: Nearly identical to consumer flow. Just login, quote, book, pay. No approval workflow, no team management needed.
+
+```
+Login → Get Quote → Enter Passenger (if different) → Select Vehicle → Pay → Booking Confirmed
+```
+
+**This is the Admin/Booker doing everything.** No Requestors involved.
+
+### Journey 2: Requestor Submits, Admin/Booker Approves
+
+**Scenario**: Larger company with multiple employees who need travel, but one person controls the budget/payments.
+
+**Flow:**
+1. Requestor logs in, creates quote, enters passenger details
+2. Clicks "Submit Request" (no payment)
+3. Admin/Booker receives notification of pending request
+4. Admin/Booker reviews, approves/rejects
+5. If approved, Admin/Booker completes payment
+6. Booking confirmed, all parties notified
+
+**This requires at least 2 users**: one Admin/Booker + one or more Requestors.
 
 ---
 

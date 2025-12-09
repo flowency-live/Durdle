@@ -1,8 +1,8 @@
 'use client';
 
 import L from 'leaflet';
-import { useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import { useCallback, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 
 import { Location } from '../lib/types';
 import 'leaflet/dist/leaflet.css';
@@ -31,49 +31,45 @@ interface MapContentProps {
   mapCenter: [number, number];
 }
 
-// Component to automatically fit map bounds to show all markers
-function FitBounds({ locations }: { locations: LocationPoint[] }) {
-  const map = useMap();
+export default function MapContent({ locations, mapCenter }: MapContentProps) {
+  const mapRef = useRef<L.Map | null>(null);
 
-  useEffect(() => {
+  // Fit bounds when map is ready - uses ref callback pattern
+  const handleMapReady = useCallback((map: L.Map) => {
+    mapRef.current = map;
+
     if (locations.length > 0) {
       const bounds = locations
         .filter(loc => loc.coords)
         .map(loc => [loc.coords!.lat, loc.coords!.lng] as [number, number]);
 
       if (bounds.length > 0) {
-        // Small delay to ensure map is ready
-        setTimeout(() => {
+        // Use requestAnimationFrame to ensure DOM is ready
+        requestAnimationFrame(() => {
           try {
-            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
-          } catch (error) {
-            console.error('Error fitting bounds:', error);
+            map.fitBounds(bounds, { padding: [30, 30], maxZoom: 12 });
+          } catch {
+            // Silently ignore if map not ready
           }
-        }, 100);
+        });
       }
     }
-  }, [locations, map]);
+  }, [locations]);
 
-  return null;
-}
-
-export default function MapContent({ locations, mapCenter }: MapContentProps) {
   return (
     <MapContainer
       center={mapCenter}
-      zoom={8}
+      zoom={10}
       scrollWheelZoom={false}
       attributionControl={false}
       className="w-full h-full z-0"
       style={{ height: '100%', width: '100%' }}
+      ref={handleMapReady}
     >
       <TileLayer
         attribution=""
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-
-      {/* Auto-fit bounds to show all markers */}
-      <FitBounds locations={locations} />
 
       {/* Markers for each location */}
       {locations.map((loc, idx) => (
