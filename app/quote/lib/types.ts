@@ -35,6 +35,8 @@ export interface Location {
   address: string;
   placeId?: string;
   locationType?: LocationType;
+  lat?: number;
+  lng?: number;
 }
 
 // Waypoint Type (extends Location with wait time)

@@ -40,12 +40,12 @@ export default function LocationStep({
   errors = {}
 }: LocationStepProps) {
   const isHourly = journeyType === 'hourly';
-  const handlePickupSelect = (address: string, placeId: string) => {
-    onPickupChange({ address, placeId });
+  const handlePickupSelect = (address: string, placeId: string, locationType?: unknown, lat?: number, lng?: number) => {
+    onPickupChange({ address, placeId, lat, lng });
   };
 
-  const handleDropoffSelect = (address: string, placeId: string) => {
-    onDropoffChange({ address, placeId });
+  const handleDropoffSelect = (address: string, placeId: string, locationType?: unknown, lat?: number, lng?: number) => {
+    onDropoffChange({ address, placeId, lat, lng });
   };
 
   const handleWaypointChange = (index: number, waypoint: Waypoint) => {

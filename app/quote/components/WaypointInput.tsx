@@ -19,8 +19,8 @@ export default function WaypointInput({ index, waypoint, onChange, onRemove }: W
   const [editingWaitTime, setEditingWaitTime] = useState(false);
   const [tempWaitTime, setTempWaitTime] = useState(waypoint.waitTime || 0);
 
-  const handleLocationSelect = (address: string, placeId: string) => {
-    onChange({ ...waypoint, address, placeId });
+  const handleLocationSelect = (address: string, placeId: string, locationType?: unknown, lat?: number, lng?: number) => {
+    onChange({ ...waypoint, address, placeId, lat, lng });
   };
 
   const handleWaitTimeConfirm = () => {

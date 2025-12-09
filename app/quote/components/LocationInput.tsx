@@ -8,7 +8,7 @@ import { LocationType } from '../lib/types';
 interface LocationInputProps {
   label?: string;
   value: string;
-  onSelect: (address: string, placeId: string, locationType?: LocationType) => void;
+  onSelect: (address: string, placeId: string, locationType?: LocationType, lat?: number, lng?: number) => void;
   placeholder?: string;
   error?: string;
   autoFocus?: boolean;
@@ -101,7 +101,7 @@ export default function LocationInput({
     setInput(e.target.value);
   };
 
-  const handleSelectSuggestion = (prediction: Prediction) => {
+  const handleSelectSuggestion = async (prediction: Prediction) => {
     // Debug: log selected prediction
     console.log('[LocationInput] Selected:', {
       description: prediction.description,
@@ -110,9 +110,28 @@ export default function LocationInput({
     });
     isSelectingRef.current = true;
     setInput(prediction.description);
-    onSelect(prediction.description, prediction.place_id, prediction.locationType);
     setShowSuggestions(false);
     setSuggestions([]);
+
+    // Fetch coordinates for the selected place
+    let lat: number | undefined;
+    let lng: number | undefined;
+    try {
+      const response = await fetch(
+        `https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev/v1/locations/place-details?placeId=${encodeURIComponent(prediction.place_id)}`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        if (data.location) {
+          lat = data.location.lat;
+          lng = data.location.lng;
+        }
+      }
+    } catch (err) {
+      console.error('[LocationInput] Failed to fetch coordinates:', err);
+    }
+
+    onSelect(prediction.description, prediction.place_id, prediction.locationType, lat, lng);
   };
 
   const handleUseCurrentLocation = async () => {
@@ -141,7 +160,7 @@ export default function LocationInput({
           if (data.address && data.place_id) {
             isSelectingRef.current = true;
             setInput(data.address);
-            onSelect(data.address, data.place_id, data.locationType);
+            onSelect(data.address, data.place_id, data.locationType, latitude, longitude);
           } else {
             throw new Error('Invalid response from geocoding service');
           }

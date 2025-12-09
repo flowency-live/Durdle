@@ -79,12 +79,12 @@ export default function AllInputsStep({
   const isRoundTrip = journeyType === 'round-trip';
   const isJourneyPlan = journeyType === 'one-way' || journeyType === 'round-trip';
 
-  const handlePickupSelect = (address: string, placeId: string, locationType?: LocationType) => {
-    onPickupChange({ address, placeId, locationType });
+  const handlePickupSelect = (address: string, placeId: string, locationType?: LocationType, lat?: number, lng?: number) => {
+    onPickupChange({ address, placeId, locationType, lat, lng });
   };
 
-  const handleDropoffSelect = (address: string, placeId: string, locationType?: LocationType) => {
-    onDropoffChange({ address, placeId, locationType });
+  const handleDropoffSelect = (address: string, placeId: string, locationType?: LocationType, lat?: number, lng?: number) => {
+    onDropoffChange({ address, placeId, locationType, lat, lng });
   };
 
   // Get transport type from pickup location

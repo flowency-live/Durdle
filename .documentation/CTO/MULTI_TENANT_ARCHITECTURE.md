@@ -49,12 +49,18 @@
 {
   "principalId": "user-123",
   "context": {
-    "tenantId": "TENANT#dorset-tc",
-    "tenantName": "Dorset Transfer Company",
+    "tenantId": "TENANT#001",
+    "tenantName": "Client One",  // Human-readable name stored separately
     "tier": "premium"
   }
 }
 ```
+
+**Tenant ID Convention**: Use opaque numeric identifiers (001, 002, 003...) rather than company names. This ensures:
+- No data leakage if tenant ID appears in logs/errors
+- Consistent format across all tenants
+- No special character handling issues
+- Professional, scalable approach
 
 **Implementation**:
 - Create API key per client in API Gateway
@@ -75,16 +81,16 @@ PK: ROUTE#ChIJAb...
 **Required**: Tenant-prefixed partition keys
 
 ```
-PK: TENANT#dorset-tc#QUOTE#DTS1206_001
-PK: TENANT#dorset-tc#VEHICLE#standard
-PK: TENANT#dorset-tc#ROUTE#ChIJAb...
+PK: TENANT#001#QUOTE#DTS1206_001
+PK: TENANT#001#VEHICLE#standard
+PK: TENANT#001#ROUTE#ChIJAb...
 ```
 
 **Migration Strategy**:
-1. Add `tenantId` field to all existing items (`TENANT#dorset-tc`)
+1. Add `tenantId` field to all existing items (`TENANT#001`)
 2. Create new GSI: `GSI-Tenant` with PK=tenantId, SK=EntityType#CreatedAt
 3. Update all Lambda functions to include tenantId in PK
-4. Backfill existing data with default tenant
+4. Backfill existing data with default tenant (001)
 5. Deploy data access layer changes
 6. Enable tenant-aware queries
 
@@ -114,7 +120,7 @@ const quote = await docClient.send(new GetCommand({
 
 ```javascript
 // AFTER (multi-tenant)
-const tenantId = event.requestContext.authorizer.tenantId;
+const tenantId = event.requestContext.authorizer.tenantId; // e.g., "TENANT#001"
 
 const quote = await docClient.send(new GetCommand({
   TableName: TABLE_NAME,
@@ -149,20 +155,20 @@ if (quote.Item && quote.Item.tenantId !== tenantId) {
 
 ```javascript
 // Tenant-specific pricing
-PK: TENANT#dorset-tc#VEHICLE#standard
+PK: TENANT#001#VEHICLE#standard
 Data: {
-  tenantId: 'TENANT#dorset-tc',
+  tenantId: 'TENANT#001',
   vehicleId: 'standard',
-  baseFare: 500,    // Dorset TC charges £5 base
+  baseFare: 500,    // Tenant 001 charges £5 base
   perMile: 100,
   perMinute: 10
 }
 
-PK: TENANT#client2#VEHICLE#standard
+PK: TENANT#002#VEHICLE#standard
 Data: {
-  tenantId: 'TENANT#client2',
+  tenantId: 'TENANT#002',
   vehicleId: 'standard',
-  baseFare: 700,    // Client 2 charges £7 base
+  baseFare: 700,    // Tenant 002 charges £7 base
   perMile: 120,
   perMinute: 12
 }
@@ -187,11 +193,11 @@ bndy-images/
 **Required**: Tenant-prefixed S3 keys
 
 ```
-bndy-images/
-  TENANT-dorset-tc/
+durdle-uploads/
+  TENANT-001/
     documents/quote-123.pdf
     vehicles/sedan.jpg
-  TENANT-client2/
+  TENANT-002/
     documents/quote-456.pdf
     vehicles/minivan.jpg
 ```
@@ -224,6 +230,51 @@ bndy-images/
 
 ---
 
+## Phase 0.5: Lightweight Tenant-Awareness (NOW)
+
+**Rationale**: We don't need full multi-tenancy until Client #2, but we're building admin features (postcode zones, destinations, pricing matrices) that MUST be tenant-aware from day one. Retrofitting tenant isolation later is painful and risky.
+
+### What We Do NOW (Before Client #2)
+
+1. **Add tenantId to all new DynamoDB records**
+   - New features (zones, destinations, pricing) get `tenantId: "TENANT#001"` field
+   - New partition keys include tenant prefix: `TENANT#001#ZONE#...`
+   - Existing data unchanged (backfill later)
+
+2. **Hardcode tenant in Lambda functions (temporarily)**
+   ```javascript
+   // Until we build the authorizer, hardcode the tenant
+   const CURRENT_TENANT = 'TENANT#001';
+
+   // All new queries include tenant
+   const zones = await docClient.send(new QueryCommand({
+     TableName: TABLE_NAME,
+     KeyConditionExpression: 'PK = :pk',
+     ExpressionAttributeValues: { ':pk': `${CURRENT_TENANT}#ZONE#${zoneId}` }
+   }));
+   ```
+
+3. **Design admin UI as tenant-scoped**
+   - All admin screens assume tenant context
+   - API endpoints include tenant in request path or derive from auth
+   - Easy to swap hardcoded tenant for authorizer-derived tenant later
+
+### What We Defer (Until Client #2 Sales)
+
+- API Gateway custom authorizer
+- Multiple API keys
+- Tenant management UI
+- Migration of existing data
+
+### Benefits of This Approach
+
+- **Zero extra cost** - just disciplined data modeling
+- **No throwaway work** - everything built now works in multi-tenant future
+- **Fast Client #2 onboarding** - just add authorizer and new API key
+- **Clean separation** - tenant boundary enforced from day one
+
+---
+
 ## Migration Plan (6-Month Timeline)
 
 ### Phase 1: Foundation (Month 1-2)
@@ -236,7 +287,7 @@ bndy-images/
 - Update all 9 Lambda functions with tenant filtering
 - Migrate DynamoDB schema (add tenant prefix to PKs)
 - Create GSI for tenant-scoped queries
-- Backfill existing data with `TENANT#dorset-tc`
+- Backfill existing data with `TENANT#001`
 
 ### Phase 3: Testing & Validation (Month 5)
 - Integration tests with multi-tenant scenarios
@@ -245,9 +296,9 @@ bndy-images/
 - Security audit of tenant boundaries
 
 ### Phase 4: Client #2 Onboarding (Month 6)
-- Create new frontend app (durdle-web-client2)
-- Generate API key for Client #2
-- Configure Client #2 pricing in DynamoDB
+- Create new frontend app (durdle-web-002)
+- Generate API key for Tenant 002
+- Configure Tenant 002 pricing in DynamoDB
 - Deploy and monitor
 
 ---
@@ -322,11 +373,11 @@ validateTenantAccess(tenantId, quote.tenantId);
 ┌─────────────────────────────────────────────────────────────┐
 │                    CLIENT FRONTENDS                         │
 ├─────────────────────┬───────────────────┬───────────────────┤
-│ dorsettc.co.uk      │ client2.com       │ client3.com       │
-│ (Next.js - Dorset)  │ (Next.js - C2)    │ (Next.js - C3)    │
+│ client1.com         │ client2.com       │ client3.com       │
+│ (Next.js - T001)    │ (Next.js - T002)  │ (Next.js - T003)  │
 └──────────┬──────────┴─────────┬─────────┴─────────┬─────────┘
            │                    │                   │
-           │ API Key: dorset-tc │ API Key: client2  │ API Key: client3
+           │ API Key: key-001   │ API Key: key-002  │ API Key: key-003
            └────────────────────┴───────────────────┴─────────┘
                                 │
                     ┌───────────▼────────────┐
@@ -348,9 +399,9 @@ validateTenantAccess(tenantId, quote.tenantId);
                     │     DynamoDB         │
                     │  (Tenant-prefixed)   │
                     ├──────────────────────┤
-                    │ TENANT#dorset-tc#... │
-                    │ TENANT#client2#...   │
-                    │ TENANT#client3#...   │
+                    │ TENANT#001#...       │
+                    │ TENANT#002#...       │
+                    │ TENANT#003#...       │
                     └──────────────────────┘
 ```
 
@@ -360,14 +411,15 @@ validateTenantAccess(tenantId, quote.tenantId);
 
 1. Review this document with development team
 2. Allocate 2-3 sprint capacity for migration
-3. Create test tenant in DynamoDB for validation
+3. Create test tenant (TENANT#999) in DynamoDB for validation
 4. Execute Phase 1-3 of migration plan
-5. Deploy Client #2 frontend + API key
+5. Deploy Tenant 002 frontend + API key
 
 **Estimated Timeline**: 6-8 weeks from decision to production
 
 ---
 
 **Document Owner**: CTO
-**Status**: Architecture Documented, Implementation Pending
+**Status**: Architecture Documented, Phase 0.5 Ready for Implementation
+**Last Updated**: December 9, 2025
 **Review Date**: When Client #2 sales discussions begin

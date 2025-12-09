@@ -83,11 +83,20 @@ export default function MapPreview({ pickup, dropoff, waypoints = [], pickupTime
     }
   }, []);
 
-  // Geocode locations using backend API
+  // Geocode locations - use stored coords if available, otherwise fetch from API
   useEffect(() => {
     if (!mounted) return;
 
     const geocodeLocation = async (location: Location): Promise<[string, Coordinates] | null> => {
+      const key = location.placeId || location.address;
+      if (!key) return null;
+
+      // If location already has coordinates, use them (no API call needed)
+      if (location.lat !== undefined && location.lng !== undefined) {
+        return [key, { lat: location.lat, lng: location.lng }];
+      }
+
+      // Otherwise, fetch from API
       if (!location.placeId) return null;
 
       try {
@@ -102,7 +111,7 @@ export default function MapPreview({ pickup, dropoff, waypoints = [], pickupTime
         const data = await response.json();
 
         if (data.location) {
-          return [location.placeId, { lat: data.location.lat, lng: data.location.lng }];
+          return [key, { lat: data.location.lat, lng: data.location.lng }];
         }
       } catch (error) {
         console.error('Geocoding error:', error);
@@ -140,20 +149,23 @@ export default function MapPreview({ pickup, dropoff, waypoints = [], pickupTime
       coords?: Coordinates;
     }> = [];
 
-    if (pickup && pickup.placeId) {
-      const coords = coordinates.get(pickup.placeId);
+    const getKey = (loc: Location) => loc.placeId || loc.address;
+
+    if (pickup) {
+      const key = getKey(pickup);
+      const coords = key ? coordinates.get(key) : undefined;
       if (coords) points.push({ location: pickup, type: 'pickup', coords });
     }
 
     waypoints.forEach(w => {
-      if (w.placeId) {
-        const coords = coordinates.get(w.placeId);
-        if (coords) points.push({ location: w, type: 'waypoint', coords });
-      }
+      const key = getKey(w);
+      const coords = key ? coordinates.get(key) : undefined;
+      if (coords) points.push({ location: w, type: 'waypoint', coords });
     });
 
-    if (dropoff && dropoff.placeId) {
-      const coords = coordinates.get(dropoff.placeId);
+    if (dropoff) {
+      const key = getKey(dropoff);
+      const coords = key ? coordinates.get(key) : undefined;
       if (coords) points.push({ location: dropoff, type: 'dropoff', coords });
     }
 
