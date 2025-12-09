@@ -28,6 +28,7 @@ interface AllInputsStepProps {
   extras: Extras;
   flightNumber: string;
   trainNumber: string;
+  returnToPickup: boolean;
   onPickupChange: (location: Location) => void;
   onDropoffChange: (location: Location) => void;
   onWaypointsChange: (waypoints: Waypoint[]) => void;
@@ -41,6 +42,7 @@ interface AllInputsStepProps {
   onExtrasChange: (extras: Extras) => void;
   onFlightNumberChange: (value: string) => void;
   onTrainNumberChange: (value: string) => void;
+  onReturnToPickupChange: (value: boolean) => void;
   specialRequests: string;
   onSpecialRequestsChange: (value: string) => void;
 }
@@ -59,6 +61,7 @@ export default function AllInputsStep({
   extras,
   flightNumber,
   trainNumber,
+  returnToPickup,
   onPickupChange,
   onDropoffChange,
   onWaypointsChange,
@@ -72,6 +75,7 @@ export default function AllInputsStep({
   onExtrasChange,
   onFlightNumberChange,
   onTrainNumberChange,
+  onReturnToPickupChange,
   specialRequests,
   onSpecialRequestsChange,
 }: AllInputsStepProps) {
@@ -117,13 +121,14 @@ export default function AllInputsStep({
         />
       </div>
 
-      {/* Map Preview - Shows when locations are selected (journey plan only) */}
-      {isJourneyPlan && pickup && dropoff && (
+      {/* Map Preview - Shows when locations are selected */}
+      {/* Show for journey plan with both locations, or hourly with custom dropoff */}
+      {((isJourneyPlan && pickup && dropoff) || (isHourly && pickup && !returnToPickup && dropoff)) && (
         <div className="animate-fade-up">
           <MapPreview
             pickup={pickup}
             dropoff={dropoff}
-            waypoints={waypoints}
+            waypoints={isHourly ? [] : waypoints}
             pickupTime={pickupDate}
           />
         </div>
@@ -157,6 +162,36 @@ export default function AllInputsStep({
               hideCurrentLocation={!!(pickup && dropoff)}
             />
           </div>
+
+          {/* Hourly mode: Show return to pickup checkbox and optional dropoff */}
+          {isHourly && pickup && (
+            <>
+              <div className="border-b border-border my-2"></div>
+              <div className="py-3 animate-fade-up">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={returnToPickup}
+                    onChange={(e) => onReturnToPickupChange(e.target.checked)}
+                    className="w-5 h-5 rounded border-border text-sage-dark focus:ring-sage-dark focus:ring-offset-0"
+                  />
+                  <span className="text-sm text-foreground">Return to pick-up location</span>
+                </label>
+
+                {/* Show dropoff input if not returning to pickup */}
+                {!returnToPickup && (
+                  <div className="mt-3 animate-fade-up">
+                    <LocationInput
+                      value={dropoff?.address || ''}
+                      onSelect={handleDropoffSelect}
+                      placeholder="Drop-off location"
+                      hideCurrentLocation={!!(pickup && dropoff)}
+                    />
+                  </div>
+                )}
+              </div>
+            </>
+          )}
 
           {/* Journey plan mode: Show dropoff and waypoints */}
           {isJourneyPlan && (

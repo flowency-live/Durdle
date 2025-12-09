@@ -39,6 +39,16 @@ function QuotePageContent() {
   const [journeyType, setJourneyType] = useState<JourneyType>('one-way');
   const [duration, setDuration] = useState(5); // Default to minimum 5 hours
   const [extras, setExtras] = useState<Extras>({ babySeats: 0, childSeats: 0 });
+  const [returnToPickup, setReturnToPickup] = useState(true); // For hourly mode: return to pickup location
+
+  // Handle journey type change with mode switching logic
+  const handleJourneyTypeChange = (newType: JourneyType) => {
+    // When switching to hourly mode, default to "return to pickup"
+    if (newType === 'hourly') {
+      setReturnToPickup(true);
+    }
+    setJourneyType(newType);
+  };
 
   // Transport details (airport/train station)
   const [flightNumber, setFlightNumber] = useState('');
@@ -64,13 +74,19 @@ function QuotePageContent() {
   // Validation for Step 1
   const canProceedFromStep1 = () => {
     // For hourly: pickup, start time, end time, and minimum 5 hours required
+    // If not returning to pickup, also require dropoff
     if (journeyType === 'hourly') {
-      return (
-        pickupLocation?.address.trim() !== '' &&
+      const baseValid = pickupLocation?.address.trim() !== '' &&
         pickupDate !== null &&
         endTime !== null &&
-        duration >= 5
-      );
+        duration >= 5;
+
+      // If returning to pickup, no dropoff needed
+      if (returnToPickup) {
+        return baseValid;
+      }
+      // If custom dropoff, require dropoff location
+      return baseValid && dropoffLocation?.address.trim() !== '';
     }
     // For round-trip: also require return date
     if (journeyType === 'round-trip') {
@@ -109,6 +125,8 @@ function QuotePageContent() {
     // Validate required fields based on journey type
     if (!pickupLocation || !pickupDate) return;
     if (!isHourly && !dropoffLocation) return;
+    // For hourly mode with custom dropoff, validate dropoff exists
+    if (isHourly && !returnToPickup && !dropoffLocation) return;
 
     setLoadingQuotes(true);
     setError(null);
@@ -126,10 +144,21 @@ function QuotePageContent() {
       // Backend: 'one-way' | 'by-the-hour'
       const apiJourneyType = isHourly ? 'by-the-hour' : 'one-way';
 
+      // Determine dropoff location for API:
+      // - For hourly with "return to pickup": don't send dropoff (backend uses pickup as return point)
+      // - For hourly with custom dropoff: send the custom dropoff
+      // - For transfer modes: send the dropoff
+      let apiDropoff: Location | undefined;
+      if (isHourly) {
+        apiDropoff = returnToPickup ? undefined : dropoffLocation!;
+      } else {
+        apiDropoff = dropoffLocation!;
+      }
+
       // Use compareMode API to get all vehicle prices in one call
       const response = await calculateMultiVehicleQuote({
         pickupLocation,
-        dropoffLocation: isHourly ? undefined : dropoffLocation!,
+        dropoffLocation: apiDropoff,
         waypoints: filteredWaypoints.length > 0 ? filteredWaypoints : undefined,
         pickupTime: pickupDate.toISOString(),
         passengers,
@@ -221,6 +250,7 @@ function QuotePageContent() {
     setJourneyType('one-way');
     setDuration(5);
     setExtras({ babySeats: 0, childSeats: 0 });
+    setReturnToPickup(true);
     setFlightNumber('');
     setTrainNumber('');
     setSpecialRequests('');
@@ -478,6 +508,7 @@ function QuotePageContent() {
               extras={extras}
               flightNumber={flightNumber}
               trainNumber={trainNumber}
+              returnToPickup={returnToPickup}
               onPickupChange={setPickupLocation}
               onDropoffChange={setDropoffLocation}
               onWaypointsChange={setWaypoints}
@@ -486,11 +517,12 @@ function QuotePageContent() {
               onEndTimeChange={setEndTime}
               onPassengersChange={setPassengers}
               onLuggageChange={setLuggage}
-              onJourneyTypeChange={setJourneyType}
+              onJourneyTypeChange={handleJourneyTypeChange}
               onDurationChange={setDuration}
               onExtrasChange={setExtras}
               onFlightNumberChange={setFlightNumber}
               onTrainNumberChange={setTrainNumber}
+              onReturnToPickupChange={setReturnToPickup}
               specialRequests={specialRequests}
               onSpecialRequestsChange={setSpecialRequests}
             />
