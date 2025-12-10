@@ -1,7 +1,6 @@
 'use client';
 
-import Image from 'next/image';
-import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 import { useState, Suspense } from 'react';
 
 import Header from '@/components/shared/Header';
