@@ -1,14 +1,12 @@
 'use client';
 
-import { ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState, Suspense } from 'react';
 
+import Header from '@/components/shared/Header';
 import { Button } from '@/components/ui/button';
 import { API_BASE_URL, API_ENDPOINTS } from '@/lib/config/api';
-
-import FeedbackButton from '../components/FeedbackButton';
 
 import AllInputsStep from './components/AllInputsStep';
 import BookingConfirmation from './components/BookingConfirmation';
@@ -389,33 +387,8 @@ function QuotePageContent() {
   // Render quote result - wrapped in same layout with header
   if (quote) {
     return (
-      <div className="min-h-screen bg-background">
-        {/* Header */}
-        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-sage-light/50 shadow-sm">
-          <div className="container px-4 md:px-6 mx-auto">
-            <div className="flex items-center justify-between h-16 md:h-20">
-              <Link href="/" className="flex items-center gap-3">
-                <Image
-                  src="/dtc-logo-wave2.png"
-                  alt="The Dorset Transfer Company"
-                  width={60}
-                  height={60}
-                  className="h-10 md:h-12 w-auto"
-                />
-              </Link>
-              <div className="flex items-center gap-3">
-                <FeedbackButton />
-                <Link
-                  href="/"
-                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span className="hidden sm:inline">Back to Home</span>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </header>
+      <div className="min-h-screen bg-background pt-20">
+        <Header />
 
         <QuoteResult
           quote={quote}
@@ -427,33 +400,8 @@ function QuotePageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-sage-light/50 shadow-sm">
-        <div className="container px-4 md:px-6 mx-auto">
-          <div className="flex items-center justify-between h-16 md:h-20">
-            <Link href="/" className="flex items-center gap-3">
-              <Image
-                src="/dtc-logo-wave2.png"
-                alt="The Dorset Transfer Company"
-                width={60}
-                height={60}
-                className="h-10 md:h-12 w-auto"
-              />
-            </Link>
-            <div className="flex items-center gap-3">
-              <FeedbackButton />
-              <Link
-                href="/"
-                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">Back to Home</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-background pt-20">
+      <Header />
 
       {/* Progress Indicator - Simplified 2 Steps */}
       <div className="bg-card border-b border-border py-4 md:py-6">
