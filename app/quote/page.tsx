@@ -3,6 +3,7 @@
 import { ArrowLeft } from 'lucide-react';
 import { useState, Suspense } from 'react';
 
+import Footer from '@/components/shared/Footer';
 import Header from '@/components/shared/Header';
 import { Button } from '@/components/ui/button';
 import { API_BASE_URL, API_ENDPOINTS } from '@/lib/config/api';
@@ -394,6 +395,8 @@ function QuotePageContent() {
           onNewQuote={handleNewQuote}
           onConfirmBooking={handleConfirmBooking}
         />
+
+        <Footer />
       </div>
     );
   }
@@ -528,6 +531,11 @@ function QuotePageContent() {
 
       {/* Loading Overlay */}
       {loadingQuotes && <LoadingState />}
+
+      {/* Footer - Hidden on mobile due to sticky nav, visible on desktop */}
+      <div className="hidden md:block">
+        <Footer />
+      </div>
     </div>
   );
 }

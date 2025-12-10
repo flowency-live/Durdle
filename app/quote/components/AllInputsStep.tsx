@@ -1,6 +1,7 @@
 'use client';
 
 import { Plus } from 'lucide-react';
+import { useRef, useCallback } from 'react';
 
 import JourneyTypeTabs, { JourneyDirectionToggle } from './JourneyTypeTabs';
 import LocationInput from './LocationInput';
@@ -83,6 +84,11 @@ export default function AllInputsStep({
   const isRoundTrip = journeyType === 'round-trip';
   const isJourneyPlan = journeyType === 'one-way' || journeyType === 'round-trip';
 
+  // Refs for focus management
+  const pickupInputRef = useRef<HTMLInputElement>(null);
+  const dropoffInputRef = useRef<HTMLInputElement>(null);
+  const datePickerSectionRef = useRef<HTMLDivElement>(null);
+
   const handlePickupSelect = (address: string, placeId: string, locationType?: LocationType, lat?: number, lng?: number) => {
     onPickupChange({ address, placeId, locationType, lat, lng });
   };
@@ -90,6 +96,24 @@ export default function AllInputsStep({
   const handleDropoffSelect = (address: string, placeId: string, locationType?: LocationType, lat?: number, lng?: number) => {
     onDropoffChange({ address, placeId, locationType, lat, lng });
   };
+
+  // Focus management callbacks
+  const focusDropoffInput = useCallback(() => {
+    if (dropoffInputRef.current) {
+      dropoffInputRef.current.focus();
+    }
+  }, []);
+
+  const focusDateSection = useCallback(() => {
+    if (datePickerSectionRef.current) {
+      // Scroll the date section into view and focus first focusable element
+      datePickerSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const firstFocusable = datePickerSectionRef.current.querySelector('input, select, button') as HTMLElement;
+      if (firstFocusable) {
+        setTimeout(() => firstFocusable.focus(), 300); // Delay to allow scroll
+      }
+    }
+  }, []);
 
   // Get transport type from pickup location
   const pickupTransportType = locationTypeToTransportType(pickup?.locationType);
@@ -160,6 +184,8 @@ export default function AllInputsStep({
               onSelect={handlePickupSelect}
               placeholder="Pickup location"
               hideCurrentLocation={!!(pickup && dropoff)}
+              inputRef={pickupInputRef}
+              onSelectionComplete={isJourneyPlan ? focusDropoffInput : undefined}
             />
           </div>
 
@@ -196,6 +222,8 @@ export default function AllInputsStep({
                       onSelect={handleDropoffSelect}
                       placeholder="Drop-off location"
                       hideCurrentLocation={!!(pickup && dropoff)}
+                      inputRef={dropoffInputRef}
+                      onSelectionComplete={focusDateSection}
                     />
                   </div>
                 )}
@@ -234,6 +262,8 @@ export default function AllInputsStep({
                     onSelect={handleDropoffSelect}
                     placeholder="Drop-off location"
                     hideCurrentLocation={!!(pickup && dropoff)}
+                    inputRef={dropoffInputRef}
+                    onSelectionComplete={focusDateSection}
                   />
                 </div>
               )}
@@ -265,7 +295,7 @@ export default function AllInputsStep({
 
       {/* Date & Time Card - Transfer modes */}
       {!isHourly && (
-        <div className="bg-card rounded-2xl p-4 shadow-mobile border-2 border-sage-light">
+        <div ref={datePickerSectionRef} className="bg-card rounded-2xl p-4 shadow-mobile border-2 border-sage-light">
           <div className="mb-3">
             <h3 className="text-sm font-semibold text-foreground">
               {isRoundTrip ? 'Outbound Journey' : 'When do you need pickup?'}
@@ -305,7 +335,7 @@ export default function AllInputsStep({
 
       {/* Hourly Time Selection - Start & End Time */}
       {isHourly && pickup && (
-        <div className="bg-card rounded-2xl p-4 shadow-mobile border-2 border-sage-light animate-fade-up">
+        <div ref={datePickerSectionRef} className="bg-card rounded-2xl p-4 shadow-mobile border-2 border-sage-light animate-fade-up">
           <div className="mb-3">
             <h3 className="text-sm font-semibold text-foreground">When do you need the vehicle?</h3>
           </div>

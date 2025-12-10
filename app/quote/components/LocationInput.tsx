@@ -13,6 +13,8 @@ interface LocationInputProps {
   error?: string;
   autoFocus?: boolean;
   hideCurrentLocation?: boolean;
+  onSelectionComplete?: () => void; // Called after a selection is made (for focus management)
+  inputRef?: React.RefObject<HTMLInputElement>;
 }
 
 interface Prediction {
@@ -28,15 +30,21 @@ export default function LocationInput({
   placeholder,
   error,
   autoFocus = false,
-  hideCurrentLocation = false
+  hideCurrentLocation = false,
+  onSelectionComplete,
+  inputRef: externalInputRef
 }: LocationInputProps) {
   const [input, setInput] = useState(value);
   const [suggestions, setSuggestions] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const timeoutRef = useRef<NodeJS.Timeout>();
   const containerRef = useRef<HTMLDivElement>(null);
+  const internalInputRef = useRef<HTMLInputElement>(null);
+  const inputRefToUse = externalInputRef || internalInputRef;
+  const suggestionsRef = useRef<HTMLDivElement>(null);
   const isSelectingRef = useRef(false);
 
   // Debounced fetch suggestions
@@ -90,6 +98,7 @@ export default function LocationInput({
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setShowSuggestions(false);
+        setHighlightedIndex(-1);
       }
     };
 
@@ -97,8 +106,65 @@ export default function LocationInput({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Reset highlighted index when suggestions change
+  useEffect(() => {
+    setHighlightedIndex(-1);
+  }, [suggestions]);
+
+  // Scroll highlighted item into view
+  useEffect(() => {
+    if (highlightedIndex >= 0 && suggestionsRef.current) {
+      const items = suggestionsRef.current.querySelectorAll('[data-suggestion-item]');
+      const highlightedItem = items[highlightedIndex] as HTMLElement;
+      if (highlightedItem) {
+        highlightedItem.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  }, [highlightedIndex]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showSuggestions || suggestions.length === 0) {
+      // If no suggestions, allow Tab to work normally
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setHighlightedIndex(prev =>
+          prev < suggestions.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setHighlightedIndex(prev =>
+          prev > 0 ? prev - 1 : suggestions.length - 1
+        );
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (highlightedIndex >= 0 && suggestions[highlightedIndex]) {
+          handleSelectSuggestion(suggestions[highlightedIndex]);
+        } else if (suggestions.length > 0) {
+          // If nothing highlighted, select first suggestion
+          handleSelectSuggestion(suggestions[0]);
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setShowSuggestions(false);
+        setHighlightedIndex(-1);
+        break;
+      case 'Tab':
+        // Allow Tab to close dropdown and move focus
+        setShowSuggestions(false);
+        setHighlightedIndex(-1);
+        break;
+    }
   };
 
   const handleSelectSuggestion = async (prediction: Prediction) => {
@@ -112,6 +178,7 @@ export default function LocationInput({
     setInput(prediction.description);
     setShowSuggestions(false);
     setSuggestions([]);
+    setHighlightedIndex(-1);
 
     // Fetch coordinates for the selected place
     let lat: number | undefined;
@@ -132,6 +199,12 @@ export default function LocationInput({
     }
 
     onSelect(prediction.description, prediction.place_id, prediction.locationType, lat, lng);
+
+    // Notify parent for focus management
+    if (onSelectionComplete) {
+      // Small delay to allow state updates to complete
+      setTimeout(() => onSelectionComplete(), 50);
+    }
   };
 
   const handleUseCurrentLocation = async () => {
@@ -210,12 +283,21 @@ export default function LocationInput({
           <MapPin className="w-5 h-5 text-muted-foreground" />
         </div>
         <input
+          ref={inputRefToUse}
           type="text"
           value={input}
           onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
           onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
           placeholder={placeholder}
           autoFocus={autoFocus}
+          autoComplete="off"
+          role="combobox"
+          aria-controls="location-suggestions-listbox"
+          aria-expanded={showSuggestions && suggestions.length > 0}
+          aria-haspopup="listbox"
+          aria-autocomplete="list"
+          aria-activedescendant={highlightedIndex >= 0 ? `suggestion-${highlightedIndex}` : undefined}
           className={`w-full pl-12 pr-12 py-3 rounded-xl border ${
             error ? 'border-error' : 'border-border'
           } focus:outline-none focus:ring-2 focus:ring-sage-dark bg-background`}
@@ -228,15 +310,31 @@ export default function LocationInput({
 
         {/* Suggestions Dropdown */}
         {showSuggestions && suggestions.length > 0 && (
-          <div className="absolute z-50 w-full mt-2 bg-card border border-border rounded-xl shadow-xl max-h-60 overflow-y-auto">
-            {suggestions.map((prediction) => (
+          <div
+            id="location-suggestions-listbox"
+            ref={suggestionsRef}
+            role="listbox"
+            className="absolute z-50 w-full mt-2 bg-card border border-border rounded-xl shadow-xl max-h-60 overflow-y-auto"
+          >
+            {suggestions.map((prediction, index) => (
               <button
                 key={prediction.place_id}
+                id={`suggestion-${index}`}
                 type="button"
+                role="option"
+                aria-selected={index === highlightedIndex}
+                data-suggestion-item
                 onClick={() => handleSelectSuggestion(prediction)}
-                className="w-full px-4 py-3 text-left hover:bg-sage-dark/10 transition-colors flex items-start gap-3 border-b border-border last:border-0"
+                onMouseEnter={() => setHighlightedIndex(index)}
+                className={`w-full px-4 py-3 text-left transition-colors flex items-start gap-3 border-b border-border last:border-0 ${
+                  index === highlightedIndex
+                    ? 'bg-sage-dark/20 text-foreground'
+                    : 'hover:bg-sage-dark/10'
+                }`}
               >
-                <MapPin className="w-4 h-4 text-sage-dark flex-shrink-0 mt-0.5" />
+                <MapPin className={`w-4 h-4 flex-shrink-0 mt-0.5 ${
+                  index === highlightedIndex ? 'text-sage-dark' : 'text-sage-dark'
+                }`} />
                 <span className="text-sm text-foreground">{prediction.description}</span>
               </button>
             ))}
