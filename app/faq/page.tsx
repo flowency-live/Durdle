@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Check } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -135,7 +135,12 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
       </button>
       {isOpen && (
         <div className="pb-5 px-4 -mx-4">
-          <p className="text-muted-foreground leading-relaxed">{answer}</p>
+          <div className="flex gap-3">
+            <div className="flex-shrink-0 w-6 h-6 rounded-full bg-sage-dark/10 flex items-center justify-center mt-0.5">
+              <Check className="w-4 h-4 text-sage-dark" />
+            </div>
+            <p className="text-muted-foreground leading-relaxed">{answer}</p>
+          </div>
         </div>
       )}
     </div>
