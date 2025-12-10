@@ -10,6 +10,7 @@ const buttonVariants = cva(
         default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow",
         "hero-golden": "bg-sage-light text-navy-dark hover:bg-sage-light/90 shadow-lg hover:shadow-xl",
         "hero-outline": "border-2 border-white/30 text-white bg-white/10 backdrop-blur-sm hover:bg-white/20 hover:border-white/40",
+        "outline-dark": "border-2 border-sage-dark text-sage-dark bg-transparent hover:bg-sage-dark/10",
       },
       size: {
         default: "h-10 px-6 py-2",

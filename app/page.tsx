@@ -1,107 +1,160 @@
 'use client';
 
-import { Plane, Clock, Shield, Briefcase, Globe, ArrowRight, KeyRound } from "lucide-react";
+import { Plane, Clock, Shield, Briefcase, Globe, ArrowRight, KeyRound, Users, Luggage, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 
 import { buttonVariants } from "@/components/ui/button";
 import FeedbackButton from "./components/FeedbackButton";
 
-// Service pillars
-const servicePillars = [
+// Vehicles data
+const vehicles = [
   {
-    icon: Plane,
-    title: "Airports, Stations & Ports",
-    description:
-      "Fixed-price transfers to all UK airports, rail stations, and cruise terminals. Southampton, Poole, Heathrow, Gatwick - we know the routes and the timings.",
-    iconClass: "text-sage-dark",
-    bgClass: "bg-sage/10 group-hover:bg-sage/20",
+    id: 'sedan',
+    name: 'Sedan',
+    subtitle: 'Ford Mondeo or Similar',
+    tagline: 'Smart, comfortable, and ideal for everyday travel.',
+    passengers: 3,
+    luggage: '2 large + 2 small',
+    description: 'A refined and reliable option for solo travellers or small groups. Comfortable seating and generous boot space make it perfect for airport runs, rail connections and everyday point-to-point journeys.',
+    image: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800&h=500&fit=crop',
   },
   {
-    icon: Clock,
-    title: "Private Driver by the Hour",
-    description:
-      "Your personal driver for the day. Whether business or pleasure, enjoy the flexibility of hourly hire with a professional chauffeur.",
-    iconClass: "text-navy",
-    bgClass: "bg-navy/10 group-hover:bg-navy/20",
+    id: 'executive',
+    name: 'Executive Sedan',
+    subtitle: 'Mercedes E-Class or Similar',
+    tagline: 'Business-class comfort for the modern professional.',
+    passengers: 3,
+    luggage: '2 large + 2 small',
+    description: 'Designed for premium and corporate travel, the Executive Sedan offers a quiet, luxurious cabin and enhanced comfort. Ideal for business meetings, airport transfers and clients who appreciate a more elevated travel experience.',
+    image: 'https://images.unsplash.com/photo-1563720360172-67b8f3dce741?w=800&h=500&fit=crop',
   },
   {
-    icon: Briefcase,
-    title: "Corporate & Trade Accounts",
-    description:
-      "Simplified invoicing for travel managers, hotels, and travel agents. Dedicated account management for your business travel needs.",
-    iconClass: "text-sage-dark",
-    bgClass: "bg-sage/10 group-hover:bg-sage/20",
+    id: 'mpv',
+    name: 'MPV',
+    subtitle: 'VW Caravelle or Similar',
+    tagline: 'Spacious, versatile travel for families and groups.',
+    passengers: 6,
+    luggage: '4-6 large + cabin bags',
+    description: 'A practical and flexible option for group travel or passengers with additional luggage. Ideal for cruise port transfers, family holidays, and journeys where extra space makes all the difference.',
+    image: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=800&h=500&fit=crop',
   },
   {
-    icon: Globe,
-    title: "Onwards Travel Worldwide",
-    description:
-      "Through our global network, we can arrange your onwards journey at your destination - from London to Monaco, Dubai to Singapore.",
-    iconClass: "text-navy",
-    bgClass: "bg-navy/10 group-hover:bg-navy/20",
+    id: 'executive-mpv',
+    name: 'Executive MPV',
+    subtitle: 'Mercedes V-Class or Similar',
+    tagline: 'Luxury group travel with premium space and style.',
+    passengers: 6,
+    luggage: '5 large + 5 cabin bags',
+    description: 'Offering the perfect blend of capacity and sophistication, the Executive MPV provides first-class comfort for corporate groups, VIP guests, and premium leisure travellers. Spacious, elegant and designed for a seamless journey.',
+    image: 'https://images.unsplash.com/photo-1609521263047-f8f205293f24?w=800&h=500&fit=crop',
   },
 ];
 
 // Services carousel data
 const services = [
   {
-    id: 'travel',
+    id: 'airports',
     icon: Plane,
-    title: "Travel Transfers",
-    description: "Airports, cruise terminals, ferry ports, and rail stations - stress-free connections for every journey",
+    title: "Airports",
+    description: "Start and end your trip smoothly with punctual, professional airport transport. We track your flight, manage timings carefully and ensure a relaxed journey to or from all major UK airports.",
     image: "https://images.unsplash.com/photo-1529074963764-98f45c47344b?w=1600&h=900&fit=crop",
+    color: "sage",
+  },
+  {
+    id: 'cruise',
+    icon: Globe,
+    title: "Cruise Terminals",
+    description: "Enjoy seamless travel to and from the UK's leading cruise and ferry terminals. We stay updated with sailing times, coordinate every detail, and provide a comfortable, stress-free transfer.",
+    image: "https://images.unsplash.com/photo-1548574505-5e239809ee19?w=1600&h=900&fit=crop",
+    color: "navy",
+  },
+  {
+    id: 'rail',
+    icon: Clock,
+    title: "Rail Connections",
+    description: "Connect effortlessly with major rail stations across the UK. We coordinate timings around your train schedule and provide a smooth, comfortable transfer to ensure your journey continues without stress.",
+    image: "https://images.unsplash.com/photo-1474487548417-781cb71495f3?w=1600&h=900&fit=crop",
     color: "sage",
   },
   {
     id: 'chauffeur',
     icon: Clock,
-    title: "Private Chauffeur",
-    description: "Your driver, your schedule. Hourly hire for business meetings, day trips, or whenever you need flexibility",
+    title: "Chauffeurs by the Hour",
+    description: "Perfect for occasions that demand flexibility, discretion and exceptional comfort. Whether attending a corporate event or hosting VIP guests, enjoy a professional driver and complete freedom to travel.",
     image: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=1600&h=900&fit=crop",
     color: "navy",
   },
   {
-    id: 'corporate',
+    id: 'film',
     icon: Briefcase,
-    title: "Corporate Transport",
-    description: "Executive travel, client visits, corporate events - professional service with account management",
-    image: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1600&h=900&fit=crop",
+    title: "Film & TV Production",
+    description: "Dorset is home to stunning filming locations. Contact us to discuss your production schedule and discover how we can support with unit drivers, production transport and on-location crew movement.",
+    image: "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=1600&h=900&fit=crop",
     color: "sage",
+  },
+  {
+    id: 'destinations',
+    icon: Globe,
+    title: "Popular UK Destinations",
+    description: "Enjoy comfortable, stress-free long-distance travel from Dorset to popular UK destinations. Professional drivers and modern vehicles designed for comfort over any distance.",
+    image: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1600&h=900&fit=crop",
+    color: "navy",
   },
 ];
 
 // Why choose us features
 const whyChooseUs = [
   {
-    title: "Premium Fleet",
-    description: "Executive vehicles maintained to the highest standards. Travel in comfort and style.",
+    title: "Premium Comfort",
+    description: "Travel in modern, well-maintained vehicles designed to provide a smooth, relaxing and refined journey every time.",
   },
   {
-    title: "Professional Drivers",
-    description: "Experienced, vetted chauffeurs who know the fastest routes. Always punctual, always courteous.",
+    title: "Professional, Trusted Drivers",
+    description: "Our experienced, discreet drivers deliver the high standard of service that corporate clients and frequent travellers depend on.",
   },
   {
-    title: "Fixed Pricing",
-    description: "Know your fare before you book. No surge pricing, no hidden fees, no surprises.",
+    title: "1 Hour Free Airport Waiting",
+    description: "We monitor your flight in real time and include up to one hour of free waiting, ensuring a stress-free arrival even if delays occur.",
   },
   {
-    title: "Flight Monitoring",
-    description: "We track your flight and adjust pickup time automatically. Early landing or delay - we're there.",
+    title: "Discounted Return Bookings",
+    description: "Save more when you book your outbound and return transfers together - perfect for regular travellers.",
+  },
+  {
+    title: "Reliability You Can Count On",
+    description: "Punctual arrivals, proactive communication and careful scheduling mean your journey always runs smoothly.",
+  },
+  {
+    title: "Tailored Travel Experiences",
+    description: "From bespoke routes to multi-stop itineraries, we adapt every journey to your exact needs.",
+  },
+  {
+    title: "24/7 Availability",
+    description: "Whether it's an early-morning airport run or a late-night pickup, our service operates around the clock.",
+  },
+  {
+    title: "Local Knowledge, National Reach",
+    description: "Based in Dorset with expert local insight - and providing dependable long-distance transfers across the UK.",
   },
 ];
 
 export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeService, setActiveService] = useState(0);
+  const [activeVehicle, setActiveVehicle] = useState(0);
 
-  // Auto-rotate carousel
+  // Auto-rotate services carousel
   useEffect(() => {
     const interval = setInterval(() => {
       setActiveService((prev) => (prev + 1) % services.length);
     }, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  // Vehicle carousel navigation
+  const nextVehicle = () => setActiveVehicle((prev) => (prev + 1) % vehicles.length);
+  const prevVehicle = () => setActiveVehicle((prev) => (prev - 1 + vehicles.length) % vehicles.length);
 
   return (
     <div className="min-h-screen">
@@ -122,10 +175,28 @@ export default function Home() {
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-8">
               <a
+                href="/"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Home
+              </a>
+              <a
+                href="#vehicles"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Vehicles
+              </a>
+              <a
                 href="#services-carousel"
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 Services
+              </a>
+              <a
+                href="/faq"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                FAQ
               </a>
               <a
                 href="/pricing"
@@ -176,11 +247,32 @@ export default function Home() {
             <div className="container px-4 py-6 mx-auto">
               <nav className="flex flex-col gap-4">
                 <a
+                  href="/"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
+                >
+                  Home
+                </a>
+                <a
+                  href="#vehicles"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
+                >
+                  Vehicles
+                </a>
+                <a
                   href="#services-carousel"
                   onClick={() => setMobileMenuOpen(false)}
                   className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
                 >
                   Services
+                </a>
+                <a
+                  href="/faq"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
+                >
+                  FAQ
                 </a>
                 <a
                   href="/pricing"
@@ -237,44 +329,21 @@ export default function Home() {
 
           <div className="container relative z-10 px-4 md:px-6 pt-20 mx-auto">
             <div className="max-w-4xl mx-auto text-center">
-              <div className="animate-fade-up inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm shadow-soft border border-white/20 mb-8">
-                <span className="w-2 h-2 rounded-full bg-sage-light animate-pulse" />
-                <span className="text-sm font-medium text-white/90">
-                  Est. 2025 - Dorset&apos;s Premier Transfer Service
-                </span>
-              </div>
-
-              <h1 className="animate-fade-up-delay-1 font-playfair text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-semibold tracking-tight text-white mb-6">
+              <h1 className="animate-fade-up font-playfair text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-semibold tracking-tight text-white mb-6">
                 Your journey starts <span className="text-sage-light">here</span>
               </h1>
 
-              <p className="animate-fade-up-delay-2 text-lg md:text-xl text-white/90 max-w-2xl mx-auto mb-10">
-                Premium airport transfers, cruise terminal pickups, and corporate travel solutions. Personal service for discerning travellers.
+              <p className="animate-fade-up-delay-1 text-lg md:text-xl text-white/90 max-w-2xl mx-auto mb-10">
+                Premium airport transfers, cruise terminal pickups, and corporate travel solutions.
               </p>
 
-              <div className="animate-fade-up-delay-3 flex flex-col sm:flex-row gap-4 justify-center">
+              <div className="animate-fade-up-delay-2 flex flex-col sm:flex-row gap-4 justify-center">
                 <a href="/quote" className={buttonVariants({ variant: "hero-golden", size: "xl" })}>
-                  Get a Quote
+                  Quote
                 </a>
                 <a href="/contact" className={buttonVariants({ variant: "hero-outline", size: "xl" })}>
-                  Call Us
+                  Contact
                 </a>
-              </div>
-
-              {/* Key points */}
-              <div className="animate-fade-up-delay-3 mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-2xl mx-auto">
-                <div className="flex items-center justify-center gap-3 text-white/80">
-                  <Plane className="w-5 h-5 text-sage-light" />
-                  <span className="text-sm font-medium">All UK airports covered</span>
-                </div>
-                <div className="flex items-center justify-center gap-3 text-white/80">
-                  <Clock className="w-5 h-5 text-sage-light" />
-                  <span className="text-sm font-medium">Flight tracking included</span>
-                </div>
-                <div className="flex items-center justify-center gap-3 text-white/80">
-                  <Shield className="w-5 h-5 text-sage-light" />
-                  <span className="text-sm font-medium">Licensed & insured</span>
-                </div>
               </div>
             </div>
           </div>
@@ -295,8 +364,119 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Vehicles Section */}
+        <section id="vehicles" className="py-16 md:py-24 bg-card">
+          <div className="container px-4 md:px-6 mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="font-playfair text-3xl md:text-4xl lg:text-5xl font-semibold text-foreground mb-4">
+                Our <span className="text-gradient-navy-sage">Fleet</span>
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Premium vehicles for every journey
+              </p>
+            </div>
+
+            {/* Vehicle Carousel */}
+            <div className="relative max-w-5xl mx-auto">
+              {/* Navigation Arrows */}
+              <button
+                onClick={prevVehicle}
+                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 md:-translate-x-12 z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white shadow-lg flex items-center justify-center hover:bg-sage-light/20 transition-colors"
+                aria-label="Previous vehicle"
+              >
+                <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-navy-dark" />
+              </button>
+              <button
+                onClick={nextVehicle}
+                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 md:translate-x-12 z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white shadow-lg flex items-center justify-center hover:bg-sage-light/20 transition-colors"
+                aria-label="Next vehicle"
+              >
+                <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-navy-dark" />
+              </button>
+
+              {/* Vehicle Card */}
+              <div className="bg-background rounded-3xl shadow-xl overflow-hidden">
+                <div className="grid md:grid-cols-2">
+                  {/* Image */}
+                  <div className="relative h-64 md:h-80">
+                    {vehicles.map((vehicle, index) => (
+                      <div
+                        key={vehicle.id}
+                        className={`absolute inset-0 transition-opacity duration-500 ${
+                          index === activeVehicle ? 'opacity-100' : 'opacity-0'
+                        }`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={vehicle.image}
+                          alt={vehicle.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Details */}
+                  <div className="p-6 md:p-8 flex flex-col justify-center">
+                    {vehicles.map((vehicle, index) => (
+                      <div
+                        key={vehicle.id}
+                        className={`transition-opacity duration-500 ${
+                          index === activeVehicle ? 'opacity-100' : 'opacity-0 absolute'
+                        }`}
+                      >
+                        <h3 className="font-playfair text-2xl md:text-3xl font-semibold text-foreground mb-1">
+                          {vehicle.name}
+                        </h3>
+                        <p className="text-sm text-sage-dark font-medium mb-3">
+                          {vehicle.subtitle}
+                        </p>
+                        <p className="text-muted-foreground italic mb-4">
+                          {vehicle.tagline}
+                        </p>
+
+                        {/* Specs */}
+                        <div className="flex gap-6 mb-4">
+                          <div className="flex items-center gap-2">
+                            <Users className="w-5 h-5 text-sage-dark" />
+                            <span className="text-sm text-foreground">Up to {vehicle.passengers}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Luggage className="w-5 h-5 text-sage-dark" />
+                            <span className="text-sm text-foreground">{vehicle.luggage}</span>
+                          </div>
+                        </div>
+
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {vehicle.description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Dots Indicator */}
+              <div className="flex justify-center gap-2 mt-6">
+                {vehicles.map((vehicle, index) => (
+                  <button
+                    key={vehicle.id}
+                    onClick={() => setActiveVehicle(index)}
+                    className={`w-3 h-3 rounded-full transition-all ${
+                      index === activeVehicle
+                        ? 'bg-sage-dark w-8'
+                        : 'bg-sage-light hover:bg-sage'
+                    }`}
+                    aria-label={`View ${vehicle.name}`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Services Carousel Section */}
-        <section id="services-carousel" className="relative bg-card overflow-hidden">
+        <section id="services-carousel" className="relative bg-background overflow-hidden">
           <div className="container px-4 md:px-6 mx-auto py-24">
             <div className="max-w-5xl mx-auto">
               {/* Section Header */}
@@ -366,42 +546,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Service Pillars Section */}
-        <section id="services" className="py-24 bg-background">
-          <div className="container px-4 md:px-6 mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="font-playfair text-3xl md:text-4xl font-semibold text-foreground mb-4">
-                Our <span className="text-gradient-sage">services</span>
-              </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                From airport runs to worldwide connections - personal service for every journey.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-              {servicePillars.map((pillar, index) => (
-                <div
-                  key={pillar.title}
-                  className="group p-6 rounded-2xl bg-card border border-border hover:border-primary/30 hover:shadow-card transition-all duration-300"
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                >
-                  <div
-                    className={`w-12 h-12 rounded-xl ${pillar.bgClass} flex items-center justify-center mb-4 transition-colors`}
-                  >
-                    <pillar.icon className={`w-6 h-6 ${pillar.iconClass}`} />
-                  </div>
-                  <h3 className="text-lg font-semibold text-foreground mb-2">
-                    {pillar.title}
-                  </h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">
-                    {pillar.description}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* Why Choose Us Section */}
         <section className="py-24 bg-card">
           <div className="container px-4 md:px-6 mx-auto">
@@ -409,9 +553,6 @@ export default function Home() {
               <h2 className="font-playfair text-3xl md:text-4xl font-semibold text-foreground mb-4">
                 Why choose <span className="text-gradient-navy-sage">us</span>?
               </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Professional service, transparent pricing, and local expertise.
-              </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
@@ -420,12 +561,19 @@ export default function Home() {
                   key={feature.title}
                   className="p-6 rounded-2xl bg-background border border-border"
                 >
-                  <h3 className="text-lg font-semibold text-foreground mb-2">
-                    {feature.title}
-                  </h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">
-                    {feature.description}
-                  </p>
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-sage-dark/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Check className="w-4 h-4 text-sage-dark" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-semibold text-foreground mb-1">
+                        {feature.title}
+                      </h3>
+                      <p className="text-muted-foreground text-sm leading-relaxed">
+                        {feature.description}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -491,16 +639,23 @@ export default function Home() {
         </section>
 
         {/* CTA Section */}
-        <section className="py-24 bg-card relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-sage/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-80 h-80 bg-navy/5 rounded-full blur-3xl" />
+        <section className="py-24 relative overflow-hidden">
+          {/* Background Image */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/mercedes-e-class-bg.webp"
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          {/* Dark Overlay */}
+          <div className="absolute inset-0 bg-navy-dark/75" />
 
           <div className="container px-4 md:px-6 relative z-10 mx-auto">
             <div className="max-w-3xl mx-auto text-center">
-              <h2 className="font-playfair text-3xl md:text-4xl lg:text-5xl font-semibold text-foreground mb-6">
-                Ready to <span className="text-gradient-navy-sage">go</span>?
+              <h2 className="font-playfair text-3xl md:text-4xl lg:text-5xl font-semibold text-white mb-6">
+                Ready to <span className="text-sage-light">go</span>?
               </h2>
-              <p className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto">
+              <p className="text-lg text-white/80 mb-10 max-w-xl mx-auto">
                 Get an instant quote for your airport transfer, or call us to discuss hourly hire and corporate accounts.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -509,7 +664,7 @@ export default function Home() {
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </a>
                 <a href="/contact" className={buttonVariants({ variant: "hero-outline", size: "xl" })}>
-                  Call Us
+                  Contact
                 </a>
               </div>
             </div>
@@ -518,42 +673,70 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="py-12 bg-background border-t border-border">
+      <footer className="py-12 bg-navy-dark text-white">
         <div className="container px-4 md:px-6 mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+            {/* Company Info */}
+            <div>
               <Image
                 src="/dtc-logo-wave2.png"
                 alt="The Dorset Transfer Company"
-                width={45}
-                height={45}
-                className="h-8 w-auto"
+                width={60}
+                height={60}
+                className="h-12 w-auto mb-4"
               />
+              <p className="text-sm text-white/70 leading-relaxed">
+                Premium transfer services across Dorset and the UK. Professional drivers, luxury vehicles, exceptional service.
+              </p>
             </div>
 
-            <nav className="flex gap-8">
-              <a
-                href="#services-carousel"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Services
-              </a>
-              <a
-                href="/contact"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Contact
-              </a>
-              <a
-                href="#privacy"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Privacy
-              </a>
-            </nav>
+            {/* Navigation */}
+            <div>
+              <h4 className="font-semibold mb-4">Navigation</h4>
+              <nav className="flex flex-col gap-2">
+                <a href="/" className="text-sm text-white/70 hover:text-white transition-colors">Home</a>
+                <a href="#vehicles" className="text-sm text-white/70 hover:text-white transition-colors">Vehicles</a>
+                <a href="#services-carousel" className="text-sm text-white/70 hover:text-white transition-colors">Services</a>
+                <a href="/faq" className="text-sm text-white/70 hover:text-white transition-colors">FAQ</a>
+                <a href="/pricing" className="text-sm text-white/70 hover:text-white transition-colors">Pricing</a>
+                <a href="/contact" className="text-sm text-white/70 hover:text-white transition-colors">Contact</a>
+              </nav>
+            </div>
 
-            <p className="text-sm text-muted-foreground">
+            {/* Legal */}
+            <div>
+              <h4 className="font-semibold mb-4">Legal</h4>
+              <nav className="flex flex-col gap-2">
+                <a href="/terms" className="text-sm text-white/70 hover:text-white transition-colors">Terms & Conditions</a>
+                <a href="/privacy" className="text-sm text-white/70 hover:text-white transition-colors">Privacy Policy</a>
+                <a href="/cookies" className="text-sm text-white/70 hover:text-white transition-colors">Cookie Policy</a>
+                <a href="/accessibility" className="text-sm text-white/70 hover:text-white transition-colors">Accessibility</a>
+              </nav>
+            </div>
+
+            {/* Company Details */}
+            <div>
+              <h4 className="font-semibold mb-4">Company Details</h4>
+              <div className="text-sm text-white/70 space-y-2">
+                <p>The Dorset Transfer Company</p>
+                <p>Company No: 16884513</p>
+                <p className="leading-relaxed">
+                  Registered Office:<br />
+                  383 Verity Crescent<br />
+                  Poole, England<br />
+                  BH17 8TS
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Bar */}
+          <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-sm text-white/50">
               &copy; 2025 The Dorset Transfer Company. All rights reserved.
+            </p>
+            <p className="text-xs text-white/40">
+              Licensed private hire operator
             </p>
           </div>
         </div>
