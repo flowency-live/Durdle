@@ -20,25 +20,18 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-[#FBF7F0] border-b border-sage-light/50 shadow-sm">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-[#FBF7F0] shadow-sm">
       <div className="container px-4 md:px-6 mx-auto">
         <div className="flex items-center justify-between h-20">
-          <Link href="/" className="flex items-center gap-3">
+          <Link href="/" className="flex items-center">
             <Image
-              src="/dtc-logo-wave2.png"
+              src="/dtc-letterhead-logo.png"
               alt="The Dorset Transfer Company"
-              width={80}
+              width={280}
               height={80}
-              className="h-12 w-auto"
+              className="h-14 w-auto"
+              priority
             />
-            <div className="hidden sm:flex flex-col font-knockout">
-              <span className="text-[11px] tracking-[0.15em] text-navy uppercase leading-tight">
-                The Dorset Transfer
-              </span>
-              <span className="text-[11px] tracking-[0.15em] text-navy uppercase leading-tight">
-                Company
-              </span>
-            </div>
           </Link>
 
           {/* Desktop Navigation */}
@@ -105,6 +98,8 @@ export default function Header() {
           </div>
         </div>
       )}
+      {/* Full-width sage bar */}
+      <div className="h-1 bg-sage" />
     </header>
   );
 }

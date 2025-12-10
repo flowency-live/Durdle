@@ -159,25 +159,18 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[#FBF7F0] border-b border-sage-light/50 shadow-sm">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-[#FBF7F0] shadow-sm">
         <div className="container px-4 md:px-6 mx-auto">
           <div className="flex items-center justify-between h-20">
-            <a href="/" className="flex items-center gap-3">
+            <a href="/" className="flex items-center">
               <Image
-                src="/dtc-logo-wave2.png"
+                src="/dtc-letterhead-logo.png"
                 alt="The Dorset Transfer Company"
-                width={80}
+                width={280}
                 height={80}
-                className="h-12 w-auto"
+                className="h-14 w-auto"
+                priority
               />
-              <div className="hidden sm:flex flex-col font-knockout">
-                <span className="text-[11px] tracking-[0.15em] text-navy uppercase leading-tight">
-                  The Dorset Transfer
-                </span>
-                <span className="text-[11px] tracking-[0.15em] text-navy uppercase leading-tight">
-                  Company
-                </span>
-              </div>
             </a>
 
             {/* Desktop Navigation */}
@@ -312,6 +305,8 @@ export default function Home() {
             </div>
           </div>
         )}
+        {/* Full-width sage bar */}
+        <div className="h-1 bg-sage" />
       </header>
 
       <main>
@@ -688,9 +683,9 @@ export default function Home() {
             {/* Company Info & Details - Left Side */}
             <div className="lg:col-span-5">
               <Image
-                src="/dtc-logo-wave2.png"
+                src="/dtc-letterhead-logo.png"
                 alt="The Dorset Transfer Company"
-                width={80}
+                width={280}
                 height={80}
                 className="h-16 w-auto mb-6"
               />
@@ -698,7 +693,6 @@ export default function Home() {
                 Premium transfer services across Dorset and the UK. Professional drivers, luxury vehicles, exceptional service.
               </p>
               <div className="text-sm text-white/60 space-y-1">
-                <p className="font-medium text-white/80">The Dorset Transfer Company</p>
                 <p>Company No: 16884513</p>
                 <p className="pt-2">
                   383 Verity Crescent, Poole<br />
