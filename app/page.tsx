@@ -676,7 +676,9 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-navy-dark text-white">
+      <footer className="bg-[#FBF7F0]">
+        {/* Top sage bar */}
+        <div className="h-1 bg-sage" />
         <div className="container px-4 md:px-6 mx-auto">
           {/* Main Footer Content */}
           <div className="py-16 grid grid-cols-1 lg:grid-cols-12 gap-12">
@@ -689,10 +691,10 @@ export default function Home() {
                 height={80}
                 className="h-16 w-auto mb-6"
               />
-              <p className="text-white/80 leading-relaxed mb-6 max-w-sm">
+              <p className="text-navy-light leading-relaxed mb-6 max-w-sm">
                 Premium transfer services across Dorset and the UK. Professional drivers, luxury vehicles, exceptional service.
               </p>
-              <div className="text-sm text-white/60 space-y-1">
+              <div className="text-sm text-navy-light/70 space-y-1">
                 <p>Company No: 16884513</p>
                 <p className="pt-2">
                   383 Verity Crescent, Poole<br />
@@ -706,32 +708,32 @@ export default function Home() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
                 {/* Navigation */}
                 <div>
-                  <h4 className="font-semibold text-sage-light mb-4">Navigate</h4>
+                  <h4 className="font-semibold text-navy mb-4">Navigate</h4>
                   <nav className="flex flex-col gap-3">
-                    <a href="/" className="text-sm text-white/70 hover:text-white transition-colors">Home</a>
-                    <a href="/services" className="text-sm text-white/70 hover:text-white transition-colors">Services</a>
-                    <a href="#vehicles" className="text-sm text-white/70 hover:text-white transition-colors">Vehicles</a>
-                    <a href="/pricing" className="text-sm text-white/70 hover:text-white transition-colors">Pricing</a>
+                    <a href="/" className="text-sm text-navy-light hover:text-navy transition-colors">Home</a>
+                    <a href="/services" className="text-sm text-navy-light hover:text-navy transition-colors">Services</a>
+                    <a href="#vehicles" className="text-sm text-navy-light hover:text-navy transition-colors">Vehicles</a>
+                    <a href="/pricing" className="text-sm text-navy-light hover:text-navy transition-colors">Pricing</a>
                   </nav>
                 </div>
 
                 {/* Support */}
                 <div>
-                  <h4 className="font-semibold text-sage-light mb-4">Support</h4>
+                  <h4 className="font-semibold text-navy mb-4">Support</h4>
                   <nav className="flex flex-col gap-3">
-                    <a href="/faq" className="text-sm text-white/70 hover:text-white transition-colors">FAQ</a>
-                    <a href="/contact" className="text-sm text-white/70 hover:text-white transition-colors">Contact</a>
-                    <a href="/accessibility" className="text-sm text-white/70 hover:text-white transition-colors">Accessibility</a>
+                    <a href="/faq" className="text-sm text-navy-light hover:text-navy transition-colors">FAQ</a>
+                    <a href="/contact" className="text-sm text-navy-light hover:text-navy transition-colors">Contact</a>
+                    <a href="/accessibility" className="text-sm text-navy-light hover:text-navy transition-colors">Accessibility</a>
                   </nav>
                 </div>
 
                 {/* Legal */}
                 <div>
-                  <h4 className="font-semibold text-sage-light mb-4">Legal</h4>
+                  <h4 className="font-semibold text-navy mb-4">Legal</h4>
                   <nav className="flex flex-col gap-3">
-                    <a href="/terms" className="text-sm text-white/70 hover:text-white transition-colors">Terms & Conditions</a>
-                    <a href="/privacy" className="text-sm text-white/70 hover:text-white transition-colors">Privacy Policy</a>
-                    <a href="/cookies" className="text-sm text-white/70 hover:text-white transition-colors">Cookie Policy</a>
+                    <a href="/terms" className="text-sm text-navy-light hover:text-navy transition-colors">Terms & Conditions</a>
+                    <a href="/privacy" className="text-sm text-navy-light hover:text-navy transition-colors">Privacy Policy</a>
+                    <a href="/cookies" className="text-sm text-navy-light hover:text-navy transition-colors">Cookie Policy</a>
                   </nav>
                 </div>
               </div>
@@ -739,11 +741,11 @@ export default function Home() {
           </div>
 
           {/* Bottom Bar */}
-          <div className="py-6 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-white/50">
+          <div className="py-6 border-t border-sage flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-sm text-navy-light/70">
               &copy; 2025 The Dorset Transfer Company. All rights reserved.
             </p>
-            <p className="text-xs text-white/40">
+            <p className="text-xs text-navy-light/50">
               Licensed private hire operator
             </p>
           </div>
