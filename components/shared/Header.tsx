@@ -31,11 +31,11 @@ export default function Header() {
               height={80}
               className="h-12 w-auto"
             />
-            <div className="hidden sm:flex flex-col">
-              <span className="text-[10px] font-semibold tracking-[0.25em] text-navy uppercase leading-tight">
+            <div className="hidden sm:flex flex-col font-knockout">
+              <span className="text-[11px] tracking-[0.15em] text-navy uppercase leading-tight">
                 The Dorset Transfer
               </span>
-              <span className="text-[10px] font-semibold tracking-[0.25em] text-navy uppercase leading-tight">
+              <span className="text-[11px] tracking-[0.15em] text-navy uppercase leading-tight">
                 Company
               </span>
             </div>
