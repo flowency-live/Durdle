@@ -23,17 +23,23 @@ export default function Header() {
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-sage-light/50 shadow-sm">
       <div className="container px-4 md:px-6 mx-auto">
         <div className="flex items-center justify-between h-20">
-          <div className="flex items-center">
-            <Link href="/">
-              <Image
-                src="/dtc-logo-wave2.png"
-                alt="The Dorset Transfer Company"
-                width={80}
-                height={80}
-                className="h-16 w-auto"
-              />
-            </Link>
-          </div>
+          <Link href="/" className="flex items-center gap-3">
+            <Image
+              src="/dtc-logo-wave2.png"
+              alt="The Dorset Transfer Company"
+              width={80}
+              height={80}
+              className="h-12 w-auto"
+            />
+            <div className="hidden sm:flex flex-col">
+              <span className="text-[10px] font-semibold tracking-[0.25em] text-navy uppercase leading-tight">
+                The Dorset Transfer
+              </span>
+              <span className="text-[10px] font-semibold tracking-[0.25em] text-navy uppercase leading-tight">
+                Company
+              </span>
+            </div>
+          </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">
