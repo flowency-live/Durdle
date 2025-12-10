@@ -159,7 +159,7 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-sage-light/50 shadow-sm">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-[#FBF7F0] border-b border-sage-light/50 shadow-sm">
         <div className="container px-4 md:px-6 mx-auto">
           <div className="flex items-center justify-between h-20">
             <a href="/" className="flex items-center gap-3">
@@ -251,7 +251,7 @@ export default function Home() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div id="mobile-navigation-menu" className="md:hidden border-t border-sage-light/50 bg-background/98 backdrop-blur-lg">
+          <div id="mobile-navigation-menu" className="md:hidden border-t border-sage-light/50 bg-[#FBF7F0]">
             <div className="container px-4 py-6 mx-auto">
               <nav className="flex flex-col gap-4">
                 <a
