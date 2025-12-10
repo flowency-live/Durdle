@@ -1,7 +1,49 @@
 # Platform Status & Remaining Work - Durdle
 
-**Last Updated**: December 6, 2025 (Late Evening - LAYER V3 DEPLOYED!)
-**Status**: 9/9 Lambdas hardened with Layer v3 (logger.log() fix) + Pino optimization complete - BACKEND FOUNDATION COMPLETE ✅
+**Last Updated**: December 10, 2025
+**Status**: MULTI-TENANT ARCHITECTURE ACHIEVED - Frontend decoupled, 11 Lambdas tenant-aware with Layer v4
+
+---
+
+## Latest Work (December 10, 2025) - ARCHITECTURE ACHIEVEMENT
+
+### Frontend Codebase Split - COMPLETE
+
+**DTC Website Separated into Standalone Repo**:
+- **New Repo**: `DorsetTransferCompany-Website`
+- **Domain**: `dorsettransfercompany.flowency.build` (→ `dorsettransfercompany.co.uk`)
+- **Contains**: Homepage, quote flow, content pages (pricing, services, contact, faq), legal pages
+- **Admin Button**: Links to external `https://durdle.flowency.build/admin` (opens new tab)
+
+**Durdle Repo Cleaned - Admin Only**:
+- Root `/` redirects to `/admin`
+- 13 admin pages remain
+- All DTC public pages removed
+- All DTC assets removed (logos, images, og-image)
+
+**Why This Matters**:
+- Ready to clone DTC repo for Tenant #2 with different branding
+- Clean separation of concerns (admin platform vs tenant frontends)
+- Each tenant frontend is independently deployable
+- Backend serves all tenants via multi-tenant API
+
+### Documentation Consolidation - COMPLETE
+
+| Old | New | Action |
+|-----|-----|--------|
+| `TARGET_PLATFORM_ARCHITECTURE.md` | `PLATFORM_ARCHITECTURE.md` | Renamed (target achieved) |
+| `DURDLE_PLATFORM_BIBLE.md` | Archived | Redundant with CTO docs |
+| `CTO_PLATFORM_OVERVIEW.md` | Updated | Now authoritative overview |
+| `MULTI_TENANT_ARCHITECTURE.md` | Updated | Implementation details |
+
+### Lambda Layer v4 - COMPLETE
+
+All 11 Lambdas now use Layer v4 with tenant utilities:
+- `getTenantId(event)` - Returns tenant from authorizer (currently hardcoded TENANT#001)
+- `buildTenantPK(tenantId, entityType, entityId)` - Builds prefixed partition keys
+- `validateTenantAccess(requestTenant, resourceTenant)` - Cross-tenant guard
+
+---
 
 ## Current Development Philosophy (Pre-Launch)
 

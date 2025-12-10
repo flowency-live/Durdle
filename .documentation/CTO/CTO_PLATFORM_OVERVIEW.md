@@ -1,7 +1,7 @@
-# CTO Platform Overview - Durdle (NOTS Platform)
+# CTO Platform Overview - Durdle
 
-**Document Version:** 1.0
-**Last Updated:** December 6, 2025
+**Document Version:** 2.0
+**Last Updated:** December 10, 2025
 **Owner:** CTO
 **Classification:** Internal - Technical Leadership
 
@@ -9,13 +9,32 @@
 
 ## Executive Summary
 
-**Durdle** (formerly "NOTS Platform") is a serverless, cloud-native transportation booking platform built for **Dorset Transfer Company**. It modernizes the traditional pre-booked transport business with instant online quotes, transparent pricing, and a seamless digital customer experience.
+**Durdle** is a **white-label, multi-tenant SaaS platform** for transfer companies. Currently serving **Tenant #1 (Dorset Transfer Company)** with Tenants #2 and #3 in the pipeline.
+
+### Platform Status (December 2025)
+
+| Component | Status | Location |
+|-----------|--------|----------|
+| **DTC Public Website** | LIVE | `DorsetTransferCompany-Website` repo |
+| **Durdle Admin Portal** | LIVE | `Durdle` repo (`/admin/*`) |
+| **Multi-tenant Backend** | READY | 11 Lambda functions, all tenant-aware |
+| **Corporate Accounts** | IN PROGRESS | Next major feature |
+
+### Architecture Achievement
+- **Frontend Decoupled**: DTC website is now a separate repo
+- **Admin Portal Isolated**: Durdle repo is admin-only
+- **Backend Multi-tenant**: Phase 0.5 complete, all Lambdas use tenant utilities
 
 ### Platform Mission
-Enable customers to get instant, accurate transport quotes for any journey across Dorset, select their preferred vehicle, and complete bookings with secure payments - all within 60 seconds on any device.
+Enable transfer companies to offer instant online quotes, transparent pricing, and seamless digital booking - white-labeled to their brand.
 
 ### Business Model
-**Pre-booked transportation service** (NOT ride-hailing). Customers request quotes for future journeys, receive instant pricing based on distance/time, and can book professional drivers with company-owned or managed vehicles.
+**B2B2B SaaS**: Durdle serves transfer companies (B2B) who serve consumers (B2C) and corporate clients (B2B).
+
+**Related Docs:**
+- Architecture: [PLATFORM_ARCHITECTURE.md](../PLATFORM_ARCHITECTURE.md)
+- Multi-tenant Details: [MULTI_TENANT_ARCHITECTURE.md](MULTI_TENANT_ARCHITECTURE.md)
+- Corporate Accounts: [CorporateAccounts_PRD.md](../FeatureDev/CorporateAccounts_PRD.md)
 
 ---
 
@@ -163,33 +182,27 @@ TOTAL:                  £28/month
 
 ## Platform Services Overview
 
-### 8 Microservices (Lambda Functions)
+### 11 Lambda Functions (All Tenant-Aware)
 
-Each Lambda is independently deployable, monitored, and scaled:
+Each Lambda uses Lambda Layer v4 for shared logger and tenant utilities:
 
-1. **quotes-calculator** (512MB)
-   Core business logic: generates quotes using fixed route or variable pricing models
+| Function | Memory | Purpose |
+|----------|--------|---------|
+| `quotes-calculator` | 512MB | Core pricing engine with 3 pricing models |
+| `quotes-manager` | 256MB | Admin quote listing, search, CSV export |
+| `bookings-manager` | 256MB | Booking CRUD, status management |
+| `pricing-manager` | 256MB | Vehicle pricing configuration |
+| `vehicle-manager` | 256MB | Vehicle metadata management |
+| `fixed-routes-manager` | 512MB | Pre-configured route pricing |
+| `admin-auth` | 256MB | JWT authentication, session management |
+| `locations-lookup` | 256MB | Google Places Autocomplete proxy |
+| `uploads-presigned` | 128MB | S3 presigned URL generation |
+| `document-comments` | 256MB | Quote/booking comments |
+| `feedback-manager` | 256MB | Customer feedback collection |
 
-2. **pricing-manager** (256MB)
-   Admin CRUD for vehicle pricing rates (base fare, per-mile, per-minute)
-
-3. **fixed-routes-manager** (512MB)
-   Admin management of pre-configured routes with fixed prices
-
-4. **vehicle-manager** (256MB)
-   Vehicle metadata management (name, capacity, features, image URLs)
-
-5. **locations-lookup** (256MB)
-   Google Places Autocomplete proxy with CORS handling
-
-6. **uploads-presigned** (128MB)
-   Generate S3 presigned URLs for secure vehicle image uploads
-
-7. **admin-auth** (256MB)
-   JWT token generation, session management, bcryptjs password hashing
-
-8. **feedback-manager** (256MB)
-   Customer feedback collection (future feature - Phase 3)
+**Lambda Layer v4**: All functions import from `/opt/nodejs/` for:
+- `logger.mjs` - Pino structured logging
+- `tenant.mjs` - Multi-tenant utilities (getTenantId, buildTenantPK)
 
 ### 4 DynamoDB Tables
 

@@ -1,16 +1,25 @@
 # Durdle Platform Architecture
 
-**Last Updated**: December 9, 2025
+**Last Updated**: December 10, 2025
 **Owner**: CTO
+**Status**: ACHIEVED - Frontend decoupled, multi-tenancy ready
 **Purpose**: Define the multi-tenant B2B2B architecture and terminology
 
 ---
 
-## Overview
+## Executive Summary
 
-Durdle is a **multi-tenant SaaS platform** for transfer companies. Each tenant (transfer company) serves:
+**Durdle** is a white-label, multi-tenant SaaS platform for transfer companies.
+
+**Current State (December 2025):**
+- **DTC Website**: Separate repo (`DorsetTransferCompany-Website`) at `dorsettransfercompany.co.uk`
+- **Durdle Admin Portal**: Admin-only at `durdle.flowency.build/admin`
+- **Shared Backend**: Multi-tenant API serving all tenants
+- **Phase 0.5 Complete**: All 11 Lambda functions are tenant-aware
+
+**Business Model**: Each tenant (transfer company) serves:
 1. **B2C**: Direct consumers booking transfers
-2. **B2B**: Corporate accounts with multiple users
+2. **B2B**: Corporate accounts with multiple users (next major feature)
 
 ---
 
@@ -185,40 +194,49 @@ Durdle is a **multi-tenant SaaS platform** for transfer companies. Each tenant (
 
 ## Repository Structure
 
-### Current State (DTC Only)
-```
-durdle/                           # This repo
-├── durdle-serverless-api/        # Platform backend (multi-tenant)
-├── app/                          # DTC frontend (public + corporate)
-├── components/                   # DTC components
-└── .documentation/               # Platform docs
-```
+### Current State (ACHIEVED - December 2025)
 
-### Future State (Multi-Tenant)
 ```
-durdle-platform/                  # Backend repo (multi-tenant)
-├── functions/                    # Lambda functions
-├── layers/                       # Lambda layers
-└── .documentation/               # Platform docs
-
-dtc-frontend/                     # DTC frontend repo
+DorsetTransferCompany-Website/    # SEPARATE REPO - DTC public website
 ├── app/
-│   ├── page.tsx                 # Public homepage
+│   ├── page.tsx                 # DTC homepage
 │   ├── quote/                   # Consumer quote flow
-│   ├── corporate/               # Corporate portal
-│   │   ├── login/
-│   │   ├── dashboard/
-│   │   ├── quote/
-│   │   └── bookings/
-│   └── admin/                   # Redirect to durdle.flowency.build/admin
-└── components/
+│   ├── pricing/                 # Pricing page
+│   ├── services/                # Services page
+│   ├── contact/                 # Contact page
+│   ├── faq/                     # FAQ page
+│   └── [legal pages]            # terms, privacy, cookies, accessibility
+├── components/shared/           # Header, Footer
+├── public/                      # DTC logos, images, favicons
+└── amplify.yml                  # Amplify deployment config
+Domain: dorsettransfercompany.flowency.build → dorsettransfercompany.co.uk
 
-mtc-frontend/                     # MTC frontend repo (future)
+Durdle/                           # THIS REPO - Admin portal + backend
 ├── app/
-│   ├── page.tsx                 # Public homepage (MTC branding)
-│   ├── quote/                   # Consumer quote flow
-│   └── corporate/               # Corporate portal
-└── components/
+│   ├── admin/                   # Tenant admin portal (13 pages)
+│   │   ├── login/               # Admin authentication
+│   │   ├── quotes/              # Quote management
+│   │   ├── bookings/            # Booking management
+│   │   ├── pricing/             # Pricing configuration
+│   │   └── vehicles/            # Vehicle management
+│   └── page.tsx                 # Redirects to /admin
+├── durdle-serverless-api/       # Multi-tenant serverless backend
+│   ├── functions/               # 11 Lambda functions
+│   └── layers/                  # Lambda Layer v4 (logger + tenant)
+└── .documentation/              # Platform documentation
+Domain: durdle.flowency.build/admin
+```
+
+### Tenant #2+ (Future - When Ready)
+
+```
+[tenant2]-Website/                # Clone of DTC website structure
+├── app/                         # Same structure, different branding
+├── public/                      # Tenant2 logos, colors
+└── amplify.yml                  # Separate deployment
+Domain: [tenant2].co.uk
+
+# Backend remains unchanged - multi-tenant from day one
 ```
 
 ---
@@ -364,25 +382,28 @@ POST   /corporate/requests/{id}/approve # Approve request
 
 ## Migration Path
 
-### Phase 0: Current State (December 2025)
-- Single repo with DTC frontend + Durdle backend
-- Tenant-aware backend (Phase 0.5 complete)
-- No corporate accounts yet
+### Phase 0: Foundation (COMPLETE - December 2025)
+- **Frontend Decoupled**: DTC website in separate repo
+- **Admin Portal**: Durdle repo is now admin-only
+- **Multi-tenant Backend**: All 11 Lambdas use tenant utilities
+- **Lambda Layer v4**: Shared logger + tenant utilities deployed
 
-### Phase 1: Corporate Accounts (Q1 2026)
+### Phase 1: Corporate Accounts (IN PROGRESS - Q1 2026)
 - Add corporate portal to DTC frontend (`/corporate/*`)
 - Extend `admin-auth` Lambda for corporate users
-- Keep single repo (DTC + backend together)
+- Build corporate account management in admin portal
+- See: `FeatureDev/CorporateAccounts_PRD.md`
 
-### Phase 2: Multi-Tenant Preparation (Q2 2026)
-- Split backend into separate repo (`durdle-platform`)
-- Keep DTC frontend as `dtc-frontend` repo
-- Backend serves both DTC and future tenants
+### Phase 2: Second Tenant (Q2 2026)
+- Clone DTC website repo for Tenant #2
+- Apply Tenant #2 branding
+- Generate Tenant #2 API key
+- Tenant Admin portal already supports multiple tenants
 
-### Phase 3: Second Tenant (Q3 2026)
-- Create `mtc-frontend` repo
-- MTC uses same Durdle backend
-- Tenant Admin portal serves both DTC and MTC
+### Phase 3: Scale (Q3 2026+)
+- Onboard Tenants #3, #4, #5
+- Refine tenant onboarding process
+- Consider tenant self-service portal
 
 ---
 
@@ -416,6 +437,67 @@ A: No. Tenant Admins use `/admin` portal. Corporate users use `/corporate` porta
 
 ---
 
+## Backend Infrastructure
+
+### Lambda Functions (11 Total)
+
+| Function | Purpose | Size |
+|----------|---------|------|
+| `quotes-calculator` | Core quote generation engine | 13.4 MB |
+| `quotes-manager` | Admin quote listing/export | 3.5 MB |
+| `bookings-manager` | Booking CRUD operations | 3.5 MB |
+| `pricing-manager` | Vehicle pricing configuration | 3.7 MB |
+| `vehicle-manager` | Vehicle metadata management | 2.9 MB |
+| `fixed-routes-manager` | Pre-configured route pricing | 3.9 MB |
+| `admin-auth` | JWT authentication | 3.2 MB |
+| `locations-lookup` | Google Places proxy | 3.2 MB |
+| `uploads-presigned` | S3 presigned URL generation | 3.3 MB |
+| `document-comments` | Quote/booking comments | 2.9 MB |
+| `feedback-manager` | Customer feedback collection | 2.9 MB |
+
+### Lambda Layer v4
+
+**ARN**: `arn:aws:lambda:eu-west-2:771551874768:layer:durdle-common-layer:4`
+
+**Contains**:
+- `logger.mjs` - Pino structured logging with `.log()` backward compatibility
+- `tenant.mjs` - Multi-tenant utilities (getTenantId, buildTenantPK, etc.)
+- `node_modules/pino` - Logging framework
+
+### AWS Resources
+
+| Resource | Value |
+|----------|-------|
+| **Region** | eu-west-2 (London) |
+| **API Gateway** | qcfd5p4514 |
+| **DynamoDB Tables** | durdle-quotes-dev, durdle-pricing-config-dev, durdle-fixed-routes-dev, durdle-admin-users-dev |
+| **S3 Bucket** | durdle-vehicle-images-dev |
+
+---
+
+## Tenant Onboarding (15-20 hours)
+
+When ready to onboard Tenant #2:
+
+1. **Build API Gateway Authorizer** (~4 hours)
+   - Extract tenantId from API key
+   - Replace hardcoded `TENANT#001` with authorizer context
+
+2. **Create Tenant #2 API Key** (~1 hour)
+   - Generate API key in API Gateway
+   - Map to `TENANT#002` in authorizer
+
+3. **Clone Frontend Repo** (~8 hours)
+   - Copy `DorsetTransferCompany-Website` → `Tenant2-Website`
+   - Update branding, logos, colors
+   - Configure Amplify deployment
+
+4. **Seed Tenant Data** (~2 hours)
+   - Create initial pricing config for TENANT#002
+   - Create admin user for TENANT#002
+
+---
+
 **Document Owner**: CTO
-**Last Updated**: December 9, 2025
+**Last Updated**: December 10, 2025
 **Next Review**: After Phase 1 (Corporate Accounts) implementation

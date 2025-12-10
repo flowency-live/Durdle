@@ -1,8 +1,11 @@
 # Multi-Tenant Backend Architecture - Durdle Platform
 
-**Status**: Phase 0.5 COMPLETE - Lightweight Tenant-Awareness Implemented
-**Priority**: Medium (required before Client #2 onboarding)
-**Last Updated**: December 9, 2025
+**Status**: Phase 0.5 COMPLETE - All Lambdas Tenant-Aware
+**Priority**: Ready for Client #2 onboarding (15-20 hours work)
+**Last Updated**: December 10, 2025
+
+> **See Also**: [PLATFORM_ARCHITECTURE.md](../PLATFORM_ARCHITECTURE.md) for high-level architecture overview.
+> This document contains **implementation details** for multi-tenancy.
 
 ---
 
@@ -11,11 +14,12 @@
 **Platform**: Durdle - White-label transfer booking infrastructure
 **Go-to-Market**: Multiple independent transfer company clients
 
-### Current State (Single Client)
+### Current State (December 2025)
 - **Client #1**: Dorset Transfer Company (dorsettransfercompany.co.uk)
-- **Frontend**: durdle-web (Next.js) - tightly coupled to Dorset TC branding
-- **Backend**: durdle-serverless-api - no tenant isolation
-- **Timeline**: 6 months to prove business case before scaling
+- **Frontend**: `DorsetTransferCompany-Website` repo (decoupled - COMPLETE)
+- **Admin Portal**: `Durdle` repo at `durdle.flowency.build/admin` (COMPLETE)
+- **Backend**: Multi-tenant API with Phase 0.5 tenant utilities (COMPLETE)
+- **Next Step**: Corporate Accounts feature, then onboard Tenant #2
 
 ### Target State (Multi-Client Platform)
 - **Client #1**: Dorset Transfer Company (dorsettransfercompany.co.uk)
