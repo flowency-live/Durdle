@@ -1,6 +1,6 @@
 'use client';
 
-import { Plane, Clock, Shield, Briefcase, Globe, ArrowRight, KeyRound, Users, Luggage, ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { Plane, Clock, Briefcase, Globe, ArrowRight, KeyRound, Users, Luggage, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 
