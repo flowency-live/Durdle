@@ -9,7 +9,7 @@ import { buttonVariants } from '@/components/ui/button';
 
 const navLinks = [
   { href: '/', label: 'Home' },
-  { href: '/#services-carousel', label: 'Services' },
+  { href: '/services', label: 'Services' },
   { href: '/#vehicles', label: 'Vehicles' },
   { href: '/faq', label: 'FAQ' },
   { href: '/pricing', label: 'Pricing' },

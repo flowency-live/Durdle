@@ -181,16 +181,16 @@ export default function Home() {
                 Home
               </a>
               <a
+                href="/services"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Services
+              </a>
+              <a
                 href="#vehicles"
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 Vehicles
-              </a>
-              <a
-                href="#services-carousel"
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Services
               </a>
               <a
                 href="/faq"
@@ -254,18 +254,18 @@ export default function Home() {
                   Home
                 </a>
                 <a
+                  href="/services"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
+                >
+                  Services
+                </a>
+                <a
                   href="#vehicles"
                   onClick={() => setMobileMenuOpen(false)}
                   className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
                 >
                   Vehicles
-                </a>
-                <a
-                  href="#services-carousel"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
-                >
-                  Services
                 </a>
                 <a
                   href="/faq"
@@ -707,7 +707,7 @@ export default function Home() {
                   <h4 className="font-semibold text-sage-light mb-4">Navigate</h4>
                   <nav className="flex flex-col gap-3">
                     <a href="/" className="text-sm text-white/70 hover:text-white transition-colors">Home</a>
-                    <a href="#services-carousel" className="text-sm text-white/70 hover:text-white transition-colors">Services</a>
+                    <a href="/services" className="text-sm text-white/70 hover:text-white transition-colors">Services</a>
                     <a href="#vehicles" className="text-sm text-white/70 hover:text-white transition-colors">Vehicles</a>
                     <a href="/pricing" className="text-sm text-white/70 hover:text-white transition-colors">Pricing</a>
                   </nav>
