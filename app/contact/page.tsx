@@ -62,7 +62,7 @@ END:VCARD`;
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pt-20">
       <Header />
 
       {/* Main Content */}

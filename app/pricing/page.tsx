@@ -41,7 +41,7 @@ export default function PricingPage() {
   }, {} as Record<string, FixedRoute[]>);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pt-20">
       <Header />
 
       {/* Hero Section */}

@@ -20,21 +20,23 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-sage-light/50 shadow-sm">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-sage-light/50 shadow-sm">
       <div className="container px-4 md:px-6 mx-auto">
-        <div className="flex items-center justify-between h-16 md:h-20">
-          <Link href="/" className="flex items-center gap-3">
-            <Image
-              src="/dtc-logo-wave2.png"
-              alt="The Dorset Transfer Company"
-              width={60}
-              height={60}
-              className="h-10 md:h-12 w-auto"
-            />
-          </Link>
+        <div className="flex items-center justify-between h-20">
+          <div className="flex items-center">
+            <Link href="/">
+              <Image
+                src="/dtc-logo-wave2.png"
+                alt="The Dorset Transfer Company"
+                width={80}
+                height={80}
+                className="h-16 w-auto"
+              />
+            </Link>
+          </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -44,13 +46,17 @@ export default function Header() {
                 {link.label}
               </Link>
             ))}
+          </nav>
+
+          {/* Desktop Actions */}
+          <div className="hidden md:flex items-center gap-3">
             <Link
               href="/quote"
               className={buttonVariants({ variant: "hero-golden", size: "default" })}
             >
               Get a Quote
             </Link>
-          </nav>
+          </div>
 
           {/* Mobile Menu Button */}
           <button
