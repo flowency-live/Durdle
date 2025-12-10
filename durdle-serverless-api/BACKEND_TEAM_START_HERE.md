@@ -6,6 +6,15 @@
 
 ---
 
+## 🚨 NEW: Platform Architecture Clarified
+
+**Before working on Corporate Accounts feature, read**:
+1. [PLATFORM_ARCHITECTURE.md](../.documentation/PLATFORM_ARCHITECTURE.md) - Understand Durdle vs Tenants vs Corporate Accounts
+2. [CORPORATE_ACCOUNTS_SUMMARY.md](../.documentation/FeatureDev/CORPORATE_ACCOUNTS_SUMMARY.md) - Quick reference
+3. [CorporateAccounts_PRD.md](../.documentation/FeatureDev/CorporateAccounts_PRD.md) - Full requirements
+
+---
+
 ## What Is This Document?
 
 This is your **single source of truth** for backend development. Before touching ANY Lambda function, deployment, or AWS infrastructure, read this document first.
@@ -106,6 +115,32 @@ All functions are in `durdle-serverless-api/functions/`:
 ---
 
 ## Deployment Process (Standard)
+
+### RECOMMENDED: Use deploy.sh Script
+
+Every Lambda has a `deploy.sh` script that handles everything correctly:
+
+```bash
+cd "C:\VSProjects\_Websites\Durdle\durdle-serverless-api\functions\[function-name]"
+./deploy.sh
+```
+
+**What deploy.sh does automatically**:
+1. Installs production-only dependencies
+2. Creates ZIP with correct files
+3. Verifies ZIP size (warns if > 5MB)
+4. Deploys to AWS
+5. Reports deployment timestamp
+
+**Why use deploy.sh**:
+- AWS SDK NOT bundled (Lambda runtime provides it - saves ~8MB!)
+- Excludes devDependencies (Jest, Babel)
+- Prevents "Cannot find module" errors
+
+### Manual Deployment (If Needed)
+
+If you must deploy manually, follow these steps:
+
 
 ### Step 1: Read STRUCTURE.md
 

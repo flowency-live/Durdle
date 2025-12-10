@@ -1,26 +1,40 @@
 # Corporate Accounts - Product Requirements Document
 
 **Status**: Requirements Defined
-**Priority**: Medium (Client #1 requirement)
+**Priority**: Medium (DTC requirement)
 **Last Updated**: December 9, 2025
+
+---
+
+## Context
+
+**READ FIRST**: [PLATFORM_ARCHITECTURE.md](../.documentation/PLATFORM_ARCHITECTURE.md)
+
+This document uses the following terminology:
+- **Durdle Platform**: Multi-tenant SaaS backend
+- **Tenant**: A transfer company using Durdle (e.g., DTC)
+- **Tenant Admin**: DTC staff configuring their Durdle instance
+- **Corporate Account**: A business customer of DTC (e.g., ACME Corp)
+- **Corporate Portal**: Login area at `dorsettransfercompany.co.uk/corporate`
 
 ---
 
 ## Overview
 
-Corporate accounts enable businesses to book transfers on credit, receive consolidated invoices, and manage employee travel through a centralized account. This converts Durdle from a consumer-only platform to a B2B service offering.
+Corporate accounts enable **DTC's business customers** to book transfers on account, receive consolidated invoices, and manage employee travel through a centralized account. This adds B2B capability to DTC's existing B2C offering.
 
 ---
 
 ## Business Value
 
-### For Transfer Companies (DTC, future Durdle clients)
+### For DTC (The Tenant)
 - **Recurring Revenue**: Corporate contracts provide predictable monthly income
 - **Higher Volume**: Business accounts typically book 10-50x more than individual consumers
 - **Reduced Payment Friction**: No card processing per trip (Phase 2: invoiced monthly)
 - **Client Retention**: Contract relationships are stickier than transactional
+- **Market Expansion**: Serve hotels, travel agents, corporate travel managers
 
-### For Corporate Customers
+### For Corporate Customers (DTC's B2B Clients)
 - **Convenience**: Book without payment details each time (Phase 2)
 - **Cost Control**: Approved bookers, spending visibility, reporting
 - **Simplified Accounting**: Single monthly invoice vs. multiple receipts (Phase 2)
@@ -30,27 +44,47 @@ Corporate accounts enable businesses to book transfers on credit, receive consol
 
 ## User Personas
 
-### 1. DTC Admin (Dorset Transfer Company staff)
-- Creates corporate account records in DTC admin dashboard
-- Sends magic link to corporate main contact
-- Views all corporate accounts, bookings, revenue
-- Sets pricing tiers and discounts
+### 1. Tenant Admin (DTC Staff)
+- **Portal**: `durdle.flowency.build/admin`
+- **Role**: Configures DTC's Durdle instance
+- **Can**:
+  - Create corporate account records
+  - Send magic link to corporate main contact
+  - View all corporate accounts, bookings, revenue
+  - Set pricing tiers and discounts per corporate account
+  - Manage DTC's vehicles, pricing, fixed routes
+- **Cannot**: Access corporate portal (separate authentication)
 
-### 2. Corporate Admin/Booker (Combined role for v1)
-- Receives magic link from DTC to set up account
-- Manages company details and users
-- Makes bookings and pays via Stripe
-- Approves/rejects requests from Requestors (if any exist)
-- Views all company bookings and spending
+### 2. Corporate Admin (Company Travel Manager)
+- **Portal**: `dorsettransfercompany.co.uk/corporate`
+- **Role**: Manages their company's corporate account
+- **Can**:
+  - Receive magic link from DTC to set up account
+  - Manage company details and users
+  - Make bookings and pay via Stripe
+  - Approve/reject requests from Requestors (if any exist)
+  - View all company bookings and spending
+- **Cannot**: Change pricing (set by Tenant Admin)
 
-### 3. Requestor (Optional - larger companies only)
-- Added to corporate account by Admin/Booker
-- Can create quotes and submit booking requests
-- Cannot pay - requests go to Admin/Booker for approval
-- Views only their own requests and bookings
-- **Not required**: Many small corporate accounts will have no Requestors
+### 3. Corporate Booker (PA/Office Manager)
+- **Portal**: `dorsettransfercompany.co.uk/corporate`
+- **Role**: Books transfers for their company
+- **Can**:
+  - Make bookings and pay via Stripe
+  - View company bookings
+  - Approve/reject requests (if designated)
+- **Cannot**: Add/remove users, change company details
 
-### 4. Passenger
+### 4. Corporate Requestor (Employee - Optional)
+- **Portal**: `dorsettransfercompany.co.uk/corporate`
+- **Role**: Requests bookings (needs approval)
+- **Can**:
+  - Create quotes and submit booking requests
+  - View only their own requests and bookings
+- **Cannot**: Pay - requests go to Admin/Booker for approval
+- **Note**: Many small corporate accounts will have no Requestors
+
+### 5. Passenger
 - The person being transported
 - May or may not be the booker
 - Receives booking confirmation if email provided
@@ -122,9 +156,9 @@ Login → Get Quote → Enter Passenger (if different) → Select Vehicle → Pa
 
 ## Account Setup Flow
 
-### Step 1: DTC Admin Creates Corporate Account
+### Step 1: Tenant Admin Creates Corporate Account
 
-In DTC admin dashboard (`durdle.flowency.build/admin/corporate`):
+In Tenant Admin portal (`durdle.flowency.build/admin/corporate`):
 
 1. **Company Lookup** (Companies House API - free)
    - Admin types company name
@@ -142,8 +176,8 @@ In DTC admin dashboard (`durdle.flowency.build/admin/corporate`):
 
 ### Step 2: Corporate Admin Onboarding
 
-1. DTC admin clicks "Send Invite" → magic link email sent to main contact
-2. Main contact clicks link → lands on corporate portal
+1. Tenant Admin clicks "Send Invite" → magic link email sent to main contact
+2. Main contact clicks link → lands on corporate portal (`dorsettransfercompany.co.uk/corporate/verify`)
 3. Completes setup:
    - Confirm/edit company details
    - Set notification preferences
@@ -235,18 +269,20 @@ Only triggered when Requestors submit requests.
 
 ### v1 Role Matrix
 
-| Permission | Admin/Booker | Requestor |
-|------------|--------------|-----------|
-| Create quotes | Yes | Yes |
-| Book & pay | Yes | No |
-| Submit requests | N/A (books directly) | Yes |
-| Approve/reject requests | Yes | No |
-| View all bookings | Yes | Own only |
-| View pending requests | Yes | Own only |
-| Add/remove users | Yes | No |
-| Edit company details | Yes | No |
-| View spending reports | Yes | No |
-| Manage notifications | Yes (all) | Own only |
+| Permission | Tenant Admin | Corporate Admin | Corporate Booker | Corporate Requestor |
+|------------|--------------|-----------------|------------------|---------------------|
+| Create corporate accounts | Yes | No | No | No |
+| Set corporate pricing | Yes | No | No | No |
+| Create quotes | N/A | Yes | Yes | Yes |
+| Book & pay | N/A | Yes | Yes | No |
+| Submit requests | N/A | N/A (books directly) | N/A (books directly) | Yes |
+| Approve/reject requests | N/A | Yes | Yes (if designated) | No |
+| View all corp bookings | Yes (all corps) | Yes (own corp) | Yes (own corp) | Own only |
+| View pending requests | Yes (all corps) | Yes (own corp) | Yes (own corp) | Own only |
+| Add/remove users | Yes | Yes | No | No |
+| Edit company details | Yes | Yes | No | No |
+| View spending reports | Yes (all corps) | Yes (own corp) | No | No |
+| Manage notifications | N/A | Yes (all) | Own only | Own only |
 
 ---
 
@@ -313,7 +349,7 @@ Design to support multiple models:
 - `discountPercent` field on corporate account (0-100)
 - Applied automatically when corporate user gets quote
 - Shown on quote: "Corporate Rate Applied" with discount amount
-- DTC admin sets discount when creating account
+- Tenant Admin sets discount when creating account
 
 ---
 
@@ -488,23 +524,25 @@ Use: List pending requests for dashboard
 
 ## API Endpoints
 
-### DTC Admin - Corporate Management
+### Tenant Admin - Corporate Management
 ```
-POST   /admin/corporate                     - Create corporate account
-GET    /admin/corporate                     - List all corporate accounts
-GET    /admin/corporate/{corpId}            - Get account details
-PUT    /admin/corporate/{corpId}            - Update account
-DELETE /admin/corporate/{corpId}            - Deactivate account
+POST   /admin/corporate                     - Create corporate account (tenant-filtered)
+GET    /admin/corporate                     - List all corporate accounts (tenant-filtered)
+GET    /admin/corporate/{corpId}            - Get account details (tenant-filtered)
+PUT    /admin/corporate/{corpId}            - Update account (tenant-filtered)
+DELETE /admin/corporate/{corpId}            - Deactivate account (tenant-filtered)
 POST   /admin/corporate/{corpId}/invite     - Send invite to main contact
-GET    /admin/corporate/{corpId}/bookings   - List bookings for account
-GET    /admin/corporate/{corpId}/users      - List users in account
+GET    /admin/corporate/{corpId}/bookings   - List bookings for account (tenant-filtered)
+GET    /admin/corporate/{corpId}/users      - List users in account (tenant-filtered)
 ```
 
-### DTC Admin - Reporting
+### Tenant Admin - Reporting
 ```
-GET    /admin/reports/corporate-revenue     - Revenue by corporate account
-GET    /admin/reports/corporate-vs-consumer - Split analysis
+GET    /admin/reports/corporate-revenue     - Revenue by corporate account (tenant-filtered)
+GET    /admin/reports/corporate-vs-consumer - Split analysis (tenant-filtered)
 ```
+
+**Note**: All `/admin/*` endpoints are tenant-aware. Tenant context extracted from JWT token.
 
 ### Corporate Portal - Auth
 ```
@@ -540,10 +578,12 @@ POST   /corporate/requests/{reqId}/reject   - Reject (Admin only)
 
 ### Corporate Portal - Bookings
 ```
-GET    /corporate/bookings                  - List bookings (filtered by role)
-POST   /corporate/bookings                  - Create booking (Admin only)
-GET    /corporate/bookings/{bookingId}      - Get booking details
+GET    /corporate/bookings                  - List bookings (filtered by role + corp account)
+POST   /corporate/bookings                  - Create booking (Admin/Booker only)
+GET    /corporate/bookings/{bookingId}      - Get booking details (corp-filtered)
 ```
+
+**Note**: All `/corporate/*` endpoints are corporate-account-aware. Corp account context extracted from JWT token.
 
 ### Corporate Portal - Company (Admin only)
 ```
@@ -579,16 +619,17 @@ GET    /v1/companies/search?q={query}       - Search Companies House
 
 ---
 
-## DTC Admin UI
+## Tenant Admin UI
 
 ### Corporate Accounts Section
 
-**List View** (`/admin/corporate`)
+**List View** (`durdle.flowency.build/admin/corporate`)
 - Table: Company Name | Status | Users | Bookings (30d) | Discount | Actions
 - Filters: Status, Has pending requests
 - Quick actions: View, Edit, Send Invite
+- **Tenant-filtered**: Only shows corporate accounts for logged-in tenant
 
-**Account Detail** (`/admin/corporate/{id}`)
+**Account Detail** (`durdle.flowency.build/admin/corporate/{id}`)
 - Company info card (editable)
 - Status badge with change action
 - Contact details
@@ -597,7 +638,7 @@ GET    /v1/companies/search?q={query}       - Search Companies House
 - Recent bookings
 - Pending requests
 
-**Create Account** (`/admin/corporate/new`)
+**Create Account** (`durdle.flowency.build/admin/corporate/new`)
 - Companies House search
 - Manual entry form
 - Discount/tier selection
@@ -605,11 +646,11 @@ GET    /v1/companies/search?q={query}       - Search Companies House
 
 ### Reporting
 
-**Corporate Dashboard** (`/admin/reports/corporate`)
-- Total corporate revenue (MTD/YTD)
-- Revenue by account (top 10)
-- Corporate vs Consumer split pie chart
-- Bookings trend line
+**Corporate Dashboard** (`durdle.flowency.build/admin/reports/corporate`)
+- Total corporate revenue (MTD/YTD) - tenant-filtered
+- Revenue by account (top 10) - tenant-filtered
+- Corporate vs Consumer split pie chart - tenant-filtered
+- Bookings trend line - tenant-filtered
 
 ---
 
@@ -659,21 +700,23 @@ GET    /v1/companies/search?q={query}       - Search Companies House
 ## Edge Cases
 
 1. **User email already exists as consumer**: Corporate account is separate - same email can have both
-2. **Admin removes themselves**: Prevent - must have at least one Admin
-3. **All Admins removed**: DTC admin can re-invite
+2. **Corporate Admin removes themselves**: Prevent - must have at least one Admin per corporate account
+3. **All Corporate Admins removed**: Tenant Admin can re-invite
 4. **Magic link expired**: Clear error, easy to request new one
 5. **Request approved but payment fails**: Request stays approved, prompt to retry payment
-6. **Corporate account suspended**: Users can't login, DTC admin must reactivate
+6. **Corporate account suspended**: Users can't login, Tenant Admin must reactivate
 7. **Requestor tries to access /corporate/team**: 403 - role-based route protection
+8. **Tenant Admin tries to access /corporate portal**: 403 - separate authentication systems
+9. **Corporate user tries to access /admin portal**: 403 - separate authentication systems
 
 ---
 
 ## Dependencies
 
-- **Multi-tenant foundation** (tenantId in all records) - Phase 0.5
-- **Stripe integration** (existing)
-- **SES email service** (existing, need templates)
-- **Companies House API** (free, rate limited)
+- **Multi-tenant foundation** (tenantId in all records) - Phase 0.5 ✅ Complete
+- **Stripe integration** (existing) ✅ Complete
+- **SES email service** (existing, need magic link templates) ⚠️ Need templates
+- **Companies House API** (free, rate limited) ⚠️ Need Lambda function
 
 ---
 
@@ -681,9 +724,46 @@ GET    /v1/companies/search?q={query}       - Search Companies House
 
 1. **Magic link tokens**: Single-use, 15-minute expiry, rate limited
 2. **Role enforcement**: Backend validates role on every request
-3. **Data isolation**: Corporate users only see their company's data
-4. **DTC admin access**: Can view but clearly logged for audit
+3. **Data isolation**: 
+   - Tenant Admin sees only their tenant's data (via JWT tenantId)
+   - Corporate users see only their corporate account's data (via JWT corpAccountId)
+4. **Tenant Admin access**: Can view all corporate accounts for their tenant (logged for audit)
 5. **Password storage**: bcrypt hashed if user sets password
+6. **Cross-tenant protection**: All queries filter by tenantId from JWT
+
+---
+
+## Multi-Tenant Considerations
+
+### Current State (DTC Only)
+- Single tenant: `TENANT#001` (DTC)
+- Corporate accounts belong to DTC
+- All data prefixed with `TENANT#001`
+
+### Future State (Multiple Tenants)
+- Tenant #2 (MTC): `TENANT#002`
+- MTC will have their own corporate accounts
+- Same backend, separate frontends
+- Tenant context from JWT token
+
+### Data Isolation
+```javascript
+// DTC Corporate Account
+PK: "TENANT#001#CORP#corp-001"
+SK: "METADATA"
+{ tenantId: "TENANT#001", companyName: "ACME Corp" }
+
+// MTC Corporate Account (future)
+PK: "TENANT#002#CORP#corp-001"
+SK: "METADATA"
+{ tenantId: "TENANT#002", companyName: "Beta Ltd" }
+```
+
+### Authentication Isolation
+- Tenant Admin JWT includes `tenantId` only
+- Corporate User JWT includes `tenantId` + `corpAccountId`
+- Backend filters all queries by tenant context
+- No cross-tenant access possible
 
 ---
 
@@ -693,10 +773,13 @@ GET    /v1/companies/search?q={query}       - Search Companies House
 2. **Business rules per corporate**: Future - restrict destinations, times, vehicles
 3. **Phase 2 invoicing**: Separate PRD when needed
 4. **SMS notifications**: Need to set up SMS provider (Twilio/SNS)
+5. **Magic link email templates**: Need SES template design
+6. **Companies House Lambda**: Need to create lookup function
 
 ---
 
 **Document Owner**: CTO
 **Last Q&A Session**: December 9, 2025
-**Next Step**: Review and approve for implementation planning
+**Architecture Clarified**: December 9, 2025 (see PLATFORM_ARCHITECTURE.md)
+**Next Step**: Technical design document for implementation
 

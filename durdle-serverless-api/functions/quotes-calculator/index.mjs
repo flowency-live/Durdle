@@ -750,7 +750,8 @@ export const handler = async (event, context) => {
       await storeSavedQuote(savedQuote, magicToken, logger, tenantId);
 
       // Return quote ID, token, and shareable URL
-      const shareUrl = `https://dorsettc.co.uk/quote/${quoteId}?token=${magicToken}`;
+      const frontendUrl = process.env.FRONTEND_URL || 'https://durdle.flowency.build';
+      const shareUrl = `${frontendUrl}/quote/${quoteId}?token=${magicToken}`;
 
       logger.info({
         event: 'quote_saved_success',

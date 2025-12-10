@@ -267,6 +267,7 @@ These are NOT in the deployment package - they're configured in AWS Lambda:
 | PRICING_TABLE_NAME | durdle-pricing-config-dev | DynamoDB pricing table |
 | FIXED_ROUTES_TABLE_NAME | durdle-fixed-routes-dev | DynamoDB routes table |
 | GOOGLE_MAPS_SECRET_NAME | prod/google-maps-api-key | Secrets Manager secret |
+| FRONTEND_URL | https://durdle.flowency.build | Base URL for share links (no trailing slash) |
 
 ---
 

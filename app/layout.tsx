@@ -3,7 +3,6 @@ import { Playfair_Display } from "next/font/google";
 import localFont from "next/font/local";
 
 import "./globals.css";
-import PWAInstallPrompt from "./components/PWAInstallPrompt";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -31,49 +30,8 @@ const playfairDisplay = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "The Dorset Transfer Company - Professional Transfer Service",
-  description: "Reliable, modern transfers across Dorset and beyond. From airport runs to business travel - we get you there on time, every time.",
-  icons: {
-    icon: [
-      { url: "/favicon.ico" },
-      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
-      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
-    ],
-    apple: [
-      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
-    ],
-    shortcut: "/favicon.ico",
-  },
-  manifest: "/manifest.json",
-  appleWebApp: {
-    statusBarStyle: "default",
-    title: "Durdle",
-  },
-  other: {
-    'mobile-web-app-capable': 'yes',
-  },
-  openGraph: {
-    type: "website",
-    locale: "en_GB",
-    url: "https://durdle.co.uk",
-    siteName: "The Dorset Transfer Company",
-    title: "The Dorset Transfer Company - Professional Transfer Service",
-    description: "Reliable, modern transfers across Dorset and beyond. From airport runs to business travel - we get you there on time, every time.",
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "Durdle - Dorset Transfer Service",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "The Dorset Transfer Company - Professional Transfer Service",
-    description: "Reliable, modern transfers across Dorset and beyond. From airport runs to business travel - we get you there on time, every time.",
-    images: ["/og-image.png"],
-  },
+  title: "Durdle Admin Portal",
+  description: "Multi-tenant transfer booking administration platform",
 };
 
 export default function RootLayout({
@@ -87,7 +45,6 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${knockoutSumo.variable} ${playfairDisplay.variable} antialiased`}
       >
         {children}
-        <PWAInstallPrompt />
       </body>
     </html>
   );
