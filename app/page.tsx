@@ -691,9 +691,6 @@ export default function Home() {
                 height={80}
                 className="h-16 w-auto mb-6"
               />
-              <p className="text-navy-light leading-relaxed mb-6 max-w-sm">
-                Premium transfer services across Dorset and the UK. Professional drivers, luxury vehicles, exceptional service.
-              </p>
               <div className="text-sm text-navy-light/70 space-y-1">
                 <p>Company No: 16884513</p>
                 <p className="pt-2">
@@ -741,7 +738,8 @@ export default function Home() {
           </div>
 
           {/* Bottom Bar */}
-          <div className="py-6 border-t border-sage flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="h-1 bg-sage" />
+          <div className="py-6 flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-navy-light/70">
               &copy; 2025 The Dorset Transfer Company. All rights reserved.
             </p>
