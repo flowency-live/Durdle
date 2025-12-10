@@ -673,65 +673,71 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="py-12 bg-navy-dark text-white">
+      <footer className="bg-navy-dark text-white">
         <div className="container px-4 md:px-6 mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
-            {/* Company Info */}
-            <div>
+          {/* Main Footer Content */}
+          <div className="py-16 grid grid-cols-1 lg:grid-cols-12 gap-12">
+            {/* Company Info & Details - Left Side */}
+            <div className="lg:col-span-5">
               <Image
                 src="/dtc-logo-wave2.png"
                 alt="The Dorset Transfer Company"
-                width={60}
-                height={60}
-                className="h-12 w-auto mb-4"
+                width={80}
+                height={80}
+                className="h-16 w-auto mb-6"
               />
-              <p className="text-sm text-white/70 leading-relaxed">
+              <p className="text-white/80 leading-relaxed mb-6 max-w-sm">
                 Premium transfer services across Dorset and the UK. Professional drivers, luxury vehicles, exceptional service.
               </p>
-            </div>
-
-            {/* Navigation */}
-            <div>
-              <h4 className="font-semibold mb-4">Navigation</h4>
-              <nav className="flex flex-col gap-2">
-                <a href="/" className="text-sm text-white/70 hover:text-white transition-colors">Home</a>
-                <a href="#vehicles" className="text-sm text-white/70 hover:text-white transition-colors">Vehicles</a>
-                <a href="#services-carousel" className="text-sm text-white/70 hover:text-white transition-colors">Services</a>
-                <a href="/faq" className="text-sm text-white/70 hover:text-white transition-colors">FAQ</a>
-                <a href="/pricing" className="text-sm text-white/70 hover:text-white transition-colors">Pricing</a>
-                <a href="/contact" className="text-sm text-white/70 hover:text-white transition-colors">Contact</a>
-              </nav>
-            </div>
-
-            {/* Legal */}
-            <div>
-              <h4 className="font-semibold mb-4">Legal</h4>
-              <nav className="flex flex-col gap-2">
-                <a href="/terms" className="text-sm text-white/70 hover:text-white transition-colors">Terms & Conditions</a>
-                <a href="/privacy" className="text-sm text-white/70 hover:text-white transition-colors">Privacy Policy</a>
-                <a href="/cookies" className="text-sm text-white/70 hover:text-white transition-colors">Cookie Policy</a>
-                <a href="/accessibility" className="text-sm text-white/70 hover:text-white transition-colors">Accessibility</a>
-              </nav>
-            </div>
-
-            {/* Company Details */}
-            <div>
-              <h4 className="font-semibold mb-4">Company Details</h4>
-              <div className="text-sm text-white/70 space-y-2">
-                <p>The Dorset Transfer Company</p>
+              <div className="text-sm text-white/60 space-y-1">
+                <p className="font-medium text-white/80">The Dorset Transfer Company</p>
                 <p>Company No: 16884513</p>
-                <p className="leading-relaxed">
-                  Registered Office:<br />
-                  383 Verity Crescent<br />
-                  Poole, England<br />
-                  BH17 8TS
+                <p className="pt-2">
+                  383 Verity Crescent, Poole<br />
+                  England, BH17 8TS
                 </p>
+              </div>
+            </div>
+
+            {/* Links - Right Side */}
+            <div className="lg:col-span-7">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
+                {/* Navigation */}
+                <div>
+                  <h4 className="font-semibold text-sage-light mb-4">Navigate</h4>
+                  <nav className="flex flex-col gap-3">
+                    <a href="/" className="text-sm text-white/70 hover:text-white transition-colors">Home</a>
+                    <a href="#services-carousel" className="text-sm text-white/70 hover:text-white transition-colors">Services</a>
+                    <a href="#vehicles" className="text-sm text-white/70 hover:text-white transition-colors">Vehicles</a>
+                    <a href="/pricing" className="text-sm text-white/70 hover:text-white transition-colors">Pricing</a>
+                  </nav>
+                </div>
+
+                {/* Support */}
+                <div>
+                  <h4 className="font-semibold text-sage-light mb-4">Support</h4>
+                  <nav className="flex flex-col gap-3">
+                    <a href="/faq" className="text-sm text-white/70 hover:text-white transition-colors">FAQ</a>
+                    <a href="/contact" className="text-sm text-white/70 hover:text-white transition-colors">Contact</a>
+                    <a href="/accessibility" className="text-sm text-white/70 hover:text-white transition-colors">Accessibility</a>
+                  </nav>
+                </div>
+
+                {/* Legal */}
+                <div>
+                  <h4 className="font-semibold text-sage-light mb-4">Legal</h4>
+                  <nav className="flex flex-col gap-3">
+                    <a href="/terms" className="text-sm text-white/70 hover:text-white transition-colors">Terms & Conditions</a>
+                    <a href="/privacy" className="text-sm text-white/70 hover:text-white transition-colors">Privacy Policy</a>
+                    <a href="/cookies" className="text-sm text-white/70 hover:text-white transition-colors">Cookie Policy</a>
+                  </nav>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Bottom Bar */}
-          <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="py-6 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-white/50">
               &copy; 2025 The Dorset Transfer Company. All rights reserved.
             </p>
