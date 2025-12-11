@@ -43,6 +43,9 @@ export const API_ENDPOINTS = {
   adminCorporateAccount: '/admin/corporate', // /admin/corporate/{corpId}
   adminCorporateUsers: '/admin/corporate', // /admin/corporate/{corpId}/users
   adminCorporateInvite: '/admin/corporate', // /admin/corporate/{corpId}/invite
+  // Companies House lookup
+  companiesHouseSearch: '/admin/companies-house/search', // ?q=company+name
+  companiesHouseLookup: '/admin/companies-house', // /{companyNumber}
 } as const;
 
 /**

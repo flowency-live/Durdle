@@ -1,0 +1,11 @@
+{
+  "name": "companies-house-lookup",
+  "version": "1.0.0",
+  "description": "Companies House API lookup for company search",
+  "type": "module",
+  "main": "index.mjs",
+  "scripts": {
+    "test": "echo \"No tests yet\""
+  },
+  "dependencies": {}
+}

@@ -1,7 +1,7 @@
 # Corporate Accounts - Implementation Summary
 
 **Last Updated**: December 11, 2025
-**Status**: 85% Complete - Password Auth Flow Done, Corporate Booking Flow Remaining
+**Status**: 90% Complete - Companies House Done, Corporate Booking Flow Remaining
 
 ---
 
@@ -364,9 +364,10 @@ GET    /admin/reports/corporate-revenue # Revenue reports
 - [ ] Link bookings to corporate accounts
 - [ ] Show booking history in dashboard
 
-### Phase 1E: Tenant Admin Tools - PARTIAL
+### Phase 1E: Tenant Admin Tools - COMPLETE
 - [x] Corporate account CRUD in admin portal
-- [ ] Companies House API integration (deferred)
+- [x] Companies House API integration (Lambda + API Gateway deployed)
+- [x] Admin form autocomplete with company search
 - [x] Corporate accounts list page
 - [ ] Basic revenue reporting (deferred)
 

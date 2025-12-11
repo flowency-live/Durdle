@@ -1,9 +1,25 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { API_BASE_URL, API_ENDPOINTS } from '../../../../lib/config/api';
+
+interface CompanySearchResult {
+  companyNumber: string;
+  companyName: string;
+  companyStatus: string;
+  companyType: string;
+  dateOfCreation: string;
+  address: {
+    line1: string;
+    line2: string;
+    city: string;
+    region: string;
+    postcode: string;
+    country: string;
+  } | null;
+}
 
 interface FormData {
   companyName: string;
@@ -38,6 +54,83 @@ export default function NewCorporateAccountPage() {
     billingPostcode: '',
     notes: '',
   });
+
+  // Companies House search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<CompanySearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Close search results when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowResults(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Debounced search
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (searchQuery.length < 2) {
+      setSearchResults([]);
+      setShowResults(false);
+      return;
+    }
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const token = localStorage.getItem('durdle_admin_token');
+        const response = await fetch(
+          `${API_BASE_URL}${API_ENDPOINTS.companiesHouseSearch}?q=${encodeURIComponent(searchQuery)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setSearchResults(data.companies || []);
+          setShowResults(true);
+        }
+      } catch (err) {
+        console.error('Company search error:', err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery]);
+
+  const handleSelectCompany = (company: CompanySearchResult) => {
+    setFormData(prev => ({
+      ...prev,
+      companyName: company.companyName,
+      companyNumber: company.companyNumber,
+      billingLine1: company.address?.line1 || '',
+      billingLine2: company.address?.line2 || '',
+      billingCity: company.address?.city || '',
+      billingPostcode: company.address?.postcode || '',
+    }));
+    setSearchQuery('');
+    setShowResults(false);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -103,6 +196,16 @@ export default function NewCorporateAccountPage() {
     }
   };
 
+  const formatCompanyStatus = (status: string) => {
+    const statusMap: Record<string, { label: string; color: string }> = {
+      active: { label: 'Active', color: 'bg-green-100 text-green-800' },
+      dissolved: { label: 'Dissolved', color: 'bg-red-100 text-red-800' },
+      liquidation: { label: 'Liquidation', color: 'bg-orange-100 text-orange-800' },
+      receivership: { label: 'Receivership', color: 'bg-yellow-100 text-yellow-800' },
+    };
+    return statusMap[status] || { label: status, color: 'bg-gray-100 text-gray-800' };
+  };
+
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-6">
@@ -129,6 +232,77 @@ export default function NewCorporateAccountPage() {
               <p className="text-sm text-red-600">{error}</p>
             </div>
           )}
+
+          {/* Companies House Search */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div ref={searchRef} className="relative">
+              <label className="block text-sm font-medium text-blue-800 mb-2">
+                Search Companies House (UK)
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Start typing company name..."
+                  className="w-full px-4 py-2 pr-10 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                />
+                {isSearching && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-blue-600 mt-1">
+                Selecting a company will auto-fill the form fields below
+              </p>
+
+              {/* Search Results Dropdown */}
+              {showResults && searchResults.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-80 overflow-y-auto">
+                  {searchResults.map((company) => {
+                    const status = formatCompanyStatus(company.companyStatus);
+                    return (
+                      <button
+                        key={company.companyNumber}
+                        type="button"
+                        onClick={() => handleSelectCompany(company)}
+                        className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-900 truncate">
+                              {company.companyName}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {company.companyNumber}
+                              {company.address && (
+                                <span className="ml-2">
+                                  - {company.address.city}, {company.address.postcode}
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${status.color}`}>
+                            {status.label}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {showResults && searchResults.length === 0 && searchQuery.length >= 2 && !isSearching && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-4 text-center text-gray-500">
+                  No companies found matching &quot;{searchQuery}&quot;
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Company Details */}
           <div>
