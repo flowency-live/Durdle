@@ -54,7 +54,7 @@ export default function CorporateAccountDetailPage() {
   const [activeTab, setActiveTab] = useState<'details' | 'users'>('details');
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [addUserLoading, setAddUserLoading] = useState(false);
-  const [newUser, setNewUser] = useState({ email: '', name: '', role: 'booker' as const });
+  const [newUser, setNewUser] = useState<{ email: string; name: string; role: 'admin' | 'booker' }>({ email: '', name: '', role: 'booker' });
   const [magicLink, setMagicLink] = useState<string | null>(null);
 
   const fetchAccount = useCallback(async () => {
