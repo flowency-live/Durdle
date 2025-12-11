@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
+
 import { API_BASE_URL, API_ENDPOINTS } from '../../../lib/config/api';
 
 interface CorporateAccount {

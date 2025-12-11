@@ -1,8 +1,9 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
+
 import { API_BASE_URL, API_ENDPOINTS } from '../../../../lib/config/api';
 
 interface CompanySearchResult {
