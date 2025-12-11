@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 
 import { API_BASE_URL, API_ENDPOINTS } from '../../../../lib/config/api';
@@ -46,6 +46,7 @@ interface CorporateUser {
 
 export default function CorporateAccountDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const corpId = params.corpId as string;
 
   const [account, setAccount] = useState<CorporateAccount | null>(null);
