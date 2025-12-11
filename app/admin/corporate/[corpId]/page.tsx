@@ -464,7 +464,7 @@ export default function CorporateAccountDetailPage() {
                               onClick={() => handleResendLink(user.userId)}
                               className="text-blue-600 hover:text-blue-900 text-sm"
                             >
-                              Resend Link
+                              Regenerate
                             </button>
                             <button
                               onClick={() => handleRemoveUser(user.userId)}
