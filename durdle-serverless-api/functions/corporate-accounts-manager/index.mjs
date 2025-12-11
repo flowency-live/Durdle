@@ -1,5 +1,5 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, PutCommand, QueryCommand, GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, PutCommand, QueryCommand, GetCommand, UpdateCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { randomUUID, randomBytes } from 'crypto';
 import { createLogger } from '/opt/nodejs/logger.mjs';
 import { getTenantId, buildTenantPK, logTenantContext } from '/opt/nodejs/tenant.mjs';
@@ -84,6 +84,11 @@ export const handler = async (event, context) => {
     // Route: PUT /admin/corporate/{corpId} - Update corporate account
     if (path.match(/\/admin\/corporate\/[^/]+\/?$/) && !path.includes('/users') && httpMethod === 'PUT') {
       return await updateCorporateAccount(corpId, event.body, headers, logger, tenantId);
+    }
+
+    // Route: DELETE /admin/corporate/{corpId} - Hard delete corporate account and all users
+    if (path.match(/\/admin\/corporate\/[^/]+\/?$/) && !path.includes('/users') && httpMethod === 'DELETE') {
+      return await deleteCorporateAccount(corpId, headers, logger, tenantId);
     }
 
     // Route: POST /admin/corporate/{corpId}/users - Add user to corporate account
@@ -473,6 +478,74 @@ async function updateCorporateAccount(corpId, requestBody, headers, logger, tena
     body: JSON.stringify({
       success: true,
       message: 'Corporate account updated successfully',
+    }),
+  };
+}
+
+// Hard delete a corporate account and all associated data
+async function deleteCorporateAccount(corpId, headers, logger, tenantId) {
+  if (!corpId) {
+    return errorResponse(400, 'Corporate account ID is required', null, headers);
+  }
+
+  // Check corporate account exists
+  const existing = await docClient.send(new GetCommand({
+    TableName: CORPORATE_TABLE_NAME,
+    Key: {
+      PK: buildTenantPK(tenantId, 'CORP', corpId),
+      SK: 'METADATA',
+    },
+  }));
+
+  if (!existing.Item) {
+    return errorResponse(404, 'Corporate account not found', null, headers);
+  }
+
+  const accountName = existing.Item.companyName;
+
+  // Query all items with this PK (METADATA + all USERs)
+  const allItems = await docClient.send(new QueryCommand({
+    TableName: CORPORATE_TABLE_NAME,
+    KeyConditionExpression: 'PK = :pk',
+    ExpressionAttributeValues: {
+      ':pk': buildTenantPK(tenantId, 'CORP', corpId),
+    },
+  }));
+
+  const itemsToDelete = allItems.Items || [];
+  let deletedCount = 0;
+
+  // Delete each item
+  for (const item of itemsToDelete) {
+    await docClient.send(new DeleteCommand({
+      TableName: CORPORATE_TABLE_NAME,
+      Key: {
+        PK: item.PK,
+        SK: item.SK,
+      },
+    }));
+    deletedCount++;
+  }
+
+  logger.info({
+    event: 'corporate_account_deleted',
+    corpId,
+    companyName: accountName,
+    itemsDeleted: deletedCount,
+    tenantId,
+  }, 'Corporate account and all users hard deleted');
+
+  return {
+    statusCode: 200,
+    headers,
+    body: JSON.stringify({
+      success: true,
+      message: `Corporate account "${accountName}" and ${deletedCount - 1} users permanently deleted`,
+      deleted: {
+        corpId,
+        companyName: accountName,
+        itemsDeleted: deletedCount,
+      },
     }),
   };
 }

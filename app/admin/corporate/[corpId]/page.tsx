@@ -76,6 +76,7 @@ export default function CorporateAccountDetailPage() {
     allowedDomains: '',
   });
   const [savingEdit, setSavingEdit] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchAccount = useCallback(async () => {
     try {
@@ -384,6 +385,48 @@ export default function CorporateAccountDetailPage() {
     }
   }
 
+  async function handleDeleteAccount() {
+    if (!account) return;
+
+    const confirmation = prompt(
+      `This will PERMANENTLY DELETE "${account.companyName}" and all its users.\n\nType the company name to confirm:`
+    );
+
+    if (confirmation !== account.companyName) {
+      if (confirmation !== null) {
+        alert('Company name did not match. Deletion cancelled.');
+      }
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const token = localStorage.getItem('durdle_admin_token');
+      const response = await fetch(
+        `${API_BASE_URL}${API_ENDPOINTS.adminCorporate}/${corpId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to delete account');
+      }
+
+      alert('Corporate account permanently deleted');
+      router.push('/admin/corporate');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete account');
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
       active: 'bg-green-100 text-green-800',
@@ -464,6 +507,13 @@ export default function CorporateAccountDetailPage() {
               className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
             >
               Edit Account
+            </button>
+            <button
+              onClick={handleDeleteAccount}
+              disabled={isDeleting}
+              className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 disabled:opacity-50"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
             </button>
           </div>
         </div>
