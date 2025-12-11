@@ -27,7 +27,8 @@ export const CreateCorporateAccountSchema = z.object({
   paymentTerms: z.enum(['immediate', 'net7', 'net14', 'net30']).default('immediate'),
   notes: z.string().max(1000).optional(),
   // Allowed email domains for corporate users (e.g., ["flowency.co.uk", "flowency.com"])
-  allowedDomains: z.array(domainSchema).max(10).optional(),
+  // REQUIRED: At least one domain must be specified to control who can be added as users
+  allowedDomains: z.array(domainSchema).min(1, 'At least one allowed email domain is required').max(10),
 });
 
 // Update corporate account schema (all fields optional)

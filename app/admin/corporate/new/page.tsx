@@ -518,20 +518,20 @@ export default function NewCorporateAccountPage() {
           {/* Allowed Email Domains */}
           <div>
             <label htmlFor="allowedDomains" className="block text-sm font-medium text-gray-700 mb-1">
-              Allowed Email Domains
+              Allowed Email Domains <span className="text-red-500">*</span>
             </label>
             <textarea
               id="allowedDomains"
               name="allowedDomains"
               rows={2}
+              required
               value={formData.allowedDomains}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="flowency.co.uk, flowency.com"
+              placeholder="acme.co.uk, acme.com"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Enter email domains that users must have to be added to this account (comma-separated).
-              Leave blank to allow any email domain.
+              Required. Enter the company&apos;s email domains (comma-separated). Only users with these email domains can be added to this account.
             </p>
           </div>
 

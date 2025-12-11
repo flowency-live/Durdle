@@ -628,10 +628,10 @@ async function addCorporateUser(corpId, requestBody, headers, logger, tenantId) 
     SK: `USER#${userId}`,
     EntityType: 'CorporateUser',
     tenantId,
-    corpId,
+    corpAccountId: corpId, // Used by corporate-auth for user lookup
     userId,
     // GSI1: For looking up user by email across all corporate accounts
-    GSI1PK: `${tenantId}#EMAIL`,
+    GSI1PK: `${tenantId}#CORP_USER_EMAIL`,
     GSI1SK: data.email.toLowerCase(),
     // User details
     email: data.email.toLowerCase(),
