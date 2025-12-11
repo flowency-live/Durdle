@@ -105,6 +105,11 @@ export const handler = async (event, context) => {
       return await removeCorporateUser(corpId, userId, headers, logger, tenantId);
     }
 
+    // Route: POST /admin/corporate/{corpId}/users/{userId}/magic-link - Regenerate magic link for user
+    if (path.includes('/magic-link') && httpMethod === 'POST' && userId) {
+      return await regenerateMagicLink(corpId, userId, headers, logger, tenantId);
+    }
+
     // Route: POST /admin/corporate/{corpId}/invite - Send invite to primary contact
     if (path.includes('/invite') && httpMethod === 'POST') {
       return await sendInvite(corpId, event.body, headers, logger, tenantId);
@@ -508,6 +513,87 @@ async function addCorporateUser(corpId, requestBody, headers, logger, tenantId) 
   }));
 
   if (existingUsers.Items && existingUsers.Items.length > 0) {
+    const existingUser = existingUsers.Items[0];
+
+    // If user was removed, reactivate them instead of returning 409
+    if (existingUser.status === 'removed') {
+      logger.info({
+        event: 'reactivating_removed_user',
+        userId: existingUser.userId,
+        email: data.email,
+        corpId,
+      }, 'Reactivating previously removed corporate user');
+
+      const now = new Date().toISOString();
+
+      // Reactivate the user
+      await docClient.send(new UpdateCommand({
+        TableName: CORPORATE_TABLE_NAME,
+        Key: {
+          PK: buildTenantPK(tenantId, 'CORP', corpId),
+          SK: `USER#${existingUser.userId}`,
+        },
+        UpdateExpression: 'SET #status = :status, #name = :name, #role = :role, updatedAt = :now',
+        ExpressionAttributeNames: {
+          '#status': 'status',
+          '#name': 'name',
+          '#role': 'role',
+        },
+        ExpressionAttributeValues: {
+          ':status': 'pending',
+          ':name': data.name,
+          ':role': data.role || 'booker',
+          ':now': now,
+        },
+      }));
+
+      // Update user count on corporate account
+      await docClient.send(new UpdateCommand({
+        TableName: CORPORATE_TABLE_NAME,
+        Key: {
+          PK: buildTenantPK(tenantId, 'CORP', corpId),
+          SK: 'METADATA',
+        },
+        UpdateExpression: 'SET stats.usersCount = stats.usersCount + :inc, updatedAt = :now',
+        ExpressionAttributeValues: {
+          ':inc': 1,
+          ':now': now,
+        },
+      }));
+
+      // Generate new magic link for the reactivated user
+      const magicToken = await createMagicLinkToken(
+        tenantId,
+        data.email,
+        corpId,
+        existingUser.userId,
+        'invite'
+      );
+
+      const magicLink = `${CORPORATE_PORTAL_URL}/verify?token=${magicToken}`;
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          message: 'User reactivated successfully',
+          user: {
+            userId: existingUser.userId,
+            email: data.email.toLowerCase(),
+            name: data.name,
+            role: data.role || 'booker',
+            status: 'pending',
+          },
+          magicLink,
+          instructions: {
+            note: 'Magic link expires in 15 minutes. Share this with the user to set up their account.',
+          },
+        }),
+      };
+    }
+
+    // User exists and is not removed - return 409
     return errorResponse(409, 'User with this email already exists in this corporate account', null, headers);
   }
 
@@ -792,6 +878,72 @@ async function removeCorporateUser(corpId, userId, headers, logger, tenantId) {
     body: JSON.stringify({
       success: true,
       message: 'User removed successfully',
+    }),
+  };
+}
+
+// Regenerate magic link for an existing user
+async function regenerateMagicLink(corpId, userId, headers, logger, tenantId) {
+  if (!corpId || !userId) {
+    return errorResponse(400, 'Corporate account ID and user ID are required', null, headers);
+  }
+
+  // Get the user
+  const userResult = await docClient.send(new GetCommand({
+    TableName: CORPORATE_TABLE_NAME,
+    Key: {
+      PK: buildTenantPK(tenantId, 'CORP', corpId),
+      SK: `USER#${userId}`,
+    },
+  }));
+
+  if (!userResult.Item) {
+    return errorResponse(404, 'User not found', null, headers);
+  }
+
+  const user = userResult.Item;
+
+  // Don't allow regenerating links for removed users
+  if (user.status === 'removed') {
+    return errorResponse(400, 'Cannot generate magic link for removed user', null, headers);
+  }
+
+  // Generate new magic link token
+  const magicToken = await createMagicLinkToken(
+    tenantId,
+    user.email,
+    corpId,
+    userId,
+    'invite'
+  );
+
+  const magicLink = `${CORPORATE_PORTAL_URL}/verify?token=${magicToken}`;
+
+  logger.info({
+    event: 'magic_link_regenerated',
+    corpId,
+    userId,
+    email: user.email,
+    tenantId,
+  }, 'Magic link regenerated for corporate user');
+
+  return {
+    statusCode: 200,
+    headers,
+    body: JSON.stringify({
+      success: true,
+      message: 'Magic link generated successfully',
+      user: {
+        userId: user.userId,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        status: user.status,
+      },
+      magicLink,
+      instructions: {
+        note: 'Magic link expires in 15 minutes. Share this with the user to set up their account.',
+      },
     }),
   };
 }

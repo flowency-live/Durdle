@@ -184,6 +184,32 @@ export default function CorporateAccountDetailPage() {
     }
   }
 
+  async function handleResendLink(userId: string) {
+    try {
+      const token = localStorage.getItem('durdle_admin_token');
+      const response = await fetch(
+        `${API_BASE_URL}${API_ENDPOINTS.adminCorporate}/${corpId}/users/${userId}/magic-link`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to generate magic link');
+      }
+
+      const data = await response.json();
+      setMagicLink(data.magicLink);
+      setShowAddUserModal(true); // Reuse the modal to show the magic link
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to generate magic link');
+    }
+  }
+
   async function handleStatusChange(newStatus: 'active' | 'suspended' | 'closed') {
     if (!confirm(`Are you sure you want to change status to ${newStatus}?`)) return;
 
@@ -433,7 +459,13 @@ export default function CorporateAccountDetailPage() {
                           <td className="px-4 py-3 text-sm text-gray-500">
                             {new Date(user.createdAt).toLocaleDateString()}
                           </td>
-                          <td className="px-4 py-3 text-right">
+                          <td className="px-4 py-3 text-right space-x-3">
+                            <button
+                              onClick={() => handleResendLink(user.userId)}
+                              className="text-blue-600 hover:text-blue-900 text-sm"
+                            >
+                              Resend Link
+                            </button>
                             <button
                               onClick={() => handleRemoveUser(user.userId)}
                               className="text-red-600 hover:text-red-900 text-sm"
@@ -465,9 +497,9 @@ export default function CorporateAccountDetailPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                  <h2 className="mt-4 text-lg font-semibold text-gray-900">User Added Successfully</h2>
+                  <h2 className="mt-4 text-lg font-semibold text-gray-900">Magic Link Ready</h2>
                   <p className="mt-2 text-sm text-gray-600">
-                    Copy this magic link and send it to the user to set up their account.
+                    Copy this magic link and send it to the user to access their account.
                   </p>
                 </div>
                 <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
