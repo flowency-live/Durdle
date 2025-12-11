@@ -133,7 +133,11 @@
       "Bash(aws dynamodb update-time-to-live:*)",
       "Bash(aws ses list-identities:*)",
       "Bash(aws ses get-account-sending-enabled:*)",
-      "Bash(aws sesv2 get-account:*)"
+      "Bash(aws sesv2 get-account:*)",
+      "Bash(npx next build:*)",
+      "Bash(aws logs describe-log-streams:*)",
+      "Bash(aws lambda get-policy:*)",
+      "Bash(aws dynamodb delete-item:*)"
     ],
     "deny": [],
     "ask": []

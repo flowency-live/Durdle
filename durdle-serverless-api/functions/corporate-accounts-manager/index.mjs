@@ -9,7 +9,8 @@ import {
   AddCorporateUserSchema,
   UpdateCorporateUserSchema,
   ListQuerySchema,
-  validateRequest
+  validateRequest,
+  validateEmailDomain
 } from './validation.mjs';
 
 const CORPORATE_PORTAL_URL = process.env.CORPORATE_PORTAL_URL || 'https://dorsettransfercompany.flowency.build/corporate';
@@ -207,6 +208,8 @@ async function createCorporateAccount(requestBody, headers, logger, tenantId) {
     // Pricing
     discountPercentage: data.discountPercentage || 0,
     paymentTerms: data.paymentTerms || 'immediate',
+    // Domain restrictions for users
+    allowedDomains: data.allowedDomains || [],
     // Status
     status: 'active',
     // Stats (will be updated as bookings are made)
@@ -376,6 +379,7 @@ async function getCorporateAccount(corpId, headers, logger, tenantId) {
         billingAddress: item.billingAddress,
         discountPercentage: item.discountPercentage,
         paymentTerms: item.paymentTerms,
+        allowedDomains: item.allowedDomains || [],
         status: item.status,
         stats: item.stats,
         notes: item.notes,
@@ -430,6 +434,7 @@ async function updateCorporateAccount(corpId, requestBody, headers, logger, tena
     paymentTerms: 'paymentTerms',
     status: 'status',
     notes: 'notes',
+    allowedDomains: 'allowedDomains',
   };
 
   for (const [key, dbField] of Object.entries(fieldMap)) {
@@ -498,6 +503,24 @@ async function addCorporateUser(corpId, requestBody, headers, logger, tenantId) 
 
   if (!corpResult.Item) {
     return errorResponse(404, 'Corporate account not found', null, headers);
+  }
+
+  const corpAccount = corpResult.Item;
+
+  // Validate email domain against allowed domains
+  if (corpAccount.allowedDomains && corpAccount.allowedDomains.length > 0) {
+    const domainValidation = validateEmailDomain(data.email, corpAccount.allowedDomains);
+    if (!domainValidation.valid) {
+      logger.warn({
+        event: 'email_domain_rejected',
+        email: data.email,
+        domain: domainValidation.domain,
+        allowedDomains: corpAccount.allowedDomains,
+        corpId,
+        tenantId,
+      }, 'Email domain not in allowed list');
+      return errorResponse(400, domainValidation.message, null, headers);
+    }
   }
 
   // Check if user email already exists in this account

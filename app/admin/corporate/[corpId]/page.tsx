@@ -22,6 +22,7 @@ interface CorporateAccount {
   } | null;
   discountPercentage: number;
   paymentTerms: string;
+  allowedDomains: string[];
   status: 'active' | 'suspended' | 'closed';
   stats: {
     usersCount: number;
@@ -56,6 +57,25 @@ export default function CorporateAccountDetailPage() {
   const [addUserLoading, setAddUserLoading] = useState(false);
   const [newUser, setNewUser] = useState<{ email: string; name: string; role: 'admin' | 'booker' }>({ email: '', name: '', role: 'booker' });
   const [magicLink, setMagicLink] = useState<string | null>(null);
+  const [editingDomains, setEditingDomains] = useState(false);
+  const [domainsInput, setDomainsInput] = useState('');
+  const [savingDomains, setSavingDomains] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    companyName: '',
+    contactName: '',
+    contactEmail: '',
+    contactPhone: '',
+    discountPercentage: 0,
+    paymentTerms: 'immediate' as 'immediate' | 'net7' | 'net14' | 'net30',
+    billingLine1: '',
+    billingLine2: '',
+    billingCity: '',
+    billingPostcode: '',
+    notes: '',
+    allowedDomains: '',
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const fetchAccount = useCallback(async () => {
     try {
@@ -237,6 +257,133 @@ export default function CorporateAccountDetailPage() {
     }
   }
 
+  function startEditingDomains() {
+    setDomainsInput(account?.allowedDomains?.join(', ') || '');
+    setEditingDomains(true);
+  }
+
+  async function handleSaveDomains() {
+    setSavingDomains(true);
+
+    try {
+      // Parse domains from input (comma or newline separated)
+      const domains = domainsInput
+        .split(/[,\n]/)
+        .map(d => d.trim().toLowerCase().replace(/^@/, ''))
+        .filter(d => d.length > 0);
+
+      const token = localStorage.getItem('durdle_admin_token');
+      const response = await fetch(
+        `${API_BASE_URL}${API_ENDPOINTS.adminCorporate}/${corpId}`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ allowedDomains: domains }),
+        }
+      );
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to update allowed domains');
+      }
+
+      setEditingDomains(false);
+      fetchAccount();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to update allowed domains');
+    } finally {
+      setSavingDomains(false);
+    }
+  }
+
+  function startEditing() {
+    if (!account) return;
+    setEditForm({
+      companyName: account.companyName,
+      contactName: account.contactName,
+      contactEmail: account.contactEmail,
+      contactPhone: account.contactPhone || '',
+      discountPercentage: account.discountPercentage,
+      paymentTerms: account.paymentTerms as 'immediate' | 'net7' | 'net14' | 'net30',
+      billingLine1: account.billingAddress?.line1 || '',
+      billingLine2: account.billingAddress?.line2 || '',
+      billingCity: account.billingAddress?.city || '',
+      billingPostcode: account.billingAddress?.postcode || '',
+      notes: account.notes || '',
+      allowedDomains: account.allowedDomains?.join(', ') || '',
+    });
+    setIsEditing(true);
+  }
+
+  async function handleSaveEdit() {
+    setSavingEdit(true);
+
+    try {
+      const token = localStorage.getItem('durdle_admin_token');
+
+      // Build payload
+      const payload: Record<string, unknown> = {
+        companyName: editForm.companyName,
+        contactName: editForm.contactName,
+        contactEmail: editForm.contactEmail,
+        discountPercentage: editForm.discountPercentage,
+        paymentTerms: editForm.paymentTerms,
+      };
+
+      if (editForm.contactPhone) payload.contactPhone = editForm.contactPhone;
+      if (editForm.notes) payload.notes = editForm.notes;
+
+      // Parse allowed domains
+      if (editForm.allowedDomains.trim()) {
+        const domains = editForm.allowedDomains
+          .split(/[,\n]/)
+          .map(d => d.trim().toLowerCase().replace(/^@/, ''))
+          .filter(d => d.length > 0);
+        payload.allowedDomains = domains;
+      } else {
+        payload.allowedDomains = [];
+      }
+
+      // Build billing address if provided
+      if (editForm.billingLine1 && editForm.billingCity && editForm.billingPostcode) {
+        payload.billingAddress = {
+          line1: editForm.billingLine1,
+          line2: editForm.billingLine2 || undefined,
+          city: editForm.billingCity,
+          postcode: editForm.billingPostcode,
+          country: 'UK',
+        };
+      }
+
+      const response = await fetch(
+        `${API_BASE_URL}${API_ENDPOINTS.adminCorporate}/${corpId}`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to update account');
+      }
+
+      setIsEditing(false);
+      fetchAccount();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to update account');
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
       active: 'bg-green-100 text-green-800',
@@ -312,6 +459,12 @@ export default function CorporateAccountDetailPage() {
               <option value="suspended">Suspended</option>
               <option value="closed">Closed</option>
             </select>
+            <button
+              onClick={startEditing}
+              className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+            >
+              Edit Account
+            </button>
           </div>
         </div>
 
@@ -407,6 +560,67 @@ export default function CorporateAccountDetailPage() {
                   <p className="text-gray-700 whitespace-pre-wrap">{account.notes}</p>
                 </div>
               )}
+
+              <div className="md:col-span-2">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium text-gray-500">Allowed Email Domains</h3>
+                  {!editingDomains && (
+                    <button
+                      onClick={startEditingDomains}
+                      className="text-xs text-blue-600 hover:text-blue-800"
+                    >
+                      Edit
+                    </button>
+                  )}
+                </div>
+                {editingDomains ? (
+                  <div className="space-y-3">
+                    <textarea
+                      value={domainsInput}
+                      onChange={(e) => setDomainsInput(e.target.value)}
+                      placeholder="flowency.co.uk, flowency.com"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      rows={2}
+                    />
+                    <p className="text-xs text-gray-500">
+                      Enter the company&apos;s email domains (e.g., acme.co.uk, acme.com).
+                      Users can only be added with emails from these domains.
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSaveDomains}
+                        disabled={savingDomains}
+                        className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {savingDomains ? 'Saving...' : 'Save'}
+                      </button>
+                      <button
+                        onClick={() => setEditingDomains(false)}
+                        className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded hover:bg-gray-200"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    {account.allowedDomains && account.allowedDomains.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {account.allowedDomains.map((domain, i) => (
+                          <span
+                            key={i}
+                            className="px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded-full"
+                          >
+                            @{domain}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-400 text-sm italic">No domain restrictions (any email allowed)</p>
+                    )}
+                  </div>
+                )}
+              </div>
 
               <div className="md:col-span-2">
                 <h3 className="text-sm font-medium text-gray-500 mb-2">Timestamps</h3>
@@ -581,6 +795,186 @@ export default function CorporateAccountDetailPage() {
                 </form>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Edit Account Modal */}
+      {isEditing && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl mx-4 my-8">
+            <h2 className="text-lg font-semibold mb-6">Edit Corporate Account</h2>
+            <form onSubmit={(e) => { e.preventDefault(); handleSaveEdit(); }} className="space-y-6">
+              {/* Company Details */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Company Details</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Company Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={editForm.companyName}
+                      onChange={(e) => setEditForm({ ...editForm, companyName: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Info */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Contact Information</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Contact Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={editForm.contactName}
+                      onChange={(e) => setEditForm({ ...editForm, contactName: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Email *</label>
+                    <input
+                      type="email"
+                      required
+                      value={editForm.contactEmail}
+                      onChange={(e) => setEditForm({ ...editForm, contactEmail: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Phone</label>
+                    <input
+                      type="tel"
+                      value={editForm.contactPhone}
+                      onChange={(e) => setEditForm({ ...editForm, contactPhone: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Pricing */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Pricing</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Discount %</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="50"
+                      value={editForm.discountPercentage}
+                      onChange={(e) => setEditForm({ ...editForm, discountPercentage: parseFloat(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Payment Terms</label>
+                    <select
+                      value={editForm.paymentTerms}
+                      onChange={(e) => setEditForm({ ...editForm, paymentTerms: e.target.value as 'immediate' | 'net7' | 'net14' | 'net30' })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    >
+                      <option value="immediate">Immediate</option>
+                      <option value="net7">Net 7 Days</option>
+                      <option value="net14">Net 14 Days</option>
+                      <option value="net30">Net 30 Days</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Billing Address */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Billing Address</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Address Line 1</label>
+                    <input
+                      type="text"
+                      value={editForm.billingLine1}
+                      onChange={(e) => setEditForm({ ...editForm, billingLine1: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Address Line 2</label>
+                    <input
+                      type="text"
+                      value={editForm.billingLine2}
+                      onChange={(e) => setEditForm({ ...editForm, billingLine2: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">City</label>
+                    <input
+                      type="text"
+                      value={editForm.billingCity}
+                      onChange={(e) => setEditForm({ ...editForm, billingCity: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Postcode</label>
+                    <input
+                      type="text"
+                      value={editForm.billingPostcode}
+                      onChange={(e) => setEditForm({ ...editForm, billingPostcode: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Allowed Domains */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Allowed Email Domains</label>
+                <textarea
+                  rows={2}
+                  value={editForm.allowedDomains}
+                  onChange={(e) => setEditForm({ ...editForm, allowedDomains: e.target.value })}
+                  placeholder="flowency.co.uk, flowency.com"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+                <p className="text-xs text-gray-500 mt-1">Comma-separated. Leave blank to allow any domain.</p>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+                <textarea
+                  rows={3}
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                  placeholder="Internal notes..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-4 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {savingEdit ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

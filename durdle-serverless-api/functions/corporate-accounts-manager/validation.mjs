@@ -1,5 +1,14 @@
 import { z } from 'zod';
 
+// Domain validation - accepts "example.com" or "@example.com", normalizes to "example.com"
+const domainSchema = z.string()
+  .min(3)
+  .max(100)
+  .transform(d => d.toLowerCase().replace(/^@/, '').trim())
+  .refine(d => /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(d), {
+    message: 'Invalid domain format (e.g., example.com)',
+  });
+
 // Create corporate account schema
 export const CreateCorporateAccountSchema = z.object({
   companyName: z.string().min(2, 'Company name must be at least 2 characters').max(200),
@@ -17,6 +26,8 @@ export const CreateCorporateAccountSchema = z.object({
   discountPercentage: z.number().min(0).max(50).default(0), // Max 50% discount
   paymentTerms: z.enum(['immediate', 'net7', 'net14', 'net30']).default('immediate'),
   notes: z.string().max(1000).optional(),
+  // Allowed email domains for corporate users (e.g., ["flowency.co.uk", "flowency.com"])
+  allowedDomains: z.array(domainSchema).max(10).optional(),
 });
 
 // Update corporate account schema (all fields optional)
@@ -37,6 +48,8 @@ export const UpdateCorporateAccountSchema = z.object({
   paymentTerms: z.enum(['immediate', 'net7', 'net14', 'net30']).optional(),
   status: z.enum(['active', 'suspended', 'closed']).optional(),
   notes: z.string().max(1000).optional(),
+  // Allowed email domains for corporate users (e.g., ["flowency.co.uk", "flowency.com"])
+  allowedDomains: z.array(domainSchema).max(10).optional(),
 });
 
 // Add corporate user schema
@@ -78,4 +91,37 @@ export function validateRequest(body, schema) {
     }
     return { success: false, errors: ['Invalid request data'] };
   }
+}
+
+/**
+ * Validate that an email belongs to an allowed domain
+ * @param {string} email - Email address to validate
+ * @param {string[]} allowedDomains - Array of allowed domains (e.g., ["flowency.co.uk"])
+ * @returns {{ valid: boolean, domain?: string, message?: string }}
+ */
+export function validateEmailDomain(email, allowedDomains) {
+  if (!allowedDomains || allowedDomains.length === 0) {
+    // No domain restrictions - allow all emails
+    return { valid: true };
+  }
+
+  const emailLower = email.toLowerCase();
+  const atIndex = emailLower.lastIndexOf('@');
+  if (atIndex === -1) {
+    return { valid: false, message: 'Invalid email format' };
+  }
+
+  const domain = emailLower.substring(atIndex + 1);
+  const isAllowed = allowedDomains.some(d => d.toLowerCase() === domain);
+
+  if (!isAllowed) {
+    const formatted = allowedDomains.map(d => `@${d}`).join(', ');
+    return {
+      valid: false,
+      domain,
+      message: `Email domain must be one of: ${formatted}`,
+    };
+  }
+
+  return { valid: true, domain };
 }
