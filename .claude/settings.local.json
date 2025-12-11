@@ -125,7 +125,15 @@
       "Bash(aws route53:*)",
       "Bash(aws amplify delete-domain-association:*)",
       "Bash(aws amplify create-domain-association:*)",
-      "Bash(aws amplify get-domain-association:*)"
+      "Bash(aws amplify get-domain-association:*)",
+      "Bash(git -C \"c:/VSProjects/_Websites/Durdle\" mv \".documentation/DURDLE_PLATFORM_BIBLE.md\" \".documentation/CTO/Archive/DURDLE_PLATFORM_BIBLE_ARCHIVED.md\")",
+      "Bash(dir \"c:\\VSProjects\\_Websites\\Durdle\\durdle-serverless-api\\functions\")",
+      "Bash(dir:*)",
+      "Bash(aws dynamodb wait:*)",
+      "Bash(aws dynamodb update-time-to-live:*)",
+      "Bash(aws ses list-identities:*)",
+      "Bash(aws ses get-account-sending-enabled:*)",
+      "Bash(aws sesv2 get-account:*)"
     ],
     "deny": [],
     "ask": []

@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+
 import { API_BASE_URL, API_ENDPOINTS } from '../../../../lib/config/api';
 
 interface CorporateAccount {
@@ -56,12 +57,7 @@ export default function CorporateAccountDetailPage() {
   const [newUser, setNewUser] = useState({ email: '', name: '', role: 'booker' as const });
   const [magicLink, setMagicLink] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchAccount();
-    fetchUsers();
-  }, [corpId]);
-
-  async function fetchAccount() {
+  const fetchAccount = useCallback(async () => {
     try {
       const token = localStorage.getItem('durdle_admin_token');
       const response = await fetch(
@@ -85,9 +81,9 @@ export default function CorporateAccountDetailPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [corpId]);
 
-  async function fetchUsers() {
+  const fetchUsers = useCallback(async () => {
     try {
       const token = localStorage.getItem('durdle_admin_token');
       const response = await fetch(
@@ -107,7 +103,12 @@ export default function CorporateAccountDetailPage() {
     } catch (err) {
       console.error('Failed to fetch users:', err);
     }
-  }
+  }, [corpId]);
+
+  useEffect(() => {
+    fetchAccount();
+    fetchUsers();
+  }, [fetchAccount, fetchUsers]);
 
   async function handleAddUser(e: React.FormEvent) {
     e.preventDefault();

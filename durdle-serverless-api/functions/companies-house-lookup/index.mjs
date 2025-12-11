@@ -9,8 +9,6 @@
 
 import { createLogger } from '/opt/nodejs/logger.mjs';
 
-const logger = createLogger('companies-house-lookup');
-
 // Companies House API configuration
 const COMPANIES_HOUSE_API_URL = 'https://api.company-information.service.gov.uk';
 const COMPANIES_HOUSE_API_KEY = process.env.COMPANIES_HOUSE_API_KEY;
@@ -46,7 +44,7 @@ function response(statusCode, body, origin) {
 /**
  * Search companies by name
  */
-async function searchCompanies(query, itemsPerPage = 10) {
+async function searchCompanies(query, logger, itemsPerPage = 10) {
   if (!COMPANIES_HOUSE_API_KEY) {
     throw new Error('COMPANIES_HOUSE_API_KEY not configured');
   }
@@ -96,7 +94,7 @@ async function searchCompanies(query, itemsPerPage = 10) {
 /**
  * Get company by number
  */
-async function getCompany(companyNumber) {
+async function getCompany(companyNumber, logger) {
   if (!COMPANIES_HOUSE_API_KEY) {
     throw new Error('COMPANIES_HOUSE_API_KEY not configured');
   }
@@ -141,6 +139,7 @@ async function getCompany(companyNumber) {
 }
 
 export async function handler(event) {
+  const logger = createLogger('companies-house-lookup', event);
   const origin = event.headers?.origin || event.headers?.Origin || '';
   const method = event.httpMethod || event.requestContext?.http?.method;
   const path = event.path || event.rawPath || '';
@@ -161,7 +160,7 @@ export async function handler(event) {
         return response(400, { error: 'Query must be at least 2 characters' }, origin);
       }
 
-      const results = await searchCompanies(query);
+      const results = await searchCompanies(query, logger);
       return response(200, results, origin);
     }
 
@@ -174,7 +173,7 @@ export async function handler(event) {
         return response(400, { error: 'Company number required' }, origin);
       }
 
-      const company = await getCompany(companyNumber);
+      const company = await getCompany(companyNumber, logger);
 
       if (!company) {
         return response(404, { error: 'Company not found' }, origin);

@@ -395,9 +395,225 @@ GET    /admin/reports/corporate-revenue # Revenue reports
 All password authentication work is complete. See Implementation Inventory below.
 
 ### Next Priority: Corporate Booking Flow (Phase 1D)
-- Modify quotes-calculator to detect corporate JWT and apply discount
-- Create corporate quote page with "Corporate Rate Applied" badge
-- Link bookings to corporate accounts in DynamoDB
+
+#### User Journey: Corporate Booker Making a Transfer Booking
+
+```
+1. ENTRY POINT
+   Corporate user is logged into dashboard at /corporate/dashboard
+
+2. START QUOTE
+   User clicks "New Booking" button
+   → Navigates to /corporate/quote (or /corporate/book)
+
+3. QUOTE FORM (Same as public, but authenticated)
+   - From/To location inputs (same autocomplete)
+   - Date/time picker
+   - Passenger count
+   - Vehicle type selection (if multiple)
+   - Optional: "Passenger Name" field (if booking for someone else)
+   - Optional: "Reference" field (cost center, PO number, etc.)
+
+4. GET QUOTE (Modified flow)
+   Frontend calls existing /v1/quotes endpoint BUT includes:
+   - Authorization: Bearer <corporate-jwt>
+
+   Backend (quotes-calculator) detects corporate token:
+   - Extracts corpAccountId from JWT
+   - Looks up corporate account to get discountPercentage
+   - Calculates base price as normal
+   - Applies corporate discount
+   - Returns enhanced response with corporate context
+
+5. DISPLAY QUOTE (Enhanced UI)
+   Shows:
+   - Original price (struck through)
+   - Corporate price (highlighted)
+   - "Corporate Rate: 10% discount applied" badge
+   - Company name from JWT
+
+6. CONFIRM BOOKING
+   User clicks "Book Now"
+   Frontend calls /corporate/bookings (corporate-portal-api) with:
+   - quoteId (from quote response)
+   - passengerName (optional)
+   - referenceCode (optional)
+   - notes (optional)
+
+   Backend creates booking with corporate context:
+   - Links to corporate account
+   - Records who booked it (userId)
+   - Stores discount amount for reporting
+
+7. CONFIRMATION
+   Shows booking confirmation with:
+   - Booking reference
+   - Trip details
+   - Corporate rate applied
+   - Link to view in dashboard
+
+8. DASHBOARD UPDATE
+   Booking appears in:
+   - Corporate user's "My Bookings" list
+   - Corporate admin's "All Bookings" view
+   - Tenant admin's bookings list (with corporate badge)
+```
+
+#### Backend Changes Required
+
+**1. quotes-calculator Lambda** (`durdle-serverless-api/functions/quotes-calculator`)
+```javascript
+// Add to handler - detect corporate context
+const authHeader = event.headers?.Authorization || event.headers?.authorization;
+let corporateContext = null;
+
+if (authHeader?.startsWith('Bearer ')) {
+  const token = authHeader.substring(7);
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.type === 'corporate') {
+      // Look up corporate account discount
+      const corpAccount = await getCorporateAccount(decoded.tenantId, decoded.corpAccountId);
+      corporateContext = {
+        corpAccountId: decoded.corpAccountId,
+        companyName: decoded.companyName,
+        discountPercent: corpAccount.discountPercentage || 0,
+        userId: decoded.userId
+      };
+    }
+  } catch (err) {
+    // Token invalid - proceed without corporate context (public quote)
+  }
+}
+
+// In price calculation, apply discount if corporate
+let finalPrice = calculatedPrice;
+let discountAmount = 0;
+
+if (corporateContext && corporateContext.discountPercent > 0) {
+  discountAmount = Math.round(calculatedPrice * (corporateContext.discountPercent / 100));
+  finalPrice = calculatedPrice - discountAmount;
+}
+
+// Return enhanced response
+return {
+  // ... existing fields ...
+  isCorporateRate: !!corporateContext,
+  corporateDiscount: corporateContext ? {
+    companyName: corporateContext.companyName,
+    discountPercent: corporateContext.discountPercent,
+    discountAmount: discountAmount,
+    originalPrice: calculatedPrice,
+    finalPrice: finalPrice
+  } : null
+};
+```
+
+**2. corporate-portal-api Lambda** - Add booking endpoints
+```javascript
+// POST /corporate/bookings - Create booking with corporate context
+// GET /corporate/bookings - List corporate user's bookings
+// GET /corporate/bookings/{bookingId} - Get booking detail
+```
+
+**3. bookings-manager Lambda** - Update to support corporate bookings
+```javascript
+// Extend booking record to include:
+{
+  corpAccountId: 'corp-001',      // NEW
+  corpUserId: 'corp-user-001',    // NEW: who booked
+  passengerName: 'John Director', // NEW: optional
+  referenceCode: 'PO-12345',      // NEW: optional
+  corporateDiscount: {            // NEW
+    discountPercent: 10,
+    discountAmount: 1250,
+    originalPrice: 12500
+  }
+}
+```
+
+#### Frontend Changes Required
+
+**DTC Website** (`DorsetTransferCompany-Website`)
+
+**1. New Pages**
+- `app/corporate/book/page.tsx` - Corporate booking flow (can reuse public quote components)
+
+**2. Modified Components**
+- Create `CorporatePriceBadge.tsx` - Shows "Corporate Rate Applied"
+- Create `PassengerNameField.tsx` - Optional field for booking on behalf
+- Create `ReferenceCodeField.tsx` - Optional cost center/PO field
+
+**3. Dashboard Updates**
+- `app/corporate/dashboard/page.tsx` - Add recent bookings list
+- Create `app/corporate/bookings/page.tsx` - Full booking history
+
+**4. API Service**
+- Add to `corporateApi.ts`:
+```typescript
+export async function createCorporateBooking(data: CreateBookingData)
+export async function getCorporateBookings(params?: BookingQueryParams)
+export async function getCorporateBooking(bookingId: string)
+```
+
+#### Data Model for Corporate Booking
+
+```javascript
+// DynamoDB Record
+{
+  PK: "TENANT#001#BOOKING#BK-12345",
+  SK: "METADATA",
+  tenantId: "TENANT#001",
+  bookingId: "BK-12345",
+  // Existing booking fields...
+  customerName: "Jane Smith",
+  customerEmail: "jane@acmecorp.com",
+  customerPhone: "07700900123",
+
+  // NEW: Corporate context
+  corpAccountId: "corp-001",           // Links to corporate account
+  corpUserId: "corp-user-001",         // Who made the booking
+  passengerName: "John Director",      // If different from booker
+  referenceCode: "PO-2025-0012",       // Optional reference
+
+  // NEW: Pricing breakdown
+  originalPrice: 12500,                // Price before discount
+  corporateDiscountPercent: 10,
+  corporateDiscountAmount: 1250,       // 12500 * 0.10
+  finalPrice: 11250,                   // What they pay
+
+  // GSI for querying corporate bookings
+  GSI2PK: "TENANT#001#CORP#corp-001",  // For listing all corp bookings
+  GSI2SK: "2025-12-11T12:00:00Z"       // Sorted by date
+}
+```
+
+#### Implementation Order
+
+1. **Backend: quotes-calculator discount logic**
+   - Read corporate JWT
+   - Look up discount
+   - Apply to price
+   - Return enhanced response
+
+2. **Backend: corporate-portal-api booking endpoints**
+   - POST /corporate/bookings
+   - GET /corporate/bookings
+   - GET /corporate/bookings/{id}
+
+3. **Frontend: Corporate booking page**
+   - Copy/adapt public quote flow
+   - Add passenger name field
+   - Add reference code field
+   - Show corporate pricing badge
+
+4. **Frontend: Dashboard bookings**
+   - Recent bookings on dashboard
+   - Full booking history page
+
+5. **Backend: Tenant admin visibility**
+   - Ensure corporate bookings appear in admin portal
+   - Add corporate badge/filter to bookings list
 
 ### Deferred (Before Go-Live)
 1. **SES Email Integration**

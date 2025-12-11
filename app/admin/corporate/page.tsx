@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { API_BASE_URL, API_ENDPOINTS } from '../../../lib/config/api';
 
 interface CorporateAccount {
@@ -26,11 +26,7 @@ export default function CorporateAccountsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended' | 'closed'>('all');
 
-  useEffect(() => {
-    fetchAccounts();
-  }, [statusFilter]);
-
-  async function fetchAccounts() {
+  const fetchAccounts = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('durdle_admin_token');
@@ -58,7 +54,11 @@ export default function CorporateAccountsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [statusFilter]);
+
+  useEffect(() => {
+    fetchAccounts();
+  }, [fetchAccounts]);
 
   const filteredAccounts = accounts.filter(account =>
     account.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
