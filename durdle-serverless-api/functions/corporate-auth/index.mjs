@@ -965,18 +965,22 @@ async function setPassword(requestBody, headers, logger, tenantId) {
   const saltRounds = 12;
   const passwordHash = await bcrypt.hash(password, saltRounds);
 
-  // Update user with password hash
+  // Update user with password hash AND set status to active
   await ddbDocClient.send(new UpdateCommand({
     TableName: CORPORATE_TABLE_NAME,
     Key: {
       PK: buildTenantPK(tenantId, 'CORP', magicLink.corpAccountId),
       SK: `USER#${magicLink.userId}`,
     },
-    UpdateExpression: 'SET passwordHash = :passwordHash, passwordSetAt = :passwordSetAt, lastLogin = :lastLogin',
+    UpdateExpression: 'SET passwordHash = :passwordHash, passwordSetAt = :passwordSetAt, lastLogin = :lastLogin, #status = :status',
+    ExpressionAttributeNames: {
+      '#status': 'status', // 'status' is a reserved word in DynamoDB
+    },
     ExpressionAttributeValues: {
       ':passwordHash': passwordHash,
       ':passwordSetAt': new Date().toISOString(),
       ':lastLogin': new Date().toISOString(),
+      ':status': 'active', // Activate user when password is set
     },
   }));
 

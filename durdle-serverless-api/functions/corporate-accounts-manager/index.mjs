@@ -164,7 +164,7 @@ async function createMagicLinkToken(tenantId, email, corpId, userId, tokenType =
     tenantId,
     token,
     email: email.toLowerCase(),
-    corpId,
+    corpAccountId: corpId, // IMPORTANT: corporate-auth expects this field name
     userId,
     tokenType, // 'invite' or 'reset'
     createdAt: now.toISOString(),
