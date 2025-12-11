@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 
-import adminApi from '../../../../lib/services/adminApi';
 import { useBookingDetails } from '../../../../lib/hooks/useBookings';
+import adminApi from '../../../../lib/services/adminApi';
 
 interface BookingDetailsModalProps {
   bookingId?: string;

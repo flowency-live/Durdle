@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, Check, X, RefreshCw, Zap, Calendar, Clock, AlertTriangle } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface SurgeRule {
   ruleId: string;
@@ -65,20 +65,15 @@ export default function SurgePricingPage() {
     newDate: '',
   });
 
-  useEffect(() => {
-    fetchRules();
-    fetchTemplates();
-  }, []);
-
-  const getAuthHeaders = () => {
+  const getAuthHeaders = useCallback(() => {
     const token = localStorage.getItem('durdle_admin_token');
     return {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     };
-  };
+  }, []);
 
-  const fetchRules = async () => {
+  const fetchRules = useCallback(async () => {
     try {
       const response = await fetch(`${API_BASE}/admin/pricing/surge`, {
         headers: getAuthHeaders(),
@@ -92,9 +87,9 @@ export default function SurgePricingPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getAuthHeaders]);
 
-  const fetchTemplates = async () => {
+  const fetchTemplates = useCallback(async () => {
     try {
       const response = await fetch(`${API_BASE}/admin/pricing/surge/templates`, {
         headers: getAuthHeaders(),
@@ -106,7 +101,12 @@ export default function SurgePricingPage() {
     } catch (err) {
       console.error('Failed to fetch templates:', err);
     }
-  };
+  }, [getAuthHeaders]);
+
+  useEffect(() => {
+    fetchRules();
+    fetchTemplates();
+  }, [fetchRules, fetchTemplates]);
 
   const handleCreate = async () => {
     // Client-side validation
