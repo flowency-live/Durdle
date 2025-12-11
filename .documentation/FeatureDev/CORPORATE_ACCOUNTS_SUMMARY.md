@@ -1,7 +1,7 @@
 # Corporate Accounts - Implementation Summary
 
-**Last Updated**: December 9, 2025
-**Status**: Ready for Technical Design
+**Last Updated**: December 11, 2025
+**Status**: 85% Complete - Password Auth Flow Done, Corporate Booking Flow Remaining
 
 ---
 
@@ -134,8 +134,54 @@
 
 ### New State (Phase 1)
 - Tenant Admin: Password-based JWT (unchanged)
-- Corporate Users: Magic link JWT (extend `admin-auth` Lambda)
+- Corporate Users: **Magic link for onboarding → Email/Password for ongoing auth**
 - Consumers: No authentication (unchanged)
+
+### Corporate User Auth Flows
+
+#### Flow 1: Initial Onboarding (Magic Link = Invitation)
+```
+1. Tenant Admin creates corporate account + user in Durdle admin
+2. Tenant Admin clicks "Generate Invite Link" → magic link shown on screen
+3. Tenant Admin manually shares link (email, WhatsApp, etc.)
+4. User clicks link → /corporate/verify?token=xxx
+5. Token validates → User lands on "Set up your password" page
+6. User creates password (strength meter, show/hide, validation)
+7. User is logged in → dashboard
+```
+
+#### Flow 2: Ongoing Login (Email + Password)
+```
+1. User goes to /corporate/login
+2. Enters email + password
+3. JWT issued → dashboard
+```
+
+#### Flow 3: Forgot Password
+```
+1. User clicks "Forgot password" on login page
+2. Enters email → magic link generated (shown on screen for testing, email later)
+3. User clicks link → "Reset your password" page
+4. Sets new password → logged in
+```
+
+#### Flow 4: Corporate Admin Adding Users
+```
+1. Corporate admin adds user in Team page
+2. Clicks "Generate Invite Link" → shown on screen
+3. Optionally clicks "Send via email" (if SES configured)
+4. New user clicks link → same password setup flow (Flow 1)
+```
+
+### Email Requirements (Minimal for MVP)
+
+| Email Type | When Triggered | Deferrable? |
+|------------|----------------|-------------|
+| Forgot password | User requests reset | **No** - critical for go-live |
+| Email verification | New account setup | Yes - can skip initially |
+| Magic link send | Button click (optional) | Yes - manual copy works |
+
+**Testing approach**: Show all links on screen. SES email integration comes before go-live.
 
 ### JWT Token Comparison
 
@@ -153,16 +199,18 @@
 **Corporate User Token** (NEW):
 ```json
 {
+  "type": "corporate",
   "userId": "corp-user-001",
   "email": "jane@acmecorp.com",
-  "userType": "corporate",
   "tenantId": "TENANT#001",
   "corpAccountId": "corp-001",
-  "role": "admin"  // or "booker" or "requestor"
+  "role": "admin",  // or "booker" or "requestor"
+  "userName": "Jane Smith",
+  "companyName": "ACME Corp"
 }
 ```
 
-**Key difference**: Corporate tokens include `corpAccountId` for data filtering.
+**Key difference**: Corporate tokens include `corpAccountId` for data filtering and `type: "corporate"` to distinguish from admin tokens.
 
 ---
 
@@ -236,11 +284,12 @@ SK: "METADATA"
 
 ### Corporate Portal - Auth
 ```
-POST   /corporate/auth/magic-link      # Request magic link
-POST   /corporate/auth/verify          # Verify token
-POST   /corporate/auth/login           # Password login (if set)
-POST   /corporate/auth/set-password    # Set optional password
-POST   /corporate/auth/logout          # Logout
+POST   /corporate/auth/magic-link      # Generate magic link (returns URL for testing)
+POST   /corporate/auth/verify          # Verify token → redirect to set-password or dashboard
+POST   /corporate/auth/login           # Email + password login
+POST   /corporate/auth/set-password    # Set password (first time or reset)
+POST   /corporate/auth/forgot-password # Request password reset magic link
+GET    /corporate/auth/session         # Verify JWT session is valid
 ```
 
 ### Corporate Portal - Dashboard
@@ -278,31 +327,50 @@ GET    /admin/reports/corporate-revenue # Revenue reports
 
 ## Implementation Phases
 
-### Phase 1A: Foundation (Weeks 1-2)
-- [ ] Extend `admin-auth` Lambda for magic link support
-- [ ] Create corporate account data model
-- [ ] Build `/corporate/login` and `/corporate/verify` pages
-- [ ] Test authentication end-to-end
+### Phase 1A: Foundation - COMPLETE
+- [x] Create `durdle-corporate-dev` DynamoDB table with TTL
+- [x] Create `corporate-accounts-manager` Lambda for admin CRUD
+- [x] Add API Gateway routes for /admin/corporate/*
+- [x] Build admin portal pages (list, new, detail) in Durdle repo
 
-### Phase 1B: Corporate Dashboard (Weeks 3-4)
-- [ ] Create corporate portal layout
-- [ ] Build dashboard (role-aware)
-- [ ] Implement user management
-- [ ] Add company details page
+### Phase 1B: Corporate Authentication - COMPLETE
+- [x] Create `corporate-auth` Lambda for magic link auth
+- [x] Add API Gateway routes for /corporate/auth/*
+- [x] Build `/corporate/login` page in DTC repo
+- [x] Build `/corporate/verify` page in DTC repo
+- [x] **COMPLETE**: Password-based auth flow:
+  - [x] Add `passwordHash` field to user records (bcrypt, 12 rounds)
+  - [x] Add `/corporate/auth/login` endpoint (email + password)
+  - [x] Add `/corporate/auth/set-password` endpoint
+  - [x] Add `/corporate/auth/forgot-password` endpoint
+  - [x] Update `/corporate/auth/verify` to redirect to set-password if `needsPassword`
+  - [x] Magic link shown on screen when adding users in admin portal
+  - [x] Build set-password page (strength meter, show/hide, real-time validation)
+  - [x] Update login page to email + password form
+  - [x] Build forgot-password flow with magic link
+- [ ] **DEFERRED**: SES email integration (show magic link on screen for now)
 
-### Phase 1C: Booking Flow (Weeks 5-6)
-- [ ] Extend quote calculator for corporate pricing
-- [ ] Build corporate quote page
-- [ ] Implement direct booking for Admin/Booker
-- [ ] Test payment flow
+### Phase 1C: Corporate Portal - COMPLETE
+- [x] Create `corporate-portal-api` Lambda
+- [x] Add API Gateway routes for /corporate/*
+- [x] Build corporate portal layout in DTC repo
+- [x] Build dashboard page (role-aware stats, recent bookings)
+- [x] Build team management page (admin only)
+- [x] Create `corporateApi.ts` service and `useCorporateAuth.ts` hook
 
-### Phase 1D: Tenant Admin Tools (Weeks 7-8)
-- [ ] Build corporate account CRUD in admin portal
-- [ ] Integrate Companies House API
-- [ ] Add corporate accounts list
-- [ ] Build basic reporting
+### Phase 1D: Corporate Booking Flow - NOT STARTED
+- [ ] Modify quotes-calculator to apply corporate discounts
+- [ ] Build corporate quote page with discount badge
+- [ ] Link bookings to corporate accounts
+- [ ] Show booking history in dashboard
 
-### Phase 2: Approval Workflow (Future)
+### Phase 1E: Tenant Admin Tools - PARTIAL
+- [x] Corporate account CRUD in admin portal
+- [ ] Companies House API integration (deferred)
+- [x] Corporate accounts list page
+- [ ] Basic revenue reporting (deferred)
+
+### Phase 2: Approval Workflow - DEFERRED (Fast Follower)
 - [ ] Implement Requestor role
 - [ ] Build approval dashboard
 - [ ] Add email notifications
@@ -322,34 +390,34 @@ GET    /admin/reports/corporate-revenue # Revenue reports
 
 ## Next Steps
 
-### Before Implementation
-1. **Technical Design Document** - Detailed implementation plan
-   - Lambda function changes (extend `admin-auth`)
-   - Frontend component architecture
-   - Database migration plan (none needed, but document)
-   - Testing strategy
+### Completed: Password-Based Auth (Phase 1B)
+All password authentication work is complete. See Implementation Inventory below.
 
-2. **Email Templates** - Design magic link emails
-   - Welcome email with magic link
-   - Password reset email
-   - Booking confirmation (corporate version)
+### Next Priority: Corporate Booking Flow (Phase 1D)
+- Modify quotes-calculator to detect corporate JWT and apply discount
+- Create corporate quote page with "Corporate Rate Applied" badge
+- Link bookings to corporate accounts in DynamoDB
 
-3. **Companies House Integration** - Create lookup Lambda
+### Deferred (Before Go-Live)
+1. **SES Email Integration**
+   - Verify durdle.co.uk domain in SES
+   - Configure corporate-auth to send magic link emails
+   - Design email templates (magic link, forgot password)
+
+2. **Companies House Integration** (Optional)
    - API key setup
-   - Rate limiting strategy
-   - Caching approach
+   - Company lookup Lambda
+   - Integration with admin create account form
 
-### During Implementation
-1. Start with Phase 1A (authentication)
-2. Test thoroughly before moving to next phase
-3. Deploy to dev environment first
-4. Get DTC feedback on each phase
+3. **Reporting**
+   - Corporate revenue reports for tenant admin
+   - Spending reports for corporate admins
 
-### After Phase 1
+### After Phase 1 Complete
 1. User acceptance testing with DTC
 2. Onboard first corporate account (pilot)
 3. Gather feedback
-4. Plan Phase 2 (approval workflow)
+4. Plan Phase 2 (approval workflow with Requestor role)
 
 ---
 
@@ -366,13 +434,15 @@ GET    /admin/reports/corporate-revenue # Revenue reports
 ## Success Criteria
 
 ### Phase 1 Complete When:
-- [ ] DTC Tenant Admin can create corporate accounts
-- [ ] Corporate Admin can login via magic link
-- [ ] Corporate Admin can add/remove users
+- [x] DTC Tenant Admin can create corporate accounts
+- [x] Corporate Admin can login via magic link -> set password -> dashboard
+- [x] Corporate Admin can login with email + password (ongoing)
+- [x] Corporate Admin can add/remove users
+- [x] "Add User" shows magic link URL on screen for sharing
 - [ ] Corporate users can book transfers with corporate pricing
 - [ ] Bookings show corporate context in Tenant Admin portal
-- [ ] All data properly tenant-isolated
-- [ ] No impact on existing consumer booking flow
+- [x] All data properly tenant-isolated
+- [x] No impact on existing consumer booking flow
 
 ### Business Success When:
 - [ ] DTC onboards 5+ corporate accounts
@@ -383,5 +453,54 @@ GET    /admin/reports/corporate-revenue # Revenue reports
 ---
 
 **Document Owner**: CTO
-**Last Updated**: December 9, 2025
-**Next Action**: Create Technical Design Document
+**Last Updated**: December 11, 2025
+**Next Action**: Corporate booking flow with pricing (Phase 1D)
+
+---
+
+## Implementation Inventory
+
+### Lambda Functions Created
+| Function | Status | Purpose |
+|----------|--------|---------|
+| `corporate-accounts-manager-dev` | Deployed | Admin CRUD for corporate accounts |
+| `corporate-auth-dev` | Deployed | Magic link auth + JWT |
+| `corporate-portal-api-dev` | Deployed | Dashboard, users, company |
+
+### API Gateway Routes Added
+| Route | Methods | Lambda | Status |
+|-------|---------|--------|--------|
+| /admin/corporate | GET, POST, OPTIONS | corporate-accounts-manager | Deployed |
+| /admin/corporate/{corpId} | GET, PUT, OPTIONS | corporate-accounts-manager | Deployed |
+| /admin/corporate/{corpId}/users | GET, POST, OPTIONS | corporate-accounts-manager | Deployed |
+| /admin/corporate/{corpId}/users/{userId} | PUT, DELETE, OPTIONS | corporate-accounts-manager | Deployed |
+| /admin/corporate/{corpId}/invite | POST, OPTIONS | corporate-accounts-manager | Deployed |
+| /corporate/auth/magic-link | POST, OPTIONS | corporate-auth | Deployed |
+| /corporate/auth/verify | POST, OPTIONS | corporate-auth | Deployed |
+| /corporate/auth/session | GET, OPTIONS | corporate-auth | Deployed |
+| /corporate/auth/login | POST, OPTIONS | corporate-auth | Deployed |
+| /corporate/auth/set-password | POST, OPTIONS | corporate-auth | Deployed |
+| /corporate/auth/forgot-password | POST, OPTIONS | corporate-auth | Deployed |
+| /corporate/me | GET, OPTIONS | corporate-portal-api | Deployed |
+| /corporate/me/notifications | PUT, OPTIONS | corporate-portal-api | Deployed |
+| /corporate/dashboard | GET, OPTIONS | corporate-portal-api | Deployed |
+| /corporate/company | GET, PUT, OPTIONS | corporate-portal-api | Deployed |
+| /corporate/users | GET, POST, OPTIONS | corporate-portal-api | Deployed |
+| /corporate/users/{userId} | PUT, DELETE, OPTIONS | corporate-portal-api | Deployed |
+
+### Frontend Pages Created
+**Durdle Admin Portal** (`C:\VSProjects\_Websites\Durdle`):
+- `app/admin/corporate/page.tsx` - Corporate accounts list
+- `app/admin/corporate/new/page.tsx` - Create corporate account
+- `app/admin/corporate/[corpId]/page.tsx` - Corporate account detail (with magic link modal)
+
+**DTC Website** (`C:\VSProjects\_Websites\DorsetTransferCompany-Website`):
+- `app/corporate/page.tsx` - Index redirect
+- `app/corporate/login/page.tsx` - Email + password login
+- `app/corporate/verify/page.tsx` - Token verification (redirects to set-password if needed)
+- `app/corporate/set-password/page.tsx` - Password setup with strength validation
+- `app/corporate/forgot-password/page.tsx` - Request password reset
+- `app/corporate/dashboard/page.tsx` - Dashboard
+- `app/corporate/team/page.tsx` - Team management
+- `lib/services/corporateApi.ts` - API service (includes password auth functions)
+- `lib/config/api.ts` - API endpoints configuration

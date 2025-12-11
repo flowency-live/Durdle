@@ -38,6 +38,11 @@ export const API_ENDPOINTS = {
   adminQuotesExport: '/admin/quotes/export',
   // Admin Bookings endpoints (uses public bookings endpoint for now)
   adminBookings: '/bookings',
+  // Corporate Accounts endpoints
+  adminCorporate: '/admin/corporate',
+  adminCorporateAccount: '/admin/corporate', // /admin/corporate/{corpId}
+  adminCorporateUsers: '/admin/corporate', // /admin/corporate/{corpId}/users
+  adminCorporateInvite: '/admin/corporate', // /admin/corporate/{corpId}/invite
 } as const;
 
 /**

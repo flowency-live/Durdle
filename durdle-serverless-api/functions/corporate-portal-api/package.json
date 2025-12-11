@@ -1,0 +1,14 @@
+{
+  "name": "corporate-portal-api",
+  "version": "1.0.0",
+  "description": "Corporate portal API - dashboard, profile, users, company management",
+  "type": "module",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.658.1",
+    "@aws-sdk/lib-dynamodb": "^3.658.1",
+    "@aws-sdk/client-ses": "^3.658.1",
+    "@aws-sdk/client-secrets-manager": "^3.658.1",
+    "jsonwebtoken": "^9.0.2",
+    "zod": "^3.23.8"
+  }
+}
