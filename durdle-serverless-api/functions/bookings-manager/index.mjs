@@ -12,7 +12,9 @@ const BOOKINGS_TABLE_NAME = process.env.BOOKINGS_TABLE_NAME || 'durdle-bookings-
 const getAllowedOrigins = () => [
   'http://localhost:3000',
   'https://durdle.flowency.build',
-  'https://durdle.co.uk'
+  'https://durdle.co.uk',
+  'https://dorsettransfercompany.flowency.build',
+  'https://dorsettransfercompany.co.uk'
 ];
 
 const getHeaders = (origin) => {
@@ -167,8 +169,8 @@ async function listBookings(options = {}, log, tenantId) {
 
   let command;
 
-  if (status) {
-    // Query by status using GSI1
+  if (status && status !== 'all') {
+    // Query by status using GSI1 (skip if "all" - treat as no filter)
     command = new QueryCommand({
       TableName: BOOKINGS_TABLE_NAME,
       IndexName: 'GSI1',
