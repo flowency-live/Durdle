@@ -115,10 +115,23 @@ export default function ZoneMap({
       }
     });
 
-    // Handle polygon edit
+    // Handle polygon edit - listen for edit end on any layer
     map.on('pm:edit', async (e) => {
       if (e.layer instanceof L.Polygon) {
         const geoJson = e.layer.toGeoJSON() as GeoJSON.Feature<GeoJSON.Polygon>;
+
+        if (onPolygonChange) {
+          onPolygonChange(geoJson.geometry);
+        }
+
+        await resolvePolygonToCodes(geoJson.geometry);
+      }
+    });
+
+    // Also listen for global edit mode disable (when user clicks done editing)
+    map.on('pm:globaleditmodetoggled', async (e) => {
+      if (!e.enabled && polygonLayerRef.current) {
+        const geoJson = polygonLayerRef.current.toGeoJSON() as GeoJSON.Feature<GeoJSON.Polygon>;
 
         if (onPolygonChange) {
           onPolygonChange(geoJson.geometry);
@@ -187,17 +200,30 @@ export default function ZoneMap({
     postcodeAreas.forEach((area) => {
       const isSelected = selectedCodes.includes(area.outwardCode);
 
+      // For selected postcodes, add a larger highlight circle underneath
+      if (isSelected) {
+        const highlight = L.circleMarker([area.lat, area.lon], {
+          radius: 18,
+          fillColor: '#22c55e',
+          color: '#16a34a',
+          weight: 3,
+          opacity: 0.6,
+          fillOpacity: 0.3,
+        });
+        highlight.addTo(markersLayerRef.current!);
+      }
+
       const marker = L.circleMarker([area.lat, area.lon], {
-        radius: isSelected ? 12 : 8,
+        radius: isSelected ? 10 : 7,
         fillColor: isSelected ? '#22c55e' : area.isDorset ? '#3b82f6' : '#9ca3af',
-        color: isSelected ? '#166534' : area.isDorset ? '#1d4ed8' : '#6b7280',
-        weight: 2,
+        color: isSelected ? '#15803d' : area.isDorset ? '#1d4ed8' : '#6b7280',
+        weight: isSelected ? 3 : 2,
         opacity: 1,
-        fillOpacity: isSelected ? 0.8 : 0.5,
+        fillOpacity: isSelected ? 0.9 : 0.5,
       });
 
       marker.bindTooltip(
-        `<strong>${area.outwardCode}</strong><br/>${area.area}${area.isDorset ? '' : ' (neighboring)'}`,
+        `<strong>${area.outwardCode}</strong><br/>${area.area}${area.isDorset ? '' : ' (neighboring)'}${isSelected ? '<br/><em>Selected</em>' : ''}`,
         { direction: 'top' }
       );
 
@@ -237,6 +263,15 @@ export default function ZoneMap({
     polygon.addTo(mapRef.current);
     polygon.pm.enable();
     polygonLayerRef.current = polygon;
+
+    // Add edit event listener to the loaded polygon
+    polygon.on('pm:edit', async () => {
+      const geoJson = polygon.toGeoJSON() as GeoJSON.Feature<GeoJSON.Polygon>;
+      if (onPolygonChange) {
+        onPolygonChange(geoJson.geometry);
+      }
+      await resolvePolygonToCodes(geoJson.geometry);
+    });
 
     // Fit map to polygon bounds
     mapRef.current.fitBounds(polygon.getBounds(), { padding: [50, 50] });

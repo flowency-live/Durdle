@@ -59,6 +59,7 @@ const PricesSchema = z.object({
 
 const CreateZonePricingSchema = z.object({
   destinationId: z.string().min(1),
+  destinationName: z.string().min(1).max(200).optional(),
   name: z.string().min(3).max(100),
   prices: PricesSchema,
   active: z.boolean().optional().default(true),
@@ -66,6 +67,7 @@ const CreateZonePricingSchema = z.object({
 
 const UpdateZonePricingSchema = z.object({
   name: z.string().min(3).max(100).optional(),
+  destinationName: z.string().min(1).max(200).optional(),
   prices: PricesSchema.optional(),
   active: z.boolean().optional(),
 });
@@ -133,6 +135,7 @@ async function createZonePricing(tenantId, zoneId, data, logger) {
     tenantId,
     zoneId,
     destinationId: data.destinationId,
+    destinationName: data.destinationName || data.name,
     name: data.name,
     prices: data.prices,
     active: data.active ?? true,
@@ -164,6 +167,7 @@ async function updateZonePricing(tenantId, zoneId, destinationId, data, logger) 
   const updatedItem = {
     ...existing,
     name: data.name ?? existing.name,
+    destinationName: data.destinationName ?? existing.destinationName,
     prices: data.prices ?? existing.prices,
     active: data.active ?? existing.active,
     updatedAt: now,
@@ -258,6 +262,7 @@ async function getPricingMatrix(tenantId, logger) {
     const key = `${p.zoneId}:${p.destinationId}`;
     pricingMap[key] = {
       name: p.name,
+      destinationName: p.destinationName || p.name,
       prices: p.prices,
       active: p.active,
     };
