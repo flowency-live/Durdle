@@ -45,6 +45,31 @@ interface CorporateUser {
   lastLoginAt: string | null;
 }
 
+interface CorporateBooking {
+  bookingId: string;
+  customer: {
+    name: string;
+    email: string;
+    phone: string;
+  };
+  pickupLocation: {
+    address: string;
+  };
+  dropoffLocation: {
+    address: string;
+  };
+  pickupTime: string;
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  pricing: {
+    displayTotal?: string;
+    breakdown?: {
+      total: number;
+    };
+  };
+  vehicleType: string;
+  createdAt: string;
+}
+
 export default function CorporateAccountDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -79,6 +104,7 @@ export default function CorporateAccountDetailPage() {
   });
   const [savingEdit, setSavingEdit] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [editModalTab, setEditModalTab] = useState<'company' | 'pricing' | 'contacts'>('company');
 
   // Modal states
   const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title: string; message: string; type: 'success' | 'error' | 'info' | 'warning' }>({ isOpen: false, title: '', message: '', type: 'info' });
@@ -342,6 +368,7 @@ export default function CorporateAccountDetailPage() {
       notes: account.notes || '',
       allowedDomains: account.allowedDomains?.join(', ') || '',
     });
+    setEditModalTab('company');
     setIsEditing(true);
   }
 
@@ -879,182 +906,238 @@ export default function CorporateAccountDetailPage() {
         </div>
       )}
 
-      {/* Edit Account Modal */}
+      {/* Edit Account Modal - Tabbed */}
       {isEditing && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl mx-4 my-8">
-            <h2 className="text-lg font-semibold mb-6">Edit Corporate Account</h2>
-            <form onSubmit={(e) => { e.preventDefault(); handleSaveEdit(); }} className="space-y-6">
-              {/* Company Details */}
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Company Details</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Company Name *</label>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+            {/* Fixed Header */}
+            <div className="p-4 border-b border-gray-200 flex-shrink-0">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">Edit Corporate Account</h2>
+                <button
+                  onClick={() => setIsEditing(false)}
+                  className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              {/* Tabs */}
+              <div className="flex border-b border-gray-200 -mb-4">
+                <button
+                  type="button"
+                  onClick={() => setEditModalTab('company')}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${
+                    editModalTab === 'company'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Company
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditModalTab('pricing')}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${
+                    editModalTab === 'pricing'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Pricing
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditModalTab('contacts')}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${
+                    editModalTab === 'contacts'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Contacts & Notes
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {/* Company Tab */}
+              {editModalTab === 'company' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Company Name *</label>
                     <input
                       type="text"
                       required
                       value={editForm.companyName}
                       onChange={(e) => setEditForm({ ...editForm, companyName: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
+                  </div>
+
+                  <div className="pt-4 border-t border-gray-200">
+                    <h3 className="text-sm font-medium text-gray-700 mb-3">Billing Address</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Address Line 1</label>
+                        <input
+                          type="text"
+                          value={editForm.billingLine1}
+                          onChange={(e) => setEditForm({ ...editForm, billingLine1: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Address Line 2</label>
+                        <input
+                          type="text"
+                          value={editForm.billingLine2}
+                          onChange={(e) => setEditForm({ ...editForm, billingLine2: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">City</label>
+                          <input
+                            type="text"
+                            value={editForm.billingCity}
+                            onChange={(e) => setEditForm({ ...editForm, billingCity: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Postcode</label>
+                          <input
+                            type="text"
+                            value={editForm.billingPostcode}
+                            onChange={(e) => setEditForm({ ...editForm, billingPostcode: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Contact Info */}
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Contact Information</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Pricing Tab */}
+              {editModalTab === 'pricing' && (
+                <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Contact Name *</label>
-                    <input
-                      type="text"
-                      required
-                      value={editForm.contactName}
-                      onChange={(e) => setEditForm({ ...editForm, contactName: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Discount Percentage</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        max="50"
+                        value={editForm.discountPercentage}
+                        onChange={(e) => setEditForm({ ...editForm, discountPercentage: parseFloat(e.target.value) || 0 })}
+                        className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <span className="text-gray-500">%</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Applied to all bookings for this corporate account</p>
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Email *</label>
-                    <input
-                      type="email"
-                      required
-                      value={editForm.contactEmail}
-                      onChange={(e) => setEditForm({ ...editForm, contactEmail: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Phone</label>
-                    <input
-                      type="tel"
-                      value={editForm.contactPhone}
-                      onChange={(e) => setEditForm({ ...editForm, contactPhone: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    />
-                  </div>
-                </div>
-              </div>
 
-              {/* Pricing */}
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Pricing</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Discount %</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="50"
-                      value={editForm.discountPercentage}
-                      onChange={(e) => setEditForm({ ...editForm, discountPercentage: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Payment Terms</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Payment Terms</label>
                     <select
                       value={editForm.paymentTerms}
                       onChange={(e) => setEditForm({ ...editForm, paymentTerms: e.target.value as 'immediate' | 'net7' | 'net14' | 'net30' })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
-                      <option value="immediate">Immediate</option>
+                      <option value="immediate">Immediate (pay on booking)</option>
                       <option value="net7">Net 7 Days</option>
                       <option value="net14">Net 14 Days</option>
                       <option value="net30">Net 30 Days</option>
                     </select>
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Billing Address */}
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Billing Address</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Address Line 1</label>
-                    <input
-                      type="text"
-                      value={editForm.billingLine1}
-                      onChange={(e) => setEditForm({ ...editForm, billingLine1: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Address Line 2</label>
-                    <input
-                      type="text"
-                      value={editForm.billingLine2}
-                      onChange={(e) => setEditForm({ ...editForm, billingLine2: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    />
-                  </div>
+              {/* Contacts & Notes Tab */}
+              {editModalTab === 'contacts' && (
+                <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">City</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Contact Name *</label>
                     <input
                       type="text"
-                      value={editForm.billingCity}
-                      onChange={(e) => setEditForm({ ...editForm, billingCity: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      required
+                      value={editForm.contactName}
+                      onChange={(e) => setEditForm({ ...editForm, contactName: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                      <input
+                        type="email"
+                        required
+                        value={editForm.contactEmail}
+                        onChange={(e) => setEditForm({ ...editForm, contactEmail: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                      <input
+                        type="tel"
+                        value={editForm.contactPhone}
+                        onChange={(e) => setEditForm({ ...editForm, contactPhone: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-gray-200">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Allowed Email Domains</label>
+                    <textarea
+                      rows={2}
+                      value={editForm.allowedDomains}
+                      onChange={(e) => setEditForm({ ...editForm, allowedDomains: e.target.value })}
+                      placeholder="flowency.co.uk, flowency.com"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Comma-separated. Leave blank to allow any domain.</p>
+                  </div>
+
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Postcode</label>
-                    <input
-                      type="text"
-                      value={editForm.billingPostcode}
-                      onChange={(e) => setEditForm({ ...editForm, billingPostcode: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Internal Notes</label>
+                    <textarea
+                      rows={4}
+                      value={editForm.notes}
+                      onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                      placeholder="Internal notes about this account..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                 </div>
-              </div>
+              )}
+            </div>
 
-              {/* Allowed Domains */}
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Allowed Email Domains</label>
-                <textarea
-                  rows={2}
-                  value={editForm.allowedDomains}
-                  onChange={(e) => setEditForm({ ...editForm, allowedDomains: e.target.value })}
-                  placeholder="flowency.co.uk, flowency.com"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                />
-                <p className="text-xs text-gray-500 mt-1">Comma-separated. Leave blank to allow any domain.</p>
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
-                <textarea
-                  rows={3}
-                  value={editForm.notes}
-                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
-                  placeholder="Internal notes..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                />
-              </div>
-
-              {/* Actions */}
-              <div className="flex justify-end gap-4 pt-4 border-t border-gray-200">
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingEdit}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {savingEdit ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            </form>
+            {/* Fixed Footer */}
+            <div className="p-4 border-t border-gray-200 flex-shrink-0 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setIsEditing(false)}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveEdit}
+                disabled={savingEdit}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+              >
+                {savingEdit ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
           </div>
         </div>
       )}
