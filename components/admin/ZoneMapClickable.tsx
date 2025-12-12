@@ -195,7 +195,7 @@ export default function ZoneMapClickable({
   // Initialize map
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
-    if (!tenantConfig) return;
+    if (!tenantConfig || loading) return;
 
     const map = L.map(mapContainerRef.current, {
       center: [tenantConfig.mapCenter.lat, tenantConfig.mapCenter.lon],
@@ -210,11 +210,16 @@ export default function ZoneMapClickable({
 
     mapRef.current = map;
 
+    // Force resize after a brief delay to ensure tiles render
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 100);
+
     return () => {
       map.remove();
       mapRef.current = null;
     };
-  }, [tenantConfig]);
+  }, [tenantConfig, loading]);
 
   // Render GeoJSON boundaries
   useEffect(() => {

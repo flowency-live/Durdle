@@ -485,7 +485,10 @@ async function updateCorporateAccount(corpId, requestBody, headers, logger, tena
   const now = new Date().toISOString();
   const updateParts = ['updatedAt = :updatedAt'];
   const expressionValues = { ':updatedAt': now };
+  const expressionNames = {};
 
+  // Map of input fields to DynamoDB attribute names
+  // Use #alias for reserved keywords (status, name, etc.)
   const fieldMap = {
     companyName: 'companyName',
     companyNumber: 'companyNumber',
@@ -495,7 +498,7 @@ async function updateCorporateAccount(corpId, requestBody, headers, logger, tena
     billingAddress: 'billingAddress',
     discountPercentage: 'discountPercentage',
     paymentTerms: 'paymentTerms',
-    status: 'status',
+    status: '#status',  // Reserved keyword - use alias
     notes: 'notes',
     allowedDomains: 'allowedDomains',
   };
@@ -504,6 +507,10 @@ async function updateCorporateAccount(corpId, requestBody, headers, logger, tena
     if (data[key] !== undefined) {
       updateParts.push(`${dbField} = :${key}`);
       expressionValues[`:${key}`] = key === 'contactEmail' ? data[key].toLowerCase() : data[key];
+      // Add to ExpressionAttributeNames if using alias
+      if (dbField.startsWith('#')) {
+        expressionNames[dbField] = key;
+      }
     }
   }
 
@@ -513,7 +520,7 @@ async function updateCorporateAccount(corpId, requestBody, headers, logger, tena
     expressionValues[':gsi1sk'] = `STATUS#${data.status}#${existing.Item.createdAt}`;
   }
 
-  await docClient.send(new UpdateCommand({
+  const updateParams = {
     TableName: CORPORATE_TABLE_NAME,
     Key: {
       PK: buildTenantPK(tenantId, 'CORP', corpId),
@@ -521,7 +528,14 @@ async function updateCorporateAccount(corpId, requestBody, headers, logger, tena
     },
     UpdateExpression: `SET ${updateParts.join(', ')}`,
     ExpressionAttributeValues: expressionValues,
-  }));
+  };
+
+  // Only add ExpressionAttributeNames if we have aliases
+  if (Object.keys(expressionNames).length > 0) {
+    updateParams.ExpressionAttributeNames = expressionNames;
+  }
+
+  await docClient.send(new UpdateCommand(updateParams));
 
   logger.info({
     event: 'corporate_account_updated',
