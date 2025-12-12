@@ -167,7 +167,7 @@ export default function CorporateAccountDetailPage() {
     try {
       const token = localStorage.getItem('durdle_admin_token');
       const response = await fetch(
-        `${API_BASE_URL}${API_ENDPOINTS.adminCorporate}/${corpId}/bookings`,
+        `${API_BASE_URL}${API_ENDPOINTS.adminBookings}?corporateAccountId=${corpId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
