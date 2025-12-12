@@ -99,11 +99,18 @@ export default function ZonePricingPage() {
         const matrixData = await matrixRes.json();
         const matrix: Record<string, Record<string, ZonePricing>> = {};
 
-        (matrixData.pricing || []).forEach((p: ZonePricing) => {
-          if (!matrix[p.zoneId]) {
-            matrix[p.zoneId] = {};
+        // pricing is an object map like { "zoneId:destId": { name, prices, active } }
+        const pricingMap = matrixData.pricing || {};
+        Object.entries(pricingMap).forEach(([key, value]) => {
+          const [zoneId, destinationId] = key.split(':');
+          if (!matrix[zoneId]) {
+            matrix[zoneId] = {};
           }
-          matrix[p.zoneId][p.destinationId] = p;
+          matrix[zoneId][destinationId] = {
+            zoneId,
+            destinationId,
+            ...(value as object),
+          } as ZonePricing;
         });
 
         setPricingMatrix(matrix);
