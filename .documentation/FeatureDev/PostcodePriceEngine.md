@@ -16,16 +16,16 @@
 | 1.4 | destination-manager Lambda | DONE | Dec 12 | Dec 12 | Lambda created with Layer v5 |
 | 1.5 | zone-pricing-manager Lambda | DONE | Dec 12 | Dec 12 | Lambda created with Layer v5 |
 | 1.6 | API Gateway routes | DONE | Dec 12 | Dec 12 | All routes configured, deployed to dev |
-| 2.1 | Zone list page | IN PROGRESS | Dec 12 | - | Building UI |
-| 2.2 | Zone CRUD form | NOT STARTED | - | - | - |
-| 2.3 | Destination list page | NOT STARTED | - | - | - |
-| 2.4 | Destination CRUD form | NOT STARTED | - | - | - |
-| 2.5 | Pricing matrix page | NOT STARTED | - | - | - |
-| 3.1 | Leaflet dependencies | NOT STARTED | - | - | - |
-| 3.2 | ZoneMap component | NOT STARTED | - | - | - |
-| 3.3 | Map integration | NOT STARTED | - | - | - |
-| 3.4 | Outward code overlay | NOT STARTED | - | - | - |
-| 3.5 | Zone coverage display | NOT STARTED | - | - | - |
+| 2.1 | Zone list page | DONE | Dec 12 | Dec 12 | /admin/zones created |
+| 2.2 | Zone CRUD form | DONE | Dec 12 | Dec 12 | Modal with postcode chips input |
+| 2.3 | Destination list page | DONE | Dec 12 | Dec 12 | /admin/destinations created |
+| 2.4 | Destination CRUD form | DONE | Dec 12 | Dec 12 | Google Places autocomplete |
+| 2.5 | Pricing matrix page | DONE | Dec 12 | Dec 12 | /admin/zone-pricing created |
+| 3.1 | Leaflet dependencies | DONE | Dec 12 | Dec 12 | leaflet, react-leaflet, @geoman-io/leaflet-geoman-free |
+| 3.2 | ZoneMap component | DONE | Dec 12 | Dec 12 | components/admin/ZoneMap.tsx + ZoneMapLoader.tsx |
+| 3.3 | Map integration | DONE | Dec 12 | Dec 12 | Integrated into zones page modal |
+| 3.4 | Outward code overlay | DONE | Dec 12 | Dec 12 | Clickable markers on map |
+| 3.5 | Zone coverage display | DONE | Dec 12 | Dec 12 | Polygon drawing + resolve-polygon API |
 | 4.1 | extractOutwardCode() | NOT STARTED | - | - | - |
 | 4.2 | checkZonePricing() | NOT STARTED | - | - | - |
 | 4.3 | GSI query in quote flow | NOT STARTED | - | - | - |

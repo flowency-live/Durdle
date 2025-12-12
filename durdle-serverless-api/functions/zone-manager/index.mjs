@@ -387,6 +387,28 @@ async function resolvePolygon(polygon, includeNonDorset, logger) {
   };
 }
 
+// Fetch all UK postcodes for map display
+async function listPostcodes(logger) {
+  logger.info({ event: 'postcodes_list_start' }, 'Listing UK postcodes');
+
+  const scanCommand = new ScanCommand({
+    TableName: UK_POSTCODES_TABLE_NAME,
+  });
+
+  const result = await docClient.send(scanCommand);
+  const postcodes = (result.Items || []).map(item => ({
+    outwardCode: item.outwardCode,
+    lat: item.lat,
+    lon: item.lon,
+    area: item.area,
+    region: item.region,
+    isDorset: item.isDorset,
+  }));
+
+  logger.info({ event: 'postcodes_list_success', count: postcodes.length }, 'UK postcodes listed');
+  return postcodes;
+}
+
 // Main handler
 export const handler = async (event, context) => {
   const logger = createLogger(event, context);
@@ -405,6 +427,16 @@ export const handler = async (event, context) => {
   }
 
   try {
+    // GET /admin/postcodes - List all UK postcodes for map
+    if (httpMethod === 'GET' && path?.includes('/postcodes')) {
+      const postcodes = await listPostcodes(logger);
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ postcodes }),
+      };
+    }
+
     // POST /admin/zones/resolve-polygon
     if (httpMethod === 'POST' && path?.includes('/resolve-polygon')) {
       const validation = ResolvePolygonSchema.safeParse(JSON.parse(body || '{}'));

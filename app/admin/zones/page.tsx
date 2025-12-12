@@ -2,15 +2,25 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import ZoneMapLoader from '@/components/admin/ZoneMapLoader';
 
 interface Zone {
   zoneId: string;
   name: string;
   description: string;
   outwardCodes: string[];
+  polygon?: GeoJSON.Polygon | GeoJSON.MultiPolygon | null;
   active: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+interface PostcodeArea {
+  outwardCode: string;
+  lat: number;
+  lon: number;
+  area: string;
+  isDorset: boolean;
 }
 
 const API_BASE = 'https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev';
@@ -18,8 +28,11 @@ const API_BASE = 'https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev';
 // UK outward code regex: 1-2 letters, 1-2 digits, optional letter
 const OUTWARD_CODE_REGEX = /^[A-Z]{1,2}\d{1,2}[A-Z]?$/i;
 
+type InputMode = 'manual' | 'map';
+
 export default function ZonesManagement() {
   const [zones, setZones] = useState<Zone[]>([]);
+  const [postcodeAreas, setPostcodeAreas] = useState<PostcodeArea[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,17 +40,20 @@ export default function ZonesManagement() {
   const [showModal, setShowModal] = useState(false);
   const [editingZone, setEditingZone] = useState<Zone | null>(null);
   const [saving, setSaving] = useState(false);
+  const [inputMode, setInputMode] = useState<InputMode>('manual');
 
   // Form state
   const [formName, setFormName] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [formOutwardCodes, setFormOutwardCodes] = useState<string[]>([]);
+  const [formPolygon, setFormPolygon] = useState<GeoJSON.Polygon | null>(null);
   const [formActive, setFormActive] = useState(true);
   const [codeInput, setCodeInput] = useState('');
   const [codeError, setCodeError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchZones();
+    fetchPostcodeAreas();
   }, []);
 
   const fetchZones = async () => {
@@ -59,14 +75,35 @@ export default function ZonesManagement() {
     }
   };
 
+  const fetchPostcodeAreas = async () => {
+    try {
+      const token = localStorage.getItem('durdle_admin_token');
+      // Fetch from UK postcodes table
+      const response = await fetch(`${API_BASE}/admin/postcodes`, {
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPostcodeAreas(data.postcodes || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch postcode areas:', err);
+      // Non-critical, continue without map data
+    }
+  };
+
   const openCreateModal = () => {
     setEditingZone(null);
     setFormName('');
     setFormDescription('');
     setFormOutwardCodes([]);
+    setFormPolygon(null);
     setFormActive(true);
     setCodeInput('');
     setCodeError(null);
+    setInputMode('manual');
     setShowModal(true);
   };
 
@@ -75,9 +112,11 @@ export default function ZonesManagement() {
     setFormName(zone.name);
     setFormDescription(zone.description || '');
     setFormOutwardCodes([...zone.outwardCodes]);
+    setFormPolygon(zone.polygon as GeoJSON.Polygon || null);
     setFormActive(zone.active);
     setCodeInput('');
     setCodeError(null);
+    setInputMode(zone.polygon ? 'map' : 'manual');
     setShowModal(true);
   };
 
@@ -176,6 +215,7 @@ export default function ZonesManagement() {
           name: formName.trim(),
           description: formDescription.trim() || undefined,
           outwardCodes: formOutwardCodes,
+          polygon: formPolygon || undefined,
           active: formActive,
         }),
       });
@@ -375,7 +415,7 @@ export default function ZonesManagement() {
       {/* Create/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200">
               <h3 className="text-xl font-semibold text-gray-900">
                 {editingZone ? 'Edit Zone' : 'Create New Zone'}
@@ -407,43 +447,96 @@ export default function ZonesManagement() {
                 />
               </div>
 
-              {/* Outward Codes */}
+              {/* Input Mode Toggle */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Outward Codes * <span className="text-gray-400 font-normal">({formOutwardCodes.length} codes)</span>
-                </label>
-                <div className="flex gap-2 mb-2">
-                  <input
-                    type="text"
-                    value={codeInput}
-                    onChange={(e) => {
-                      setCodeInput(e.target.value.toUpperCase());
-                      setCodeError(null);
-                    }}
-                    onKeyDown={handleCodeInputKeyDown}
-                    onPaste={handlePasteCodes}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Type code and press Enter (e.g., BH1)"
-                  />
+                <label className="block text-sm font-medium text-gray-700 mb-2">Postcode Selection Method</label>
+                <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={handleAddCode}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    onClick={() => setInputMode('manual')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      inputMode === 'manual'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
                   >
-                    Add
+                    Manual Entry
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInputMode('map')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      inputMode === 'map'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Map Selection
                   </button>
                 </div>
-                {codeError && (
-                  <p className="text-sm text-red-600 mb-2">{codeError}</p>
-                )}
-                <p className="text-xs text-gray-500 mb-2">
-                  Tip: Paste multiple codes separated by commas or spaces
-                </p>
+              </div>
 
-                {/* Code chips */}
-                <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg min-h-[60px] max-h-[200px] overflow-y-auto">
+              {/* Manual Entry Mode */}
+              {inputMode === 'manual' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Outward Codes * <span className="text-gray-400 font-normal">({formOutwardCodes.length} codes)</span>
+                  </label>
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={codeInput}
+                      onChange={(e) => {
+                        setCodeInput(e.target.value.toUpperCase());
+                        setCodeError(null);
+                      }}
+                      onKeyDown={handleCodeInputKeyDown}
+                      onPaste={handlePasteCodes}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Type code and press Enter (e.g., BH1)"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddCode}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  {codeError && (
+                    <p className="text-sm text-red-600 mb-2">{codeError}</p>
+                  )}
+                  <p className="text-xs text-gray-500 mb-2">
+                    Tip: Paste multiple codes separated by commas or spaces
+                  </p>
+                </div>
+              )}
+
+              {/* Map Selection Mode */}
+              {inputMode === 'map' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Draw Zone on Map <span className="text-gray-400 font-normal">({formOutwardCodes.length} codes selected)</span>
+                  </label>
+                  <ZoneMapLoader
+                    selectedCodes={formOutwardCodes}
+                    onCodesChange={setFormOutwardCodes}
+                    existingPolygon={formPolygon}
+                    onPolygonChange={setFormPolygon}
+                    postcodeAreas={postcodeAreas}
+                    height="400px"
+                  />
+                </div>
+              )}
+
+              {/* Selected Codes Display */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Selected Postcodes ({formOutwardCodes.length})
+                </label>
+                <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg min-h-[60px] max-h-[150px] overflow-y-auto">
                   {formOutwardCodes.length === 0 ? (
-                    <span className="text-gray-400 text-sm">No codes added yet</span>
+                    <span className="text-gray-400 text-sm">No codes selected yet</span>
                   ) : (
                     formOutwardCodes.map((code) => (
                       <span

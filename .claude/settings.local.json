@@ -173,7 +173,13 @@
       "Bash(do MSYS_NO_PATHCONV=1 aws apigateway put-integration --rest-api-id qcfd5p4514 --resource-id j3l3z2 --http-method $method --type AWS_PROXY --integration-http-method POST --uri \"arn:aws:apigateway:eu-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-2:771551874768:function:zone-pricing-manager-dev/invocations\" --region eu-west-2)",
       "Bash(do MSYS_NO_PATHCONV=1 aws apigateway put-integration --rest-api-id qcfd5p4514 --resource-id 0dbykb --http-method $method --type AWS_PROXY --integration-http-method POST --uri \"arn:aws:apigateway:eu-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-2:771551874768:function:destination-manager-dev/invocations\" --region eu-west-2)",
       "Bash(do MSYS_NO_PATHCONV=1 aws apigateway put-integration --rest-api-id qcfd5p4514 --resource-id gbb4qh --http-method $method --type AWS_PROXY --integration-http-method POST --uri \"arn:aws:apigateway:eu-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-2:771551874768:function:destination-manager-dev/invocations\" --region eu-west-2)",
-      "Bash(do MSYS_NO_PATHCONV=1 aws apigateway put-integration --rest-api-id qcfd5p4514 --resource-id jwq4vy --http-method $method --type AWS_PROXY --integration-http-method POST --uri \"arn:aws:apigateway:eu-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-2:771551874768:function:destination-manager-dev/invocations\" --region eu-west-2)"
+      "Bash(do MSYS_NO_PATHCONV=1 aws apigateway put-integration --rest-api-id qcfd5p4514 --resource-id jwq4vy --http-method $method --type AWS_PROXY --integration-http-method POST --uri \"arn:aws:apigateway:eu-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-2:771551874768:function:destination-manager-dev/invocations\" --region eu-west-2)",
+      "Bash(do aws apigateway put-method:*)",
+      "Bash(do MSYS_NO_PATHCONV=1 aws apigateway put-integration --rest-api-id qcfd5p4514 --resource-id 0g63eh --http-method $method --type AWS_PROXY --integration-http-method POST --uri \"arn:aws:apigateway:eu-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-2:771551874768:function:zone-manager-dev/invocations\" --region eu-west-2 --query 'type')",
+      "Bash(MSYS_NO_PATHCONV=1 aws logs:*)",
+      "Bash(git -C \"c:/VSProjects/_Websites/Durdle\" log --oneline -3)",
+      "Bash(git -C \"c:/VSProjects/_Websites/Durdle\" add -A)",
+      "Bash(git -C \"c:/VSProjects/_Websites/Durdle\" commit -m \"Add Zone Pricing admin UI with map selection\")"
     ],
     "deny": [],
     "ask": []
