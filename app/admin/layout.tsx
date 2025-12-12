@@ -181,10 +181,10 @@ export default function AdminLayout({
 
             <li>
               <Link
-                href="/admin/pricing"
+                href="/admin/vehicles-pricing"
                 onClick={() => setMobileMenuOpen(false)}
                 className={`block px-4 py-3 rounded-lg transition-colors ${
-                  pathname === '/admin/pricing'
+                  pathname === '/admin/vehicles-pricing' || pathname === '/admin/test-pricing'
                     ? 'bg-blue-600 text-white'
                     : 'text-gray-300 hover:bg-gray-800'
                 }`}
@@ -193,7 +193,7 @@ export default function AdminLayout({
                   <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  Variable Pricing
+                  Vehicles & Pricing
                 </div>
               </Link>
             </li>
@@ -232,25 +232,6 @@ export default function AdminLayout({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                   </svg>
                   Fixed Routes
-                </div>
-              </Link>
-            </li>
-
-            <li>
-              <Link
-                href="/admin/vehicles"
-                onClick={() => setMobileMenuOpen(false)}
-                className={`block px-4 py-3 rounded-lg transition-colors ${
-                  pathname === '/admin/vehicles'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-800'
-                }`}
-              >
-                <div className="flex items-center">
-                  <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
-                  </svg>
-                  Vehicle Types
                 </div>
               </Link>
             </li>

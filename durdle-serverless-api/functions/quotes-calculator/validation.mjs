@@ -45,6 +45,7 @@ export const QuoteRequestSchema = z.object({
   durationHours: z.number().int().min(2).max(12).optional(), // Required for 'by-the-hour', 2-12 hours
   extras: ExtrasSchema.optional(),
   compareMode: z.boolean().optional(), // When true, return pricing for ALL vehicle types
+  corpAccountId: z.string().optional(), // Optional corporate account ID for applying discounts
   contactDetails: z.object({
     name: z.string().min(2).optional(),
     email: z.string().email().optional(),

@@ -24,6 +24,7 @@ const TABLE_NAME = process.env.TABLE_NAME;
 const FIXED_ROUTES_TABLE_NAME = process.env.FIXED_ROUTES_TABLE_NAME || 'durdle-fixed-routes-dev';
 const PRICING_TABLE_NAME = process.env.PRICING_TABLE_NAME || 'durdle-pricing-config-dev';
 const SURGE_TABLE_NAME = process.env.SURGE_TABLE_NAME || 'durdle-surge-rules-dev';
+const CORPORATE_TABLE_NAME = process.env.CORPORATE_TABLE_NAME || 'durdle-corporate-dev';
 const GOOGLE_MAPS_SECRET_NAME = 'durdle/google-maps-api-key';
 
 let cachedApiKey = null;
@@ -334,6 +335,65 @@ async function checkFixedRoute(originPlaceId, destinationPlaceId, vehicleId, ten
       tableName: FIXED_ROUTES_TABLE_NAME,
       errorMessage: error.message,
     }, 'Failed to check fixed routes');
+    return null;
+  }
+}
+
+// Fetch corporate account discount percentage
+async function getCorporateDiscount(corpAccountId, tenantId) {
+  if (!corpAccountId) {
+    return null;
+  }
+
+  try {
+    // Look up corporate account by corpId
+    const result = await docClient.send(new GetCommand({
+      TableName: CORPORATE_TABLE_NAME,
+      Key: {
+        PK: buildTenantPK(tenantId, 'CORP', corpAccountId),
+        SK: 'METADATA',
+      },
+    }));
+
+    if (!result.Item) {
+      logger.warn({
+        event: 'corporate_account_not_found',
+        corpAccountId,
+        tenantId,
+      }, 'Corporate account not found for discount lookup');
+      return null;
+    }
+
+    // Only apply discount if account is active
+    if (result.Item.status !== 'active') {
+      logger.info({
+        event: 'corporate_account_inactive',
+        corpAccountId,
+        status: result.Item.status,
+      }, 'Corporate account not active, no discount applied');
+      return null;
+    }
+
+    const discountPercentage = result.Item.discountPercentage || 0;
+
+    logger.info({
+      event: 'corporate_discount_found',
+      corpAccountId,
+      discountPercentage,
+      companyName: result.Item.companyName,
+    }, 'Corporate discount retrieved');
+
+    return {
+      corpAccountId,
+      companyName: result.Item.companyName,
+      discountPercentage,
+    };
+  } catch (error) {
+    logger.error({
+      event: 'corporate_discount_lookup_error',
+      corpAccountId,
+      errorMessage: error.message,
+    }, 'Failed to lookup corporate discount');
     return null;
   }
 }
@@ -811,6 +871,7 @@ export const handler = async (event, context) => {
     const durationHours = body.durationHours;
     const extras = body.extras || { babySeats: 0, childSeats: 0 };
     const compareMode = body.compareMode || false;
+    const corpAccountId = body.corpAccountId || null; // Optional corporate account ID for discounts
 
     // Calculate total wait time from waypoints (in minutes)
     const totalWaitTime = waypoints.reduce((sum, wp) => sum + (wp.waitTime || 0), 0);
@@ -1006,13 +1067,62 @@ export const handler = async (event, context) => {
       }
     }
 
+    // Apply corporate discount if corpAccountId is provided (AFTER surge pricing)
+    let corporateDiscount = null;
+    if (corpAccountId) {
+      corporateDiscount = await getCorporateDiscount(corpAccountId, tenantId);
+
+      if (corporateDiscount && corporateDiscount.discountPercentage > 0) {
+        logger.info({
+          event: 'corporate_discount_applied',
+          corpAccountId,
+          companyName: corporateDiscount.companyName,
+          discountPercentage: corporateDiscount.discountPercentage,
+          priceBeforeDiscount: pricing.breakdown.total,
+        }, 'Applying corporate discount to quote');
+
+        // Store price before corporate discount
+        const priceBeforeCorporateDiscount = pricing.breakdown.total;
+
+        // Calculate corporate discount amount
+        const corporateDiscountAmount = Math.round(priceBeforeCorporateDiscount * corporateDiscount.discountPercentage / 100);
+        const finalTotal = priceBeforeCorporateDiscount - corporateDiscountAmount;
+
+        // Update pricing with corporate discount (but don't expose the percentage)
+        pricing = {
+          ...pricing,
+          breakdown: {
+            ...pricing.breakdown,
+            priceBeforeCorporateDiscount,
+            corporateDiscountAmount,
+            total: finalTotal,
+          },
+          displayTotal: `£${(finalTotal / 100).toFixed(2)}`,
+          isCorporateRate: true,
+        };
+
+        logger.info({
+          event: 'corporate_discount_result',
+          priceBeforeCorporateDiscount,
+          corporateDiscountAmount,
+          finalTotal,
+        }, 'Corporate discount applied successfully');
+      }
+    }
+
     // Handle compareMode - return pricing for ALL vehicle types
     if (compareMode) {
       logger.info({
         event: 'compare_mode_calculation',
         journeyType,
         hasRoute: !!route,
+        corpAccountId: corpAccountId || null,
       }, 'Calculating prices for all vehicle types');
+
+      // Get corporate discount if corpAccountId provided (reuse if already fetched above)
+      if (!corporateDiscount && corpAccountId) {
+        corporateDiscount = await getCorporateDiscount(corpAccountId, tenantId);
+      }
 
       const allPricing = await getVehiclePricing(tenantId);
       const vehicleTypes = ['standard', 'executive', 'minibus'];
@@ -1076,6 +1186,18 @@ export const handler = async (event, context) => {
           };
         }
 
+        // Apply corporate discount AFTER surge pricing (if applicable)
+        let corporateInfo = {};
+        if (corporateDiscount && corporateDiscount.discountPercentage > 0) {
+          const corpDiscountOneWay = Math.round(finalOneWayPrice * corporateDiscount.discountPercentage / 100);
+          const corpDiscountReturn = Math.round(finalReturnPrice * corporateDiscount.discountPercentage / 100);
+          finalOneWayPrice = finalOneWayPrice - corpDiscountOneWay;
+          finalReturnPrice = finalReturnPrice - corpDiscountReturn;
+          corporateInfo = {
+            isCorporateRate: true,
+          };
+        }
+
         vehicles[vType] = {
           name: vehicleRates.name,
           description: vehicleRates.description,
@@ -1094,6 +1216,7 @@ export const handler = async (event, context) => {
               }),
             },
             ...surgeInfo,
+            ...corporateInfo,
           },
           return: {
             price: finalReturnPrice,
@@ -1114,6 +1237,7 @@ export const handler = async (event, context) => {
               }),
             },
             ...surgeInfo,
+            ...corporateInfo,
           },
         };
       }
@@ -1133,6 +1257,7 @@ export const handler = async (event, context) => {
         luggage: body.luggage || 0,
         extras,
         vehicles,
+        ...(corporateDiscount && corporateDiscount.discountPercentage > 0 && { isCorporateRate: true }),
         createdAt: new Date().toISOString(),
       };
 
