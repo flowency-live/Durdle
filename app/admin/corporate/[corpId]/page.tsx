@@ -85,8 +85,6 @@ export default function CorporateAccountDetailPage() {
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void; variant?: 'danger' | 'warning' | 'default' }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
   const [deleteModal, setDeleteModal] = useState(false);
   const [toast, setToast] = useState<{ isVisible: boolean; message: string; type: 'success' | 'error' | 'info' }>({ isVisible: false, message: '', type: 'info' });
-  const [pendingRemoveUserId, setPendingRemoveUserId] = useState<string | null>(null);
-  const [pendingStatusChange, setPendingStatusChange] = useState<'active' | 'suspended' | 'closed' | null>(null);
 
   const fetchAccount = useCallback(async () => {
     try {
@@ -189,7 +187,6 @@ export default function CorporateAccountDetailPage() {
   }
 
   function handleRemoveUser(userId: string) {
-    setPendingRemoveUserId(userId);
     setConfirmModal({
       isOpen: true,
       title: 'Remove User',
@@ -219,8 +216,6 @@ export default function CorporateAccountDetailPage() {
           fetchAccount();
         } catch (err) {
           setAlertModal({ isOpen: true, title: 'Error', message: err instanceof Error ? err.message : 'Failed to remove user', type: 'error' });
-        } finally {
-          setPendingRemoveUserId(null);
         }
       },
     });
@@ -253,7 +248,6 @@ export default function CorporateAccountDetailPage() {
   }
 
   function handleStatusChange(newStatus: 'active' | 'suspended' | 'closed') {
-    setPendingStatusChange(newStatus);
     const variant = newStatus === 'closed' ? 'danger' : newStatus === 'suspended' ? 'warning' : 'default';
     setConfirmModal({
       isOpen: true,
@@ -284,8 +278,6 @@ export default function CorporateAccountDetailPage() {
           fetchAccount();
         } catch (err) {
           setAlertModal({ isOpen: true, title: 'Error', message: err instanceof Error ? err.message : 'Failed to update status', type: 'error' });
-        } finally {
-          setPendingStatusChange(null);
         }
       },
     });
