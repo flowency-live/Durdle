@@ -1,0 +1,13 @@
+{
+  "name": "durdle-scripts",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Utility scripts for Durdle platform",
+  "scripts": {
+    "load-postcodes": "node load-uk-postcodes.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0"
+  }
+}

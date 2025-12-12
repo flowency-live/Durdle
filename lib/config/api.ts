@@ -46,6 +46,11 @@ export const API_ENDPOINTS = {
   // Companies House lookup
   companiesHouseSearch: '/admin/companies-house/search', // ?q=company+name
   companiesHouseLookup: '/admin/companies-house', // /{companyNumber}
+  // Zone Pricing endpoints
+  adminZones: '/admin/zones',
+  adminDestinations: '/admin/destinations',
+  adminZonePricing: '/admin/zones', // /admin/zones/{zoneId}/pricing
+  adminPricingMatrix: '/admin/pricing-matrix',
 } as const;
 
 /**

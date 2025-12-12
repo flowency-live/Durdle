@@ -30,7 +30,7 @@ const secretsClient = new SecretsManagerClient({ region: 'eu-west-2' });
 const CORPORATE_TABLE_NAME = process.env.CORPORATE_TABLE_NAME || 'durdle-corporate-dev';
 const JWT_SECRET_NAME = process.env.JWT_SECRET_NAME || 'durdle/jwt-secret';
 const JWT_EXPIRY = 28800; // 8 hours in seconds
-const MAGIC_LINK_TTL = 900; // 15 minutes in seconds
+const MAGIC_LINK_TTL = 5 * 24 * 60 * 60; // 5 days in seconds
 const MAX_MAGIC_LINKS_PER_HOUR = 3;
 
 // SES Configuration
@@ -330,7 +330,7 @@ async function requestMagicLink(requestBody, headers, logger, tenantId) {
             Charset: 'UTF-8',
           },
           Text: {
-            Data: `Hello ${userName},\n\nClick here to log in to your Dorset Transfer Company corporate account:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\n\nIf you did not request this link, please ignore this email.\n\nDorset Transfer Company`,
+            Data: `Hello ${userName},\n\nClick here to log in to your Dorset Transfer Company corporate account:\n\n${magicLink}\n\nThis link will expire in 5 days.\n\nIf you did not request this link, please ignore this email.\n\nDorset Transfer Company`,
             Charset: 'UTF-8',
           },
         },
@@ -366,7 +366,7 @@ async function requestMagicLink(requestBody, headers, logger, tenantId) {
       magicLink: magicLink,
       debugInfo: {
         note: 'Magic link shown for testing. In production, this will be sent via email only.',
-        expiresIn: '15 minutes',
+        expiresIn: '5 days',
       }
     }),
   };
@@ -1190,7 +1190,7 @@ async function forgotPassword(requestBody, headers, logger, tenantId) {
             Charset: 'UTF-8',
           },
           Text: {
-            Data: `Hello ${userRecord.name},\n\nYou requested to reset your password for your Dorset Transfer Company corporate account.\n\nClick here to reset your password:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\n\nIf you did not request this, please ignore this email.\n\nDorset Transfer Company`,
+            Data: `Hello ${userRecord.name},\n\nYou requested to reset your password for your Dorset Transfer Company corporate account.\n\nClick here to reset your password:\n\n${magicLink}\n\nThis link will expire in 5 days.\n\nIf you did not request this, please ignore this email.\n\nDorset Transfer Company`,
             Charset: 'UTF-8',
           },
         },
@@ -1221,7 +1221,7 @@ async function forgotPassword(requestBody, headers, logger, tenantId) {
       magicLink: magicLink,
       debugInfo: {
         note: 'Magic link shown for testing. In production, this will be sent via email only.',
-        expiresIn: '15 minutes',
+        expiresIn: '5 days',
       }
     }),
   };
