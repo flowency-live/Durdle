@@ -121,7 +121,12 @@ async function createBooking(bookingData, log, tenantId) {
     Item: item,
   }));
 
-  log.info({ bookingId, quoteId: bookingData.quoteId, tenantId }, 'Booking created successfully');
+  log.info({
+    bookingId,
+    quoteId: bookingData.quoteId,
+    corporateAccountId: item.corporateAccountId,
+    tenantId
+  }, 'Booking created successfully');
 
   return {
     bookingId,

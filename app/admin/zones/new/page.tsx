@@ -3,14 +3,17 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import ZoneMapLoader from '@/components/admin/ZoneMapLoader';
+import ZoneMapClickableLoader from '@/components/admin/ZoneMapClickableLoader';
 
-interface PostcodeArea {
-  outwardCode: string;
-  lat: number;
-  lon: number;
-  area: string;
-  isDorset: boolean;
+interface ZoneAssignment {
+  zoneId: string;
+  zoneName: string;
+}
+
+interface Zone {
+  zoneId: string;
+  name: string;
+  outwardCodes: string[];
 }
 
 const API_BASE = 'https://qcfd5p4514.execute-api.eu-west-2.amazonaws.com/dev';
@@ -20,7 +23,7 @@ type InputMode = 'manual' | 'map';
 
 export default function NewZonePage() {
   const router = useRouter();
-  const [postcodeAreas, setPostcodeAreas] = useState<PostcodeArea[]>([]);
+  const [zoneAssignments, setZoneAssignments] = useState<Record<string, ZoneAssignment>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [inputMode, setInputMode] = useState<InputMode>('map');
@@ -29,29 +32,40 @@ export default function NewZonePage() {
   const [formName, setFormName] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [formOutwardCodes, setFormOutwardCodes] = useState<string[]>([]);
-  const [formPolygon, setFormPolygon] = useState<GeoJSON.Polygon | null>(null);
   const [formActive, setFormActive] = useState(true);
   const [codeInput, setCodeInput] = useState('');
   const [codeError, setCodeError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchPostcodeAreas();
+    fetchZoneAssignments();
   }, []);
 
-  const fetchPostcodeAreas = async () => {
+  const fetchZoneAssignments = async () => {
     try {
       const token = localStorage.getItem('durdle_admin_token');
-      const response = await fetch(`${API_BASE}/admin/postcodes`, {
+      const response = await fetch(`${API_BASE}/admin/zones`, {
         headers: { Authorization: `Bearer ${token}` },
         credentials: 'include',
       });
 
       if (response.ok) {
         const data = await response.json();
-        setPostcodeAreas(data.postcodes || []);
+        const zones: Zone[] = data.zones || [];
+
+        // Build assignment map: outwardCode -> zone info
+        const assignments: Record<string, ZoneAssignment> = {};
+        zones.forEach((zone) => {
+          (zone.outwardCodes || []).forEach((code) => {
+            assignments[code] = {
+              zoneId: zone.zoneId,
+              zoneName: zone.name,
+            };
+          });
+        });
+        setZoneAssignments(assignments);
       }
     } catch (err) {
-      console.error('Failed to fetch postcode areas:', err);
+      console.error('Failed to fetch zones:', err);
     }
   };
 
@@ -140,7 +154,6 @@ export default function NewZonePage() {
           name: formName.trim(),
           description: formDescription.trim() || undefined,
           outwardCodes: formOutwardCodes,
-          polygon: formPolygon || undefined,
           active: formActive,
         }),
       });
@@ -242,14 +255,12 @@ export default function NewZonePage() {
         {inputMode === 'map' && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Draw Zone on Map <span className="text-gray-400 font-normal">({formOutwardCodes.length} codes selected)</span>
+              Select Postcode Areas <span className="text-gray-400 font-normal">({formOutwardCodes.length} codes selected)</span>
             </label>
-            <ZoneMapLoader
+            <ZoneMapClickableLoader
               selectedCodes={formOutwardCodes}
               onCodesChange={setFormOutwardCodes}
-              existingPolygon={formPolygon}
-              onPolygonChange={setFormPolygon}
-              postcodeAreas={postcodeAreas}
+              zoneAssignments={zoneAssignments}
               height="500px"
             />
           </div>

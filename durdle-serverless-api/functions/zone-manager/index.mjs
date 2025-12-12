@@ -409,6 +409,40 @@ async function listPostcodes(logger) {
   return postcodes;
 }
 
+// Get tenant configuration (for map boundary data)
+async function getTenantConfig(tenantId, logger) {
+  logger.info({ event: 'tenant_config_get_start', tenantId }, 'Getting tenant config');
+
+  // tenantId is already "TENANT#001" format from getTenantId(), use directly as PK
+  const command = new GetCommand({
+    TableName: PRICING_TABLE_NAME,
+    Key: {
+      PK: tenantId,
+      SK: 'CONFIG',
+    },
+  });
+
+  const result = await docClient.send(command);
+
+  if (!result.Item) {
+    logger.warn({ event: 'tenant_config_not_found', tenantId }, 'Tenant config not found');
+    return null;
+  }
+
+  const config = {
+    tenantId: result.Item.tenantId,
+    name: result.Item.name,
+    postcodeAreas: result.Item.postcodeAreas || [],
+    mapCenter: result.Item.mapCenter || { lat: 51.5, lon: -0.1 },
+    defaultZoom: result.Item.defaultZoom || 10,
+    s3BoundaryBucket: result.Item.s3BoundaryBucket || 'durdle-assets-dev',
+    s3BoundaryPrefix: result.Item.s3BoundaryPrefix || 'postcode-boundaries',
+  };
+
+  logger.info({ event: 'tenant_config_get_success', tenantId, areas: config.postcodeAreas.length }, 'Tenant config retrieved');
+  return config;
+}
+
 // Main handler
 export const handler = async (event, context) => {
   const logger = createLogger(event, context);
@@ -427,6 +461,23 @@ export const handler = async (event, context) => {
   }
 
   try {
+    // GET /admin/tenant-config - Get tenant configuration for map
+    if (httpMethod === 'GET' && path?.includes('/tenant-config')) {
+      const config = await getTenantConfig(tenantId, logger);
+      if (!config) {
+        return {
+          statusCode: 404,
+          headers,
+          body: JSON.stringify({ error: 'Tenant config not found' }),
+        };
+      }
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(config),
+      };
+    }
+
     // GET /admin/postcodes - List all UK postcodes for map
     if (httpMethod === 'GET' && path?.includes('/postcodes')) {
       const postcodes = await listPostcodes(logger);

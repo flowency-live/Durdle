@@ -179,7 +179,21 @@
       "Bash(MSYS_NO_PATHCONV=1 aws logs:*)",
       "Bash(git -C \"c:/VSProjects/_Websites/Durdle\" log --oneline -3)",
       "Bash(git -C \"c:/VSProjects/_Websites/Durdle\" add -A)",
-      "Bash(git -C \"c:/VSProjects/_Websites/Durdle\" commit -m \"Add Zone Pricing admin UI with map selection\")"
+      "Bash(git -C \"c:/VSProjects/_Websites/Durdle\" commit -m \"Add Zone Pricing admin UI with map selection\")",
+      "Bash(MSYS_NO_PATHCONV=1 aws dynamodb update-item:*)",
+      "Bash(git -C \"c:/VSProjects/_Websites/Durdle\" add app/admin/zone-pricing/page.tsx)",
+      "Bash(git -C \"c:/VSProjects/_Websites/Durdle\" commit -m \"Fix zone-pricing page to handle pricing data as object map\")",
+      "Bash(git -C \"c:/VSProjects/_Websites/Durdle\" add app/admin/destinations/page.tsx app/admin/zone-pricing/page.tsx components/admin/ZoneMap.tsx durdle-serverless-api/functions/zone-pricing-manager/index.mjs)",
+      "Bash(git -C \"c:/VSProjects/_Websites/Durdle\" commit -m \"Simplify zone pricing UI to grid view with Google Places autocomplete\")",
+      "Bash(python -m json.tool:*)",
+      "Bash(git -C \"c:/VSProjects/_Websites/Durdle\" add \"app/admin/zones/page.tsx\" \"app/admin/zones/new/page.tsx\" \"app/admin/zones/[zoneId]/page.tsx\")",
+      "Bash(git -C \"c:/VSProjects/_Websites/Durdle\" commit -m \"Change zone creation to full page with map instead of modal\")",
+      "Bash(grep:*)",
+      "Bash(aws s3 ls:*)",
+      "Bash(aws s3 mb:*)",
+      "Bash(aws s3 sync:*)",
+      "Bash(MSYS_NO_PATHCONV=1 aws dynamodb put-item:*)",
+      "Bash(git -C \"c:/VSProjects/_Websites/Durdle\" diff --stat)"
     ],
     "deny": [],
     "ask": []
