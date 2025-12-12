@@ -85,12 +85,12 @@ export default function BookingsTable({
               <td className="px-4 py-3 font-mono text-xs">{b.bookingId}</td>
               <td className="px-4 py-3">{formatDate(b.pickupTime)}</td>
               <td className="px-4 py-3">
-                <div>{b.customerName}</div>
-                <div className="text-xs text-gray-500">{b.customerPhone}</div>
+                <div>{b.customer?.name}</div>
+                <div className="text-xs text-gray-500">{b.customer?.phone}</div>
               </td>
               <td className="px-4 py-3">{b.pickupLocation?.address?.slice(0, 50)}</td>
               <td className="px-4 py-3">{b.dropoffLocation?.address?.slice(0, 50)}</td>
-              <td className="px-4 py-3">{formatPrice(b.totalPrice)}</td>
+              <td className="px-4 py-3">{b.pricing?.displayTotal || formatPrice(b.pricing?.breakdown?.total)}</td>
               <td className="px-4 py-3">
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[b.status] || 'bg-gray-100'}`}>
                   {b.status}

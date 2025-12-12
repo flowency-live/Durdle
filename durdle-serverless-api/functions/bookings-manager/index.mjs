@@ -109,6 +109,8 @@ async function createBooking(bookingData, log, tenantId) {
     },
     // Notes
     specialRequests: bookingData.specialRequests || '',
+    // Corporate account (optional)
+    corporateAccountId: bookingData.corporateAccountId || null,
     // Timestamps
     createdAt: now,
     updatedAt: now,
@@ -165,9 +167,29 @@ async function getBooking(bookingId, log, tenantId) {
 
 // List bookings (admin) with optional status filter
 async function listBookings(options = {}, log, tenantId) {
-  const { status, limit = 50, startDate, endDate } = options;
+  const { status, limit = 50, startDate, endDate, corporateAccountId } = options;
 
   let command;
+
+  // If filtering by corporate account, we need to scan (no GSI for this yet)
+  if (corporateAccountId) {
+    const { ScanCommand } = await import('@aws-sdk/lib-dynamodb');
+    command = new ScanCommand({
+      TableName: BOOKINGS_TABLE_NAME,
+      FilterExpression: 'corporateAccountId = :corpId AND (attribute_not_exists(tenantId) OR tenantId = :tenantId)',
+      ExpressionAttributeValues: {
+        ':corpId': corporateAccountId,
+        ':tenantId': tenantId,
+      },
+      Limit: limit,
+    });
+    const result = await docClient.send(command);
+    // Sort by createdAt descending (scan doesn't guarantee order)
+    const items = result.Items || [];
+    items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    log.info({ count: items.length, corporateAccountId, tenantId }, 'Corporate bookings listed');
+    return items;
+  }
 
   if (status && status !== 'all') {
     // Query by status using GSI1 (skip if "all" - treat as no filter)
@@ -333,6 +355,7 @@ export const handler = async (event, context) => {
         status: queryStringParameters?.status,
         limit: parseInt(queryStringParameters?.limit || '50', 10),
         startDate: queryStringParameters?.date,
+        corporateAccountId: queryStringParameters?.corporateAccountId,
       };
 
       const bookings = await listBookings(options, log, tenantId);

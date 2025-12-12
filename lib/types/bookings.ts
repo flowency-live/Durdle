@@ -9,28 +9,45 @@ export interface Booking {
   createdAt: string;
   updatedAt: string;
 
-  // Customer info
-  customerName: string;
-  customerEmail: string;
-  customerPhone: string;
+  // Customer info (nested)
+  customer: {
+    name: string;
+    email: string;
+    phone: string;
+  };
 
   // Journey details
   pickupLocation: {
     address: string;
     placeId?: string;
+    lat?: number;
+    lng?: number;
   };
   dropoffLocation: {
     address: string;
     placeId?: string;
+    lat?: number;
+    lng?: number;
   };
   pickupTime: string;
   passengers: number;
   luggage?: number;
 
-  // Pricing
-  totalPrice: number;
+  // Pricing (nested)
+  pricing: {
+    displayTotal: string;
+    currency: string;
+    breakdown: {
+      baseFare: number;
+      distanceCharge: number;
+      waitTimeCharge: number;
+      subtotal: number;
+      tax: number;
+      total: number;
+    };
+  };
   vehicleType: string;
-  isReturn?: boolean;
+  returnJourney?: boolean;
 
   // Optional
   specialRequests?: string;

@@ -77,9 +77,11 @@ export default function CorporateAccountDetailPage() {
 
   const [account, setAccount] = useState<CorporateAccount | null>(null);
   const [users, setUsers] = useState<CorporateUser[]>([]);
+  const [bookings, setBookings] = useState<CorporateBooking[]>([]);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'details' | 'users'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'users' | 'bookings'>('details');
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [addUserLoading, setAddUserLoading] = useState(false);
   const [newUser, setNewUser] = useState<{ email: string; name: string; role: 'admin' | 'booker' }>({ email: '', name: '', role: 'booker' });
@@ -160,10 +162,42 @@ export default function CorporateAccountDetailPage() {
     }
   }, [corpId]);
 
+  const fetchBookings = useCallback(async () => {
+    setBookingsLoading(true);
+    try {
+      const token = localStorage.getItem('durdle_admin_token');
+      const response = await fetch(
+        `${API_BASE_URL}${API_ENDPOINTS.adminBookings}?corporateAccountId=${corpId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setBookings(data.bookings || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch bookings:', err);
+    } finally {
+      setBookingsLoading(false);
+    }
+  }, [corpId]);
+
   useEffect(() => {
     fetchAccount();
     fetchUsers();
   }, [fetchAccount, fetchUsers]);
+
+  // Fetch bookings when tab is selected
+  useEffect(() => {
+    if (activeTab === 'bookings' && bookings.length === 0 && !bookingsLoading) {
+      fetchBookings();
+    }
+  }, [activeTab, bookings.length, bookingsLoading, fetchBookings]);
 
   async function handleAddUser(e: React.FormEvent) {
     e.preventDefault();
@@ -616,11 +650,21 @@ export default function CorporateAccountDetailPage() {
             >
               Users ({users.length})
             </button>
+            <button
+              onClick={() => setActiveTab('bookings')}
+              className={`px-6 py-4 text-sm font-medium border-b-2 ${
+                activeTab === 'bookings'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Bookings ({bookings.length})
+            </button>
           </nav>
         </div>
 
         <div className="p-6">
-          {activeTab === 'details' ? (
+          {activeTab === 'details' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <h3 className="text-sm font-medium text-gray-500 mb-2">Contact Information</h3>
@@ -737,7 +781,8 @@ export default function CorporateAccountDetailPage() {
                 </div>
               </div>
             </div>
-          ) : (
+          )}
+          {activeTab === 'users' && (
             <div>
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-medium text-gray-900">Team Members</h3>
@@ -793,6 +838,81 @@ export default function CorporateAccountDetailPage() {
                             >
                               Remove
                             </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+          {activeTab === 'bookings' && (
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Booking History</h3>
+                <button
+                  onClick={() => fetchBookings()}
+                  disabled={bookingsLoading}
+                  className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+                >
+                  {bookingsLoading ? 'Loading...' : 'Refresh'}
+                </button>
+              </div>
+
+              {bookingsLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="mt-2 text-gray-500">Loading bookings...</p>
+                </div>
+              ) : bookings.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No bookings found for this corporate account.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Booking ID</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Route</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pickup</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Price</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {bookings.map((booking) => (
+                        <tr key={booking.bookingId} className="hover:bg-gray-50">
+                          <td className="px-4 py-3">
+                            <span className="font-mono text-sm text-blue-600">{booking.bookingId}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="text-sm font-medium text-gray-900">{booking.customer?.name}</div>
+                            <div className="text-xs text-gray-500">{booking.customer?.email}</div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="text-sm text-gray-900 truncate max-w-[200px]" title={booking.pickupLocation?.address}>
+                              {booking.pickupLocation?.address?.split(',')[0]}
+                            </div>
+                            <div className="text-xs text-gray-500 truncate max-w-[200px]" title={booking.dropoffLocation?.address}>
+                              to {booking.dropoffLocation?.address?.split(',')[0]}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-500">
+                            {new Date(booking.pickupTime).toLocaleString('en-GB', {
+                              day: '2-digit',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </td>
+                          <td className="px-4 py-3">
+                            {getStatusBadge(booking.status)}
+                          </td>
+                          <td className="px-4 py-3 text-right text-sm font-medium text-gray-900">
+                            {booking.pricing?.displayTotal || (booking.pricing?.breakdown?.total ? `£${(booking.pricing.breakdown.total / 100).toFixed(2)}` : '-')}
                           </td>
                         </tr>
                       ))}

@@ -93,15 +93,15 @@ export default function BookingDetailsModal({ bookingId, onClose, onStatusChange
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <p className="text-gray-500">Name</p>
-                  <p className="font-medium">{data.customerName}</p>
+                  <p className="font-medium">{data.customer?.name}</p>
                 </div>
                 <div>
                   <p className="text-gray-500">Phone</p>
-                  <p className="font-medium">{data.customerPhone}</p>
+                  <p className="font-medium">{data.customer?.phone}</p>
                 </div>
                 <div className="col-span-2">
                   <p className="text-gray-500">Email</p>
-                  <p className="font-medium">{data.customerEmail}</p>
+                  <p className="font-medium">{data.customer?.email}</p>
                 </div>
               </div>
             </div>
@@ -136,7 +136,7 @@ export default function BookingDetailsModal({ bookingId, onClose, onStatusChange
                     <p className="font-medium">{data.luggage || 0}</p>
                   </div>
                 </div>
-                {data.isReturn && (
+                {data.returnJourney && (
                   <div>
                     <p className="text-green-600 font-medium">Return Journey Included</p>
                   </div>
@@ -149,7 +149,7 @@ export default function BookingDetailsModal({ bookingId, onClose, onStatusChange
               <div className="flex justify-between items-center">
                 <p className="text-gray-600">Total Price</p>
                 <p className="text-2xl font-bold text-green-700">
-                  {data.totalPrice ? `£${(data.totalPrice / 100).toFixed(2)}` : '-'}
+                  {data.pricing?.displayTotal || (data.pricing?.breakdown?.total ? `£${(data.pricing.breakdown.total / 100).toFixed(2)}` : '-')}
                 </p>
               </div>
             </div>

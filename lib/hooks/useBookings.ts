@@ -18,7 +18,11 @@ export function useBookings(filters: BookingFilters): ReturnType<typeof useApi<B
 
 export function useBookingDetails(bookingId?: string): ReturnType<typeof useApi<Booking | null>> {
   return useApi<Booking | null>(
-    () => (bookingId ? adminApi.getBookingDetails(bookingId) as Promise<Booking> : Promise.resolve(null)),
+    async () => {
+      if (!bookingId) return null;
+      const response = await adminApi.getBookingDetails(bookingId) as { booking: Booking };
+      return response.booking;
+    },
     [bookingId],
     { immediate: !!bookingId }
   );
