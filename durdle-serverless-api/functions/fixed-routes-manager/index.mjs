@@ -17,7 +17,9 @@ let cachedApiKey = null;
 const getAllowedOrigins = () => [
   'http://localhost:3000',
   'https://durdle.flowency.build',
-  'https://durdle.co.uk'
+  'https://durdle.co.uk',
+  'https://dorsettransfercompany.flowency.build',
+  'https://dorsettransfercompany.co.uk'
 ];
 
 const getHeaders = (origin) => {

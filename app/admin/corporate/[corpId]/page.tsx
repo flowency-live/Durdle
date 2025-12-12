@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 
 import { API_BASE_URL, API_ENDPOINTS } from '../../../../lib/config/api';
+import { AlertModal, ConfirmModal, InputConfirmModal, Toast } from '../../../../components/admin/Modal';
 
 interface CorporateAccount {
   corpId: string;
@@ -78,6 +79,14 @@ export default function CorporateAccountDetailPage() {
   });
   const [savingEdit, setSavingEdit] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Modal states
+  const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title: string; message: string; type: 'success' | 'error' | 'info' | 'warning' }>({ isOpen: false, title: '', message: '', type: 'info' });
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void; variant?: 'danger' | 'warning' | 'default' }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+  const [deleteModal, setDeleteModal] = useState(false);
+  const [toast, setToast] = useState<{ isVisible: boolean; message: string; type: 'success' | 'error' | 'info' }>({ isVisible: false, message: '', type: 'info' });
+  const [pendingRemoveUserId, setPendingRemoveUserId] = useState<string | null>(null);
+  const [pendingStatusChange, setPendingStatusChange] = useState<'active' | 'suspended' | 'closed' | null>(null);
 
   const fetchAccount = useCallback(async () => {
     try {
@@ -167,7 +176,7 @@ export default function CorporateAccountDetailPage() {
       fetchUsers();
       fetchAccount(); // Refresh stats
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to add user');
+      setAlertModal({ isOpen: true, title: 'Error', message: err instanceof Error ? err.message : 'Failed to add user', type: 'error' });
     } finally {
       setAddUserLoading(false);
     }
@@ -179,31 +188,42 @@ export default function CorporateAccountDetailPage() {
     setNewUser({ email: '', name: '', role: 'booker' });
   }
 
-  async function handleRemoveUser(userId: string) {
-    if (!confirm('Are you sure you want to remove this user?')) return;
+  function handleRemoveUser(userId: string) {
+    setPendingRemoveUserId(userId);
+    setConfirmModal({
+      isOpen: true,
+      title: 'Remove User',
+      message: 'Are you sure you want to remove this user from the corporate account?',
+      variant: 'danger',
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        try {
+          const token = localStorage.getItem('durdle_admin_token');
+          const response = await fetch(
+            `${API_BASE_URL}${API_ENDPOINTS.adminCorporate}/${corpId}/users/${userId}`,
+            {
+              method: 'DELETE',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
 
-    try {
-      const token = localStorage.getItem('durdle_admin_token');
-      const response = await fetch(
-        `${API_BASE_URL}${API_ENDPOINTS.adminCorporate}/${corpId}/users/${userId}`,
-        {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
+          if (!response.ok) {
+            throw new Error('Failed to remove user');
+          }
+
+          setToast({ isVisible: true, message: 'User removed successfully', type: 'success' });
+          fetchUsers();
+          fetchAccount();
+        } catch (err) {
+          setAlertModal({ isOpen: true, title: 'Error', message: err instanceof Error ? err.message : 'Failed to remove user', type: 'error' });
+        } finally {
+          setPendingRemoveUserId(null);
         }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to remove user');
-      }
-
-      fetchUsers();
-      fetchAccount(); // Refresh stats
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to remove user');
-    }
+      },
+    });
   }
 
   async function handleResendLink(userId: string) {
@@ -228,35 +248,47 @@ export default function CorporateAccountDetailPage() {
       setMagicLink(data.magicLink);
       setShowAddUserModal(true); // Reuse the modal to show the magic link
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to generate magic link');
+      setAlertModal({ isOpen: true, title: 'Error', message: err instanceof Error ? err.message : 'Failed to generate magic link', type: 'error' });
     }
   }
 
-  async function handleStatusChange(newStatus: 'active' | 'suspended' | 'closed') {
-    if (!confirm(`Are you sure you want to change status to ${newStatus}?`)) return;
+  function handleStatusChange(newStatus: 'active' | 'suspended' | 'closed') {
+    setPendingStatusChange(newStatus);
+    const variant = newStatus === 'closed' ? 'danger' : newStatus === 'suspended' ? 'warning' : 'default';
+    setConfirmModal({
+      isOpen: true,
+      title: 'Change Account Status',
+      message: `Are you sure you want to change the account status to "${newStatus}"?`,
+      variant,
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        try {
+          const token = localStorage.getItem('durdle_admin_token');
+          const response = await fetch(
+            `${API_BASE_URL}${API_ENDPOINTS.adminCorporate}/${corpId}`,
+            {
+              method: 'PUT',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ status: newStatus }),
+            }
+          );
 
-    try {
-      const token = localStorage.getItem('durdle_admin_token');
-      const response = await fetch(
-        `${API_BASE_URL}${API_ENDPOINTS.adminCorporate}/${corpId}`,
-        {
-          method: 'PUT',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ status: newStatus }),
+          if (!response.ok) {
+            throw new Error('Failed to update status');
+          }
+
+          setToast({ isVisible: true, message: `Account status changed to ${newStatus}`, type: 'success' });
+          fetchAccount();
+        } catch (err) {
+          setAlertModal({ isOpen: true, title: 'Error', message: err instanceof Error ? err.message : 'Failed to update status', type: 'error' });
+        } finally {
+          setPendingStatusChange(null);
         }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to update status');
-      }
-
-      fetchAccount();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to update status');
-    }
+      },
+    });
   }
 
   function startEditingDomains() {
@@ -293,9 +325,10 @@ export default function CorporateAccountDetailPage() {
       }
 
       setEditingDomains(false);
+      setToast({ isVisible: true, message: 'Allowed domains updated', type: 'success' });
       fetchAccount();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to update allowed domains');
+      setAlertModal({ isOpen: true, title: 'Error', message: err instanceof Error ? err.message : 'Failed to update allowed domains', type: 'error' });
     } finally {
       setSavingDomains(false);
     }
@@ -378,28 +411,27 @@ export default function CorporateAccountDetailPage() {
       }
 
       setIsEditing(false);
+      setToast({ isVisible: true, message: 'Account updated successfully', type: 'success' });
       fetchAccount();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to update account');
+      setAlertModal({ isOpen: true, title: 'Error', message: err instanceof Error ? err.message : 'Failed to update account', type: 'error' });
     } finally {
       setSavingEdit(false);
     }
   }
 
-  async function handleDeleteAccount() {
+  function handleDeleteAccount() {
     if (!account) return;
+    setDeleteModal(true);
+  }
 
-    const confirmation = prompt(
-      `This will PERMANENTLY DELETE "${account.companyName}" and all its users.\n\nType the company name to confirm:`
-    );
-
-    if (confirmation !== account.companyName) {
-      if (confirmation !== null) {
-        alert('Company name did not match. Deletion cancelled.');
-      }
+  async function confirmDeleteAccount(inputValue: string) {
+    if (!account || inputValue !== account.companyName) {
+      setAlertModal({ isOpen: true, title: 'Error', message: 'Company name did not match. Deletion cancelled.', type: 'warning' });
       return;
     }
 
+    setDeleteModal(false);
     setIsDeleting(true);
     try {
       const token = localStorage.getItem('durdle_admin_token');
@@ -419,10 +451,15 @@ export default function CorporateAccountDetailPage() {
         throw new Error(data.error || 'Failed to delete account');
       }
 
-      alert('Corporate account permanently deleted');
-      router.push('/admin/corporate');
+      setAlertModal({
+        isOpen: true,
+        title: 'Success',
+        message: 'Corporate account permanently deleted',
+        type: 'success',
+      });
+      setTimeout(() => router.push('/admin/corporate'), 1500);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete account');
+      setAlertModal({ isOpen: true, title: 'Error', message: err instanceof Error ? err.message : 'Failed to delete account', type: 'error' });
     } finally {
       setIsDeleting(false);
     }
@@ -775,7 +812,7 @@ export default function CorporateAccountDetailPage() {
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(magicLink);
-                      alert('Magic link copied to clipboard!');
+                      setToast({ isVisible: true, message: 'Magic link copied to clipboard!', type: 'success' });
                     }}
                     className="mt-3 w-full px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg hover:bg-yellow-200 text-sm font-medium"
                   >
@@ -1029,6 +1066,48 @@ export default function CorporateAccountDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Branded Modals */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        variant={confirmModal.variant}
+        confirmText="Confirm"
+        cancelText="Cancel"
+      />
+
+      <InputConfirmModal
+        isOpen={deleteModal}
+        onClose={() => setDeleteModal(false)}
+        onConfirm={confirmDeleteAccount}
+        title="Delete Corporate Account"
+        message={`This will PERMANENTLY DELETE "${account?.companyName}" and all its users. This action cannot be undone.`}
+        inputLabel="Type the company name to confirm:"
+        inputPlaceholder={account?.companyName || ''}
+        expectedValue={account?.companyName}
+        confirmText="Delete Account"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={isDeleting}
+      />
+
+      <Toast
+        isVisible={toast.isVisible}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast(prev => ({ ...prev, isVisible: false }))}
+      />
     </div>
   );
 }

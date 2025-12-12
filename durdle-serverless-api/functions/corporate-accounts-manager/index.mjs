@@ -14,7 +14,7 @@ import {
 } from './validation.mjs';
 
 const CORPORATE_PORTAL_URL = process.env.CORPORATE_PORTAL_URL || 'https://dorsettransfercompany.flowency.build/corporate';
-const MAGIC_TOKEN_TTL_SECONDS = 15 * 60; // 15 minutes
+const MAGIC_TOKEN_TTL_SECONDS = 5 * 24 * 60 * 60; // 5 days
 
 const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION || 'eu-west-2' });
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
@@ -181,7 +181,7 @@ async function createMagicLinkToken(tenantId, email, corpId, userId, tokenType =
   return token;
 }
 
-// Create a new corporate account
+// Create a new corporate account (automatically creates admin user from contact info)
 async function createCorporateAccount(requestBody, headers, logger, tenantId) {
   const body = JSON.parse(requestBody || '{}');
   const validation = validateRequest(body, CreateCorporateAccountSchema);
@@ -192,9 +192,11 @@ async function createCorporateAccount(requestBody, headers, logger, tenantId) {
 
   const data = validation.data;
   const corpId = generateCorpId();
+  const userId = generateUserId();
   const now = new Date().toISOString();
 
-  const item = {
+  // Create the corporate account
+  const accountItem = {
     PK: buildTenantPK(tenantId, 'CORP', corpId),
     SK: 'METADATA',
     EntityType: 'CorporateAccount',
@@ -221,7 +223,7 @@ async function createCorporateAccount(requestBody, headers, logger, tenantId) {
     stats: {
       totalBookings: 0,
       totalSpend: 0,
-      usersCount: 0,
+      usersCount: 1, // Start with 1 user (the admin we're about to create)
     },
     notes: data.notes || null,
     // Timestamps
@@ -231,16 +233,61 @@ async function createCorporateAccount(requestBody, headers, logger, tenantId) {
 
   await docClient.send(new PutCommand({
     TableName: CORPORATE_TABLE_NAME,
-    Item: item,
+    Item: accountItem,
     ConditionExpression: 'attribute_not_exists(PK)',
   }));
+
+  // Create the first admin user from the contact info
+  const userItem = {
+    PK: buildTenantPK(tenantId, 'CORP', corpId),
+    SK: `USER#${userId}`,
+    EntityType: 'CorporateUser',
+    tenantId,
+    corpAccountId: corpId,
+    userId,
+    // GSI1: For looking up user by email across all corporate accounts
+    GSI1PK: `${tenantId}#CORP_USER_EMAIL`,
+    GSI1SK: data.contactEmail.toLowerCase(),
+    // User details
+    email: data.contactEmail.toLowerCase(),
+    name: data.contactName,
+    role: 'admin', // First user is always admin
+    status: 'pending', // Pending until they verify magic link
+    // Stats
+    stats: {
+      bookingsCount: 0,
+      lastBookingAt: null,
+    },
+    // Timestamps
+    createdAt: now,
+    updatedAt: now,
+    lastLoginAt: null,
+  };
+
+  await docClient.send(new PutCommand({
+    TableName: CORPORATE_TABLE_NAME,
+    Item: userItem,
+  }));
+
+  // Generate magic link for the admin user
+  const magicToken = await createMagicLinkToken(
+    tenantId,
+    data.contactEmail,
+    corpId,
+    userId,
+    'invite'
+  );
+
+  const magicLink = `${CORPORATE_PORTAL_URL}/verify?token=${magicToken}`;
 
   logger.info({
     event: 'corporate_account_created',
     corpId,
     companyName: data.companyName,
+    adminUserId: userId,
+    adminEmail: data.contactEmail,
     tenantId,
-  }, 'Corporate account created');
+  }, 'Corporate account created with admin user');
 
   return {
     statusCode: 201,
@@ -248,13 +295,24 @@ async function createCorporateAccount(requestBody, headers, logger, tenantId) {
     body: JSON.stringify({
       success: true,
       corporateAccount: {
-        corpId: item.corpId,
-        companyName: item.companyName,
-        contactName: item.contactName,
-        contactEmail: item.contactEmail,
-        status: item.status,
-        discountPercentage: item.discountPercentage,
-        createdAt: item.createdAt,
+        corpId: accountItem.corpId,
+        companyName: accountItem.companyName,
+        contactName: accountItem.contactName,
+        contactEmail: accountItem.contactEmail,
+        status: accountItem.status,
+        discountPercentage: accountItem.discountPercentage,
+        createdAt: accountItem.createdAt,
+      },
+      adminUser: {
+        userId: userItem.userId,
+        email: userItem.email,
+        name: userItem.name,
+        role: userItem.role,
+        status: userItem.status,
+      },
+      magicLink,
+      instructions: {
+        note: 'Magic link expires in 5 days. Share this with the admin to set up their account.',
       },
     }),
   };
@@ -683,7 +741,7 @@ async function addCorporateUser(corpId, requestBody, headers, logger, tenantId) 
           },
           magicLink,
           instructions: {
-            note: 'Magic link expires in 15 minutes. Share this with the user to set up their account.',
+            note: 'Magic link expires in 5 days. Share this with the user to set up their account.',
           },
         }),
       };
@@ -777,8 +835,8 @@ async function addCorporateUser(corpId, requestBody, headers, logger, tenantId) 
       },
       magicLink, // Return magic link for admin to share with user
       debugInfo: {
-        note: 'Magic link expires in 15 minutes. Share this with the user to set up their account.',
-        expiresIn: '15 minutes',
+        note: 'Magic link expires in 5 days. Share this with the user to set up their account.',
+        expiresIn: '5 days',
       },
     }),
   };
@@ -1038,7 +1096,7 @@ async function regenerateMagicLink(corpId, userId, headers, logger, tenantId) {
       },
       magicLink,
       instructions: {
-        note: 'Magic link expires in 15 minutes. Share this with the user to set up their account.',
+        note: 'Magic link expires in 5 days. Share this with the user to set up their account.',
       },
     }),
   };

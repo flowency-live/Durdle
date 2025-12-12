@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 
 import { API_BASE_URL, API_ENDPOINTS } from '../../../../lib/config/api';
+import { Toast } from '../../../../components/admin/Modal';
 
 interface CompanySearchResult {
   companyNumber: string;
@@ -38,10 +39,19 @@ interface FormData {
   allowedDomains: string;
 }
 
+interface CreatedAccountData {
+  corpId: string;
+  companyName: string;
+  adminEmail: string;
+  magicLink: string;
+}
+
 export default function NewCorporateAccountPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [createdAccount, setCreatedAccount] = useState<CreatedAccountData | null>(null);
+  const [toast, setToast] = useState<{ isVisible: boolean; message: string; type: 'success' | 'error' | 'info' }>({ isVisible: false, message: '', type: 'info' });
   const [formData, setFormData] = useState<FormData>({
     companyName: '',
     companyNumber: '',
@@ -202,11 +212,31 @@ export default function NewCorporateAccountPage() {
       }
 
       const data = await response.json();
-      router.push(`/admin/corporate/${data.corporateAccount.corpId}`);
+
+      // Show success modal with magic link instead of immediate redirect
+      setCreatedAccount({
+        corpId: data.corporateAccount.corpId,
+        companyName: data.corporateAccount.companyName,
+        adminEmail: data.adminUser?.email || data.corporateAccount.contactEmail,
+        magicLink: data.magicLink,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCopyMagicLink = () => {
+    if (createdAccount?.magicLink) {
+      navigator.clipboard.writeText(createdAccount.magicLink);
+      setToast({ isVisible: true, message: 'Magic link copied to clipboard!', type: 'success' });
+    }
+  };
+
+  const handleViewAccount = () => {
+    if (createdAccount?.corpId) {
+      router.push(`/admin/corporate/${createdAccount.corpId}`);
     }
   };
 
@@ -554,6 +584,65 @@ export default function NewCorporateAccountPage() {
           </div>
         </form>
       </div>
+
+      {/* Success Modal with Magic Link */}
+      {createdAccount && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg mx-4">
+            <div className="text-center mb-4">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="mt-4 text-xl font-semibold text-gray-900">Account Created!</h2>
+              <p className="mt-2 text-sm text-gray-600">
+                <span className="font-medium">{createdAccount.companyName}</span> has been created successfully.
+              </p>
+            </div>
+
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm font-medium text-blue-800 mb-2">
+                Admin User Created: {createdAccount.adminEmail}
+              </p>
+              <p className="text-xs text-blue-600 mb-3">
+                Copy and share this magic link with the admin to set up their account:
+              </p>
+              <div className="bg-white p-2 rounded border border-blue-300 overflow-x-auto">
+                <code className="text-xs text-blue-700 break-all">{createdAccount.magicLink}</code>
+              </div>
+              <button
+                onClick={handleCopyMagicLink}
+                className="mt-3 w-full px-4 py-2 bg-blue-100 text-blue-800 rounded-lg hover:bg-blue-200 text-sm font-medium transition-colors"
+              >
+                Copy Magic Link
+              </button>
+            </div>
+
+            <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-xs text-yellow-800">
+                <span className="font-medium">Note:</span> The magic link expires in 5 days. Make sure to share it with the admin user.
+              </p>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={handleViewAccount}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                View Account
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Toast
+        isVisible={toast.isVisible}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast(prev => ({ ...prev, isVisible: false }))}
+      />
     </div>
   );
 }
