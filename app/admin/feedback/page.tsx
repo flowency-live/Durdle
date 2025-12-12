@@ -19,6 +19,13 @@ export default function FeedbackPage() {
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showClosed, setShowClosed] = useState(false);
+
+  // Filter out Done/Closed unless showClosed is true
+  const visibleFeedback = showClosed
+    ? feedback
+    : feedback.filter((item) => item.status !== 'Done' && item.status !== 'Closed');
+  const hiddenCount = feedback.length - visibleFeedback.length;
 
   const fetchFeedback = async () => {
     setLoading(true);
@@ -165,26 +172,49 @@ export default function FeedbackPage() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Feedback</h1>
             <p className="text-sm text-gray-600">
-              {feedback.length} total submissions
+              {visibleFeedback.length} active{hiddenCount > 0 && !showClosed && ` (${hiddenCount} hidden)`}
             </p>
           </div>
         </div>
-        <button
-          onClick={fetchFeedback}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-        >
-          <RefreshCw className="w-4 h-4" />
-          Refresh
-        </button>
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showClosed}
+              onChange={(e) => setShowClosed(e.target.checked)}
+              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            Show Done/Closed
+          </label>
+          <button
+            onClick={fetchFeedback}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </button>
+        </div>
       </div>
 
-      {feedback.length === 0 ? (
+      {visibleFeedback.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-12 text-center">
           <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">No feedback yet</h3>
+          <h3 className="text-xl font-semibold text-gray-700 mb-2">
+            {feedback.length === 0 ? 'No feedback yet' : 'No active feedback'}
+          </h3>
           <p className="text-gray-500">
-            Feedback submissions will appear here when users submit them
+            {feedback.length === 0
+              ? 'Feedback submissions will appear here when users submit them'
+              : `${hiddenCount} item${hiddenCount !== 1 ? 's' : ''} marked as Done or Closed`}
           </p>
+          {hiddenCount > 0 && (
+            <button
+              onClick={() => setShowClosed(true)}
+              className="mt-4 text-blue-600 hover:text-blue-800 text-sm font-medium"
+            >
+              Show closed items
+            </button>
+          )}
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -213,7 +243,7 @@ export default function FeedbackPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {feedback.map((item) => (
+                {visibleFeedback.map((item) => (
                   <tr key={item.feedbackId} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(item.type)}`}>
