@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { ConfirmModal } from '@/components/admin/Modal';
 
 interface Zone {
   zoneId: string;
@@ -72,6 +73,7 @@ export default function ZonePricingPage() {
   // Filter state
   const [filterZone, setFilterZone] = useState('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
+  const [deleteConfirm, setDeleteConfirm] = useState<FixedPriceRoute | null>(null);
 
   useEffect(() => {
     fetchAllData();
@@ -291,9 +293,12 @@ export default function ZonePricingPage() {
     }
   };
 
-  const handleDelete = async (route: FixedPriceRoute) => {
-    if (!confirm(`Delete fixed price route "${route.name}"?`)) return;
+  const handleDeleteClick = (route: FixedPriceRoute) => {
+    setDeleteConfirm(route);
+  };
 
+  const handleDelete = async (route: FixedPriceRoute) => {
+    setDeleteConfirm(null);
     try {
       const token = localStorage.getItem('durdle_admin_token');
       const response = await fetch(
@@ -744,7 +749,7 @@ export default function ZonePricingPage() {
                           {route.active ? 'Deactivate' : 'Activate'}
                         </button>
                         <button
-                          onClick={() => handleDelete(route)}
+                          onClick={() => handleDeleteClick(route)}
                           className="px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
                         >
                           Delete
@@ -758,6 +763,16 @@ export default function ZonePricingPage() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={deleteConfirm !== null}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={() => deleteConfirm && handleDelete(deleteConfirm)}
+        title="Delete Zone Price Route"
+        message={`Are you sure you want to delete the zone price route "${deleteConfirm?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        variant="danger"
+      />
     </div>
   );
 }

@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
+import { ConfirmModal } from '@/components/admin/Modal';
+
 interface Zone {
   zoneId: string;
   name: string;
@@ -19,6 +21,11 @@ export default function ZonesManagement() {
   const [zones, setZones] = useState<Zone[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; zone: Zone | null; isDeleting: boolean }>({
+    isOpen: false,
+    zone: null,
+    isDeleting: false,
+  });
 
   useEffect(() => {
     fetchZones();
@@ -64,14 +71,18 @@ export default function ZonesManagement() {
     }
   };
 
-  const handleDelete = async (zone: Zone) => {
-    if (!confirm(`Are you sure you want to delete "${zone.name}"? This will also remove all PostcodeLookup records for this zone.`)) {
-      return;
-    }
+  const handleDeleteClick = (zone: Zone) => {
+    setDeleteConfirm({ isOpen: true, zone, isDeleting: false });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirm.zone) return;
+
+    setDeleteConfirm(prev => ({ ...prev, isDeleting: true }));
 
     try {
       const token = localStorage.getItem('durdle_admin_token');
-      const response = await fetch(`${API_BASE}/admin/zones/${zone.zoneId}`, {
+      const response = await fetch(`${API_BASE}/admin/zones/${deleteConfirm.zone.zoneId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
         credentials: 'include',
@@ -79,9 +90,11 @@ export default function ZonesManagement() {
 
       if (!response.ok) throw new Error('Failed to delete zone');
 
+      setDeleteConfirm({ isOpen: false, zone: null, isDeleting: false });
       await fetchZones();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete zone');
+      setDeleteConfirm({ isOpen: false, zone: null, isDeleting: false });
     }
   };
 
@@ -207,7 +220,7 @@ export default function ZonesManagement() {
                         {zone.active ? 'Deactivate' : 'Activate'}
                       </button>
                       <button
-                        onClick={() => handleDelete(zone)}
+                        onClick={() => handleDeleteClick(zone)}
                         className="px-2 py-1 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200"
                       >
                         Delete
@@ -220,6 +233,19 @@ export default function ZonesManagement() {
           </table>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, zone: null, isDeleting: false })}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Zone"
+        message={`Are you sure you want to delete "${deleteConfirm.zone?.name}"? This will also remove all PostcodeLookup records for this zone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={deleteConfirm.isDeleting}
+      />
     </div>
   );
 }

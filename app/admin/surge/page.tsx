@@ -2,6 +2,7 @@
 
 import { Plus, Trash2, Edit2, Check, X, RefreshCw, Zap, Calendar, Clock, AlertTriangle } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
+import { ConfirmModal } from '@/components/admin/Modal';
 
 interface SurgeRule {
   ruleId: string;
@@ -48,6 +49,7 @@ export default function SurgePricingPage() {
   const [showTemplates, setShowTemplates] = useState(false);
   const [saving, setSaving] = useState(false);
   const [applyingTemplate, setApplyingTemplate] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   // Form state for create/edit
   const [formData, setFormData] = useState({
@@ -218,9 +220,12 @@ export default function SurgePricingPage() {
     }
   };
 
-  const handleDelete = async (ruleId: string) => {
-    if (!confirm('Are you sure you want to delete this surge rule?')) return;
+  const handleDeleteClick = (ruleId: string) => {
+    setDeleteConfirm(ruleId);
+  };
 
+  const handleDelete = async (ruleId: string) => {
+    setDeleteConfirm(null);
     try {
       const response = await fetch(`${API_BASE}/admin/pricing/surge/${ruleId}`, {
         method: 'DELETE',
@@ -516,7 +521,7 @@ export default function SurgePricingPage() {
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(rule.ruleId)}
+                          onClick={() => handleDeleteClick(rule.ruleId)}
                           className="p-1 text-gray-400 hover:text-red-600"
                           title="Delete"
                         >
@@ -751,6 +756,16 @@ export default function SurgePricingPage() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={deleteConfirm !== null}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={() => deleteConfirm && handleDelete(deleteConfirm)}
+        title="Delete Surge Rule"
+        message="Are you sure you want to delete this surge rule? This action cannot be undone."
+        confirmText="Delete"
+        variant="danger"
+      />
 
       {/* Templates Modal */}
       {showTemplates && (

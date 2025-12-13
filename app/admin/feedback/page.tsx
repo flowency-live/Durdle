@@ -2,6 +2,7 @@
 
 import { MessageSquare, Trash2, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { ConfirmModal } from '@/components/admin/Modal';
 
 interface Feedback {
   feedbackId: string;
@@ -20,6 +21,7 @@ export default function FeedbackPage() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showClosed, setShowClosed] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   // Filter out Done/Closed unless showClosed is true
   const visibleFeedback = showClosed
@@ -90,11 +92,12 @@ export default function FeedbackPage() {
     }
   };
 
-  const deleteFeedback = async (feedbackId: string) => {
-    if (!confirm('Are you sure you want to delete this feedback?')) {
-      return;
-    }
+  const handleDeleteClick = (feedbackId: string) => {
+    setDeleteConfirm(feedbackId);
+  };
 
+  const deleteFeedback = async (feedbackId: string) => {
+    setDeleteConfirm(null);
     setUpdatingId(feedbackId);
 
     try {
@@ -279,7 +282,7 @@ export default function FeedbackPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <button
-                        onClick={() => deleteFeedback(item.feedbackId)}
+                        onClick={() => handleDeleteClick(item.feedbackId)}
                         disabled={updatingId === item.feedbackId}
                         className="text-red-600 hover:text-red-800 disabled:opacity-50"
                         title="Delete"
@@ -294,6 +297,16 @@ export default function FeedbackPage() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={deleteConfirm !== null}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={() => deleteConfirm && deleteFeedback(deleteConfirm)}
+        title="Delete Feedback"
+        message="Are you sure you want to delete this feedback? This action cannot be undone."
+        confirmText="Delete"
+        variant="danger"
+      />
     </div>
   );
 }

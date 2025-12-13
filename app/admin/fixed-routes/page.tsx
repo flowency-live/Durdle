@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { ConfirmModal } from '@/components/admin/Modal';
 
 interface Location {
   placeId: string;
@@ -58,6 +59,7 @@ export default function FixedRoutesManagement() {
   const [selectedVehicle, setSelectedVehicle] = useState('');
   const [price, setPrice] = useState('');
   const [creating, setCreating] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   useEffect(() => {
     fetchVehicles();
@@ -298,9 +300,12 @@ export default function FixedRoutesManagement() {
     }
   };
 
-  const handleDeleteRoute = async (routeId: string) => {
-    if (!confirm('Are you sure you want to delete this route?')) return;
+  const handleDeleteClick = (routeId: string) => {
+    setDeleteConfirm(routeId);
+  };
 
+  const handleDeleteRoute = async (routeId: string) => {
+    setDeleteConfirm(null);
     try {
       const token = localStorage.getItem('durdle_admin_token');
       const response = await fetch(
@@ -701,7 +706,7 @@ export default function FixedRoutesManagement() {
                               {route.active ? 'Deactivate' : 'Activate'}
                             </button>
                             <button
-                              onClick={() => handleDeleteRoute(route.routeId)}
+                              onClick={() => handleDeleteClick(route.routeId)}
                               className="px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
                             >
                               Delete
@@ -717,6 +722,16 @@ export default function FixedRoutesManagement() {
           ))}
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={deleteConfirm !== null}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={() => deleteConfirm && handleDeleteRoute(deleteConfirm)}
+        title="Delete Fixed Route"
+        message="Are you sure you want to delete this fixed route? This action cannot be undone."
+        confirmText="Delete"
+        variant="danger"
+      />
     </div>
   );
 }

@@ -596,6 +596,375 @@ async function calculatePricing(distanceMiles, waitTimeMinutes, vehicleType = 's
   };
 }
 
+// ============================================================================
+// ZONE PRICING FUNCTIONS
+// ============================================================================
+
+// Extract UK outward code from address string
+// e.g., "123 High St, Bournemouth BH1 2AB" → "BH1"
+function extractOutwardCode(address) {
+  if (!address) return null;
+
+  // Full postcode pattern: "BH1 2AB" or "BH12 1QE" or "SW1A 1AA"
+  const fullMatch = address.match(/\b([A-Z]{1,2}\d{1,2}[A-Z]?)\s*\d[A-Z]{2}\b/i);
+  if (fullMatch) return fullMatch[1].toUpperCase();
+
+  // Partial match: Just outward code at end of string
+  const partialMatch = address.match(/\b([A-Z]{1,2}\d{1,2}[A-Z]?)\b/i);
+  return partialMatch ? partialMatch[1].toUpperCase() : null;
+}
+
+// Check if outward code is in tenant's service area
+// tenantPostcodeAreas = ["BH", "DT", "SP", ...] - the area prefixes
+// outwardCode = "BH1" → area = "BH"
+function isInServiceArea(outwardCode, tenantPostcodeAreas) {
+  if (!outwardCode || !tenantPostcodeAreas || !Array.isArray(tenantPostcodeAreas)) {
+    return false;
+  }
+  // Extract area prefix from outward code (BH1 → BH, SW1A → SW)
+  const area = outwardCode.replace(/\d.*$/, '');
+  return tenantPostcodeAreas.includes(area);
+}
+
+// Query zone by postcode using GSI1
+async function queryZoneByPostcode(outwardCode, tenantId) {
+  if (!outwardCode) return null;
+
+  try {
+    const command = new QueryCommand({
+      TableName: PRICING_TABLE_NAME,
+      IndexName: 'GSI1',
+      KeyConditionExpression: 'GSI1PK = :gsi1pk',
+      ExpressionAttributeValues: {
+        ':gsi1pk': `${tenantId}#POSTCODE#${outwardCode.toUpperCase()}`,
+      },
+    });
+
+    const result = await docClient.send(command);
+
+    if (result.Items && result.Items.length > 0) {
+      // PostcodeLookup record found - extract zone info
+      const lookup = result.Items[0];
+      return {
+        zoneId: lookup.zoneId,
+        zoneName: lookup.zoneName,
+      };
+    }
+
+    return null;
+  } catch (error) {
+    logger.error({
+      event: 'zone_postcode_query_error',
+      outwardCode,
+      tenantId,
+      errorMessage: error.message,
+    }, 'Failed to query zone by postcode');
+    return null;
+  }
+}
+
+// Query destination by placeId (checks both main placeId and alternativePlaceIds)
+async function queryDestinationByPlaceId(placeId, tenantId) {
+  if (!placeId) return null;
+
+  try {
+    const command = new ScanCommand({
+      TableName: PRICING_TABLE_NAME,
+      FilterExpression: 'begins_with(PK, :prefix) AND SK = :sk AND tenantId = :tenantId AND (placeId = :placeId OR contains(alternativePlaceIds, :placeId))',
+      ExpressionAttributeValues: {
+        ':prefix': `${tenantId}#DESTINATION#`,
+        ':sk': 'METADATA',
+        ':tenantId': tenantId,
+        ':placeId': placeId,
+      },
+    });
+
+    const result = await docClient.send(command);
+
+    if (result.Items && result.Items.length > 0) {
+      const dest = result.Items[0];
+      return {
+        destinationId: dest.destinationId,
+        name: dest.name,
+        placeId: dest.placeId,
+        alternativePlaceIds: dest.alternativePlaceIds || [],
+        coordinates: dest.coordinates || null,
+        locationType: dest.locationType,
+      };
+    }
+
+    return null;
+  } catch (error) {
+    logger.error({
+      event: 'destination_placeid_query_error',
+      placeId,
+      tenantId,
+      errorMessage: error.message,
+    }, 'Failed to query destination by placeId');
+    return null;
+  }
+}
+
+// Get all destinations for tenant (for proximity matching)
+async function getAllDestinations(tenantId) {
+  try {
+    const command = new ScanCommand({
+      TableName: PRICING_TABLE_NAME,
+      FilterExpression: 'begins_with(PK, :prefix) AND SK = :sk AND tenantId = :tenantId AND active = :active',
+      ExpressionAttributeValues: {
+        ':prefix': `${tenantId}#DESTINATION#`,
+        ':sk': 'METADATA',
+        ':tenantId': tenantId,
+        ':active': true,
+      },
+    });
+
+    const result = await docClient.send(command);
+    return result.Items || [];
+  } catch (error) {
+    logger.error({
+      event: 'destinations_fetch_error',
+      tenantId,
+      errorMessage: error.message,
+    }, 'Failed to fetch all destinations');
+    return [];
+  }
+}
+
+// Calculate haversine distance between two coordinates (in meters)
+function haversineDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371000; // Earth radius in meters
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(lat1 * Math.PI / 180) *
+            Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Find nearest destination by proximity (for airports/stations with multiple place IDs)
+async function findNearestDestination(coords, tenantId, maxDistanceMeters = 1000) {
+  if (!coords || !coords.lat || !coords.lng) return null;
+
+  const destinations = await getAllDestinations(tenantId);
+
+  let nearest = null;
+  let minDistance = Infinity;
+
+  for (const dest of destinations) {
+    if (!dest.coordinates || !dest.coordinates.lat || !dest.coordinates.lng) continue;
+
+    const distance = haversineDistance(
+      coords.lat, coords.lng,
+      dest.coordinates.lat, dest.coordinates.lng
+    );
+
+    if (distance <= maxDistanceMeters && distance < minDistance) {
+      nearest = {
+        destination: {
+          destinationId: dest.destinationId,
+          name: dest.name,
+          placeId: dest.placeId,
+          coordinates: dest.coordinates,
+          locationType: dest.locationType,
+        },
+        distance,
+      };
+      minDistance = distance;
+    }
+  }
+
+  return nearest;
+}
+
+// Find destination using hybrid matching: exact placeId → alternativePlaceIds → proximity
+async function findDestination(placeId, coords, tenantId, reqLogger) {
+  // 1. Try exact placeId match (includes alternativePlaceIds check)
+  const exactMatch = await queryDestinationByPlaceId(placeId, tenantId);
+  if (exactMatch) {
+    reqLogger.info({
+      event: 'destination_exact_match',
+      placeId,
+      destinationId: exactMatch.destinationId,
+    }, 'Found destination by exact placeId match');
+    return exactMatch;
+  }
+
+  // 2. Proximity fallback for airports/stations (within 1km)
+  if (coords && coords.lat && coords.lng) {
+    const nearbyMatch = await findNearestDestination(coords, tenantId, 1000);
+    if (nearbyMatch) {
+      reqLogger.info({
+        event: 'destination_proximity_match',
+        inputPlaceId: placeId,
+        matchedDestination: nearbyMatch.destination.destinationId,
+        distanceMeters: Math.round(nearbyMatch.distance),
+      }, 'Found destination by proximity match');
+      return nearbyMatch.destination;
+    }
+  }
+
+  return null;
+}
+
+// Get zone pricing for zone-destination pair
+async function getZonePricingForPair(zoneId, destinationId, tenantId) {
+  try {
+    const command = new GetCommand({
+      TableName: PRICING_TABLE_NAME,
+      Key: {
+        PK: `${tenantId}#ZONE#${zoneId}`,
+        SK: `PRICING#${destinationId}`,
+      },
+    });
+
+    const result = await docClient.send(command);
+
+    if (result.Item && result.Item.active) {
+      return {
+        prices: result.Item.prices,
+        name: result.Item.name,
+      };
+    }
+
+    return null;
+  } catch (error) {
+    logger.error({
+      event: 'zone_pricing_fetch_error',
+      zoneId,
+      destinationId,
+      tenantId,
+      errorMessage: error.message,
+    }, 'Failed to fetch zone pricing');
+    return null;
+  }
+}
+
+// Main zone pricing check with bidirectional logic
+async function checkZonePricing(pickup, dropoff, tenantId, reqLogger) {
+  // Extract postcodes from both locations
+  const pickupOutward = extractOutwardCode(pickup.address);
+  const dropoffOutward = extractOutwardCode(dropoff?.address);
+
+  reqLogger.info({
+    event: 'zone_pricing_check_start',
+    pickupOutward,
+    dropoffOutward,
+    pickupPlaceId: pickup.placeId?.substring(0, 10) + '...',
+    dropoffPlaceId: dropoff?.placeId?.substring(0, 10) + '...',
+  }, 'Starting zone pricing check');
+
+  // Try pickup as zone, dropoff as destination
+  let zone = pickupOutward ? await queryZoneByPostcode(pickupOutward, tenantId) : null;
+  let destination = dropoff ? await findDestination(dropoff.placeId, dropoff.coords, tenantId, reqLogger) : null;
+  let isReversed = false;
+
+  // If no match, try reverse (dropoff as zone, pickup as destination)
+  if (!zone || !destination) {
+    const reverseZone = dropoffOutward ? await queryZoneByPostcode(dropoffOutward, tenantId) : null;
+    const reverseDestination = pickup.placeId ? await findDestination(pickup.placeId, pickup.coords, tenantId, reqLogger) : null;
+
+    if (reverseZone && reverseDestination) {
+      zone = reverseZone;
+      destination = reverseDestination;
+      isReversed = true;
+      reqLogger.info({ event: 'zone_pricing_reversed' }, 'Using reversed zone pricing (dropoff as zone, pickup as destination)');
+    }
+  }
+
+  if (!zone || !destination) {
+    reqLogger.debug({
+      event: 'zone_pricing_no_match',
+      hasZone: !!zone,
+      hasDestination: !!destination,
+    }, 'No zone pricing match found');
+    return null;
+  }
+
+  // Get zone pricing for this combination
+  const pricing = await getZonePricingForPair(zone.zoneId, destination.destinationId, tenantId);
+  if (!pricing) {
+    reqLogger.info({
+      event: 'zone_pricing_not_configured',
+      zoneId: zone.zoneId,
+      destinationId: destination.destinationId,
+    }, 'Zone-destination pair exists but no pricing configured');
+    return null;
+  }
+
+  reqLogger.info({
+    event: 'zone_pricing_match_found',
+    zoneId: zone.zoneId,
+    zoneName: zone.zoneName,
+    destinationId: destination.destinationId,
+    destinationName: destination.name,
+    isReversed,
+  }, 'Zone pricing match found');
+
+  return {
+    isZonePricing: true,
+    zoneId: zone.zoneId,
+    zoneName: zone.zoneName,
+    destinationId: destination.destinationId,
+    destinationName: destination.name,
+    prices: pricing.prices,
+    isReversed,
+  };
+}
+
+// Get tenant configuration including service area
+async function getTenantServiceArea(tenantId) {
+  try {
+    const command = new GetCommand({
+      TableName: PRICING_TABLE_NAME,
+      Key: {
+        PK: `${tenantId}#TENANT`,
+        SK: 'CONFIG',
+      },
+    });
+
+    const result = await docClient.send(command);
+
+    if (result.Item) {
+      return {
+        postcodeAreas: result.Item.postcodeAreas || [],
+        companyName: result.Item.companyName,
+      };
+    }
+
+    // Fallback: try legacy config location
+    const legacyCommand = new GetCommand({
+      TableName: PRICING_TABLE_NAME,
+      Key: {
+        PK: 'TENANT_CONFIG',
+        SK: tenantId,
+      },
+    });
+
+    const legacyResult = await docClient.send(legacyCommand);
+    if (legacyResult.Item) {
+      return {
+        postcodeAreas: legacyResult.Item.postcodeAreas || [],
+        companyName: legacyResult.Item.companyName,
+      };
+    }
+
+    return { postcodeAreas: [] };
+  } catch (error) {
+    logger.error({
+      event: 'tenant_config_fetch_error',
+      tenantId,
+      errorMessage: error.message,
+    }, 'Failed to fetch tenant config');
+    return { postcodeAreas: [] };
+  }
+}
+
+// ============================================================================
+// END ZONE PRICING FUNCTIONS
+// ============================================================================
+
 // Generate quote ID in format: DTC-Q{ddmmyy}{seq}
 // Example: DTC-Q08120801 (Dec 8, 2025, first quote of the day)
 async function generateFriendlyQuoteId() {
@@ -986,29 +1355,37 @@ export const handler = async (event, context) => {
           }
         };
       } else {
-        // Fallback to variable pricing calculation
-        logger.info({ event: 'variable_pricing_selected' }, 'Using variable pricing calculation');
-        const apiKey = await getGoogleMapsApiKey();
+        // Check zone pricing BEFORE falling back to variable pricing
+        // Zone pricing applies when pickup is in a zone AND dropoff is a known destination (or vice versa)
+        let zonePricingResult = null;
+        let isZonePricing = false;
 
-        if (hasWaypoints) {
-          // Use Directions API for routes with waypoints
-          logger.info({
-            event: 'route_calculation_waypoints',
-            waypointCount: waypoints.length,
-            totalWaitTime,
-          }, 'Calculating route with waypoints');
-
-          const apiStart = Date.now();
-          route = await calculateRouteWithWaypoints(
-            body.pickupLocation.placeId || body.pickupLocation.address,
-            body.dropoffLocation.placeId || body.dropoffLocation.address,
-            waypoints,
-            apiKey
+        if (!hasWaypoints && body.dropoffLocation) {
+          // Zone pricing only for simple routes (no waypoints)
+          zonePricingResult = await checkZonePricing(
+            body.pickupLocation,
+            body.dropoffLocation,
+            tenantId,
+            logger
           );
-          logExternalApiCall(logger, 'directions', Date.now() - apiStart);
-        } else {
-          // Use Distance Matrix API for simple routes
-          logger.info({ event: 'route_calculation_simple' }, 'Calculating simple route');
+        }
+
+        if (zonePricingResult) {
+          // Use zone pricing
+          isZonePricing = true;
+          logger.info({
+            event: 'zone_pricing_selected',
+            zoneName: zonePricingResult.zoneName,
+            destinationName: zonePricingResult.destinationName,
+            isReversed: zonePricingResult.isReversed,
+          }, 'Using zone pricing');
+
+          // Get vehicle-specific price from zone pricing
+          const vehiclePrices = zonePricingResult.prices[vehicleType] || zonePricingResult.prices.standard;
+          const zonePrice = vehiclePrices.outbound; // Default to outbound price
+
+          // Still need route info for display - use Google Maps
+          const apiKey = await getGoogleMapsApiKey();
           const apiStart = Date.now();
           route = await calculateDistance(
             body.pickupLocation.address,
@@ -1016,23 +1393,113 @@ export const handler = async (event, context) => {
             apiKey
           );
           logExternalApiCall(logger, 'distance_matrix', Date.now() - apiStart);
-        }
 
-        // Calculate pricing: baseFare + (distance × perMile) + (waitTime × perMinute)
-        // Note: Journey driving time is NOT charged, only explicit wait times
-        pricing = await calculatePricing(
-          parseFloat(route.distance.miles),
-          totalWaitTime, // Only charge for explicit wait times, not driving time
-          vehicleType,
-          tenantId
-        );
+          const allPricing = await getVehiclePricing(tenantId);
+          const vehicleMetadata = allPricing[vehicleType] || allPricing.standard;
+
+          pricing = {
+            currency: 'GBP',
+            breakdown: {
+              baseFare: 0,
+              distanceCharge: 0,
+              waitTimeCharge: 0,
+              subtotal: zonePrice,
+              tax: 0,
+              total: zonePrice
+            },
+            displayTotal: `£${(zonePrice / 100).toFixed(2)}`,
+            isZonePricing: true,
+            zoneName: zonePricingResult.zoneName,
+            destinationName: zonePricingResult.destinationName,
+            vehicleMetadata: {
+              name: vehicleMetadata.name,
+              description: vehicleMetadata.description,
+              capacity: vehicleMetadata.capacity,
+              features: vehicleMetadata.features,
+              imageUrl: vehicleMetadata.imageUrl
+            }
+          };
+        } else {
+          // Fallback to variable pricing calculation
+          logger.info({ event: 'variable_pricing_selected' }, 'Using variable pricing calculation');
+          const apiKey = await getGoogleMapsApiKey();
+
+          if (hasWaypoints) {
+            // Use Directions API for routes with waypoints
+            logger.info({
+              event: 'route_calculation_waypoints',
+              waypointCount: waypoints.length,
+              totalWaitTime,
+            }, 'Calculating route with waypoints');
+
+            const apiStart = Date.now();
+            route = await calculateRouteWithWaypoints(
+              body.pickupLocation.placeId || body.pickupLocation.address,
+              body.dropoffLocation.placeId || body.dropoffLocation.address,
+              waypoints,
+              apiKey
+            );
+            logExternalApiCall(logger, 'directions', Date.now() - apiStart);
+          } else {
+            // Use Distance Matrix API for simple routes
+            logger.info({ event: 'route_calculation_simple' }, 'Calculating simple route');
+            const apiStart = Date.now();
+            route = await calculateDistance(
+              body.pickupLocation.address,
+              body.dropoffLocation.address,
+              apiKey
+            );
+            logExternalApiCall(logger, 'distance_matrix', Date.now() - apiStart);
+          }
+
+          // Calculate pricing: baseFare + (distance × perMile) + (waitTime × perMinute)
+          // Note: Journey driving time is NOT charged, only explicit wait times
+          pricing = await calculatePricing(
+            parseFloat(route.distance.miles),
+            totalWaitTime, // Only charge for explicit wait times, not driving time
+            vehicleType,
+            tenantId
+          );
+        }
       }
     } // End of one-way journey else block
 
-    // Check surge pricing for pickup date/time (only for non-hourly, non-fixed routes)
-    let surgeResult = { combinedMultiplier: 1.0, isPeakPricing: false, appliedRules: [], wasCapped: false };
+    // Check service area coverage for outOfServiceArea flag
+    let outOfServiceArea = false;
+    let outOfServiceAreaMessage = null;
 
-    if (body.pickupTime && !isHourlyRate && !isFixedRoute) {
+    if (body.pickupLocation?.address || body.dropoffLocation?.address) {
+      const tenantServiceArea = await getTenantServiceArea(tenantId);
+
+      if (tenantServiceArea.postcodeAreas && tenantServiceArea.postcodeAreas.length > 0) {
+        const pickupOutward = extractOutwardCode(body.pickupLocation?.address);
+        const dropoffOutward = extractOutwardCode(body.dropoffLocation?.address);
+
+        const pickupInServiceArea = !pickupOutward || isInServiceArea(pickupOutward, tenantServiceArea.postcodeAreas);
+        const dropoffInServiceArea = !dropoffOutward || isInServiceArea(dropoffOutward, tenantServiceArea.postcodeAreas);
+
+        // Out of service area if EITHER pickup OR dropoff is outside coverage
+        outOfServiceArea = (pickupOutward && !pickupInServiceArea) || (dropoffOutward && !dropoffInServiceArea);
+
+        if (outOfServiceArea) {
+          outOfServiceAreaMessage = "This journey is outside our standard service area. Send us this quote and we'll be in touch to discuss.";
+          logger.info({
+            event: 'out_of_service_area',
+            pickupOutward,
+            dropoffOutward,
+            pickupInServiceArea,
+            dropoffInServiceArea,
+            serviceAreas: tenantServiceArea.postcodeAreas,
+          }, 'Journey is outside service area');
+        }
+      }
+    }
+
+    // Check surge pricing for pickup date/time (only for non-hourly, non-fixed routes, non-zone pricing)
+    let surgeResult = { combinedMultiplier: 1.0, isPeakPricing: false, appliedRules: [], wasCapped: false };
+    const isZonePricing = pricing.isZonePricing || false;
+
+    if (body.pickupTime && !isHourlyRate && !isFixedRoute && !isZonePricing) {
       surgeResult = await checkSurgePricing(body.pickupTime, tenantId);
 
       if (surgeResult.isPeakPricing) {
@@ -1112,11 +1579,64 @@ export const handler = async (event, context) => {
 
     // Handle compareMode - return pricing for ALL vehicle types
     if (compareMode) {
+      // Build debug info for zone pricing testing
+      const pickupOutward = extractOutwardCode(body.pickupLocation?.address);
+      const dropoffOutward = extractOutwardCode(body.dropoffLocation?.address);
+
+      // Check for zone pricing in compare mode (only for non-hourly journeys)
+      let compareModeZonePricing = null;
+      let debugZoneMatch = null;
+      let debugDestinationMatch = null;
+
+      if (journeyType !== 'by-the-hour' && body.dropoffLocation) {
+        compareModeZonePricing = await checkZonePricing(
+          body.pickupLocation,
+          body.dropoffLocation,
+          tenantId,
+          logger
+        );
+
+        // Build debug info
+        if (compareModeZonePricing) {
+          debugZoneMatch = {
+            zoneId: compareModeZonePricing.zoneId,
+            zoneName: compareModeZonePricing.zoneName,
+            isReversed: compareModeZonePricing.isReversed,
+          };
+          debugDestinationMatch = {
+            destinationId: compareModeZonePricing.destinationId,
+            destinationName: compareModeZonePricing.destinationName,
+          };
+        }
+      }
+
+      // Build debug object for zone pricing testing
+      const debugInfo = {
+        pickup: {
+          address: body.pickupLocation?.address?.substring(0, 50) + '...',
+          placeId: body.pickupLocation?.placeId?.substring(0, 15) + '...',
+          extractedPostcode: pickupOutward,
+        },
+        dropoff: body.dropoffLocation ? {
+          address: body.dropoffLocation?.address?.substring(0, 50) + '...',
+          placeId: body.dropoffLocation?.placeId?.substring(0, 15) + '...',
+          extractedPostcode: dropoffOutward,
+        } : null,
+        zoneMatch: debugZoneMatch,
+        destinationMatch: debugDestinationMatch,
+        pricingMethod: compareModeZonePricing ? 'zone_pricing' : 'variable_pricing',
+        serviceArea: {
+          pickupInArea: !pickupOutward || isInServiceArea(pickupOutward, (await getTenantServiceArea(tenantId)).postcodeAreas),
+          dropoffInArea: !dropoffOutward || isInServiceArea(dropoffOutward, (await getTenantServiceArea(tenantId)).postcodeAreas),
+        },
+      };
+
       logger.info({
         event: 'compare_mode_calculation',
         journeyType,
         hasRoute: !!route,
         corpAccountId: corpAccountId || null,
+        hasZonePricing: !!compareModeZonePricing,
       }, 'Calculating prices for all vehicle types');
 
       // Get corporate discount if corpAccountId provided (reuse if already fetched above)
@@ -1131,6 +1651,7 @@ export const handler = async (event, context) => {
       for (const vType of vehicleTypes) {
         const vehicleRates = allPricing[vType] || getFallbackPricing()[vType];
         let oneWayPrice, oneWayBreakdown;
+        let returnPriceFromZone = null; // Zone pricing has separate return prices
 
         if (journeyType === 'by-the-hour') {
           // Hourly pricing for compare mode
@@ -1146,6 +1667,22 @@ export const handler = async (event, context) => {
             subtotal: hourlyCharge,
             tax: 0,
             total: hourlyCharge,
+          };
+        } else if (compareModeZonePricing && compareModeZonePricing.prices[vType]) {
+          // Use zone pricing if available
+          const zonePrices = compareModeZonePricing.prices[vType];
+          oneWayPrice = zonePrices.outbound;
+          returnPriceFromZone = zonePrices.return; // Use zone's return price directly
+          oneWayBreakdown = {
+            baseFare: 0,
+            distanceCharge: 0,
+            waitTimeCharge: 0,
+            subtotal: oneWayPrice,
+            tax: 0,
+            total: oneWayPrice,
+            isZonePricing: true,
+            zoneName: compareModeZonePricing.zoneName,
+            destinationName: compareModeZonePricing.destinationName,
           };
         } else {
           // Distance-based pricing for compare mode
@@ -1165,18 +1702,32 @@ export const handler = async (event, context) => {
           };
         }
 
-        // Calculate return price with configurable discount
-        const returnDiscount = vehicleRates.returnDiscount ?? 0;
-        const returnPriceBeforeDiscount = oneWayPrice * 2;
-        const discountAmount = Math.round(returnPriceBeforeDiscount * returnDiscount / 100);
-        const returnPrice = returnPriceBeforeDiscount - discountAmount;
+        // Calculate return price - use zone pricing's return price if available, otherwise calculate with discount
+        let returnPrice;
+        let returnDiscount = 0;
+        let discountAmount = 0;
+        let returnPriceBeforeDiscount;
 
-        // Apply surge pricing to compare mode prices (for non-hourly, non-fixed routes)
+        if (returnPriceFromZone !== null) {
+          // Zone pricing has explicit return prices (no discount calculation needed)
+          returnPrice = returnPriceFromZone;
+          returnPriceBeforeDiscount = returnPriceFromZone; // No discount for zone pricing
+        } else {
+          // Variable pricing: apply configurable return discount
+          returnDiscount = vehicleRates.returnDiscount ?? 0;
+          returnPriceBeforeDiscount = oneWayPrice * 2;
+          discountAmount = Math.round(returnPriceBeforeDiscount * returnDiscount / 100);
+          returnPrice = returnPriceBeforeDiscount - discountAmount;
+        }
+
+        // Apply surge pricing to compare mode prices (for non-hourly, non-zone pricing routes)
+        // Zone pricing has fixed prices, so surge does not apply
         let finalOneWayPrice = oneWayPrice;
         let finalReturnPrice = returnPrice;
         let surgeInfo = {};
+        const isVehicleZonePriced = returnPriceFromZone !== null;
 
-        if (surgeResult.isPeakPricing) {
+        if (surgeResult.isPeakPricing && !isVehicleZonePriced) {
           finalOneWayPrice = Math.round(oneWayPrice * surgeResult.combinedMultiplier);
           finalReturnPrice = Math.round(returnPrice * surgeResult.combinedMultiplier);
           surgeInfo = {
@@ -1258,6 +1809,17 @@ export const handler = async (event, context) => {
         extras,
         vehicles,
         ...(corporateDiscount && corporateDiscount.discountPercentage > 0 && { isCorporateRate: true }),
+        // Zone pricing info
+        ...(compareModeZonePricing && {
+          isZonePricing: true,
+          zoneName: compareModeZonePricing.zoneName,
+          destinationName: compareModeZonePricing.destinationName,
+        }),
+        // Service area flags
+        outOfServiceArea,
+        ...(outOfServiceAreaMessage && { outOfServiceAreaMessage }),
+        // Debug info for zone pricing testing
+        _debug: debugInfo,
         createdAt: new Date().toISOString(),
       };
 
@@ -1302,6 +1864,9 @@ export const handler = async (event, context) => {
       luggage: body.luggage || 0,
       extras, // Baby seats and child seats
       returnJourney: body.returnJourney || false,
+      // Service area flags - frontend should check these to show appropriate messaging
+      outOfServiceArea,
+      ...(outOfServiceAreaMessage && { outOfServiceAreaMessage }),
       calculatedAt: now,
     };
 

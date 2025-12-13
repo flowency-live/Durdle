@@ -47,11 +47,18 @@ const getHeaders = (origin) => {
 // Validation schemas
 const LocationTypeEnum = z.enum(['airport', 'train_station', 'port', 'other']);
 
+// Coordinates schema for proximity matching
+const CoordinatesSchema = z.object({
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+}).optional();
+
 const CreateDestinationSchema = z.object({
   name: z.string().min(3).max(100),
   placeId: z.string().startsWith('ChIJ', 'Must be a valid Google Place ID'),
   locationType: LocationTypeEnum,
   alternativePlaceIds: z.array(z.string().startsWith('ChIJ')).optional(),
+  coordinates: CoordinatesSchema, // For proximity matching (optional)
   active: z.boolean().optional().default(true),
 });
 
@@ -60,6 +67,7 @@ const UpdateDestinationSchema = z.object({
   placeId: z.string().startsWith('ChIJ').optional(),
   locationType: LocationTypeEnum.optional(),
   alternativePlaceIds: z.array(z.string().startsWith('ChIJ')).optional(),
+  coordinates: CoordinatesSchema, // For proximity matching (optional)
   active: z.boolean().optional(),
 });
 
@@ -92,6 +100,7 @@ async function listDestinations(tenantId, logger) {
     placeId: item.placeId,
     locationType: item.locationType,
     alternativePlaceIds: item.alternativePlaceIds || [],
+    coordinates: item.coordinates || null, // For proximity matching
     active: item.active,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
@@ -173,6 +182,7 @@ async function createDestination(tenantId, data, logger) {
     placeId: data.placeId,
     locationType: data.locationType,
     alternativePlaceIds: data.alternativePlaceIds || [],
+    coordinates: data.coordinates || null, // For proximity matching
     active: data.active ?? true,
     createdAt: now,
     updatedAt: now,
@@ -205,6 +215,7 @@ async function updateDestination(tenantId, destinationId, data, logger) {
     placeId: data.placeId ?? existing.placeId,
     locationType: data.locationType ?? existing.locationType,
     alternativePlaceIds: data.alternativePlaceIds !== undefined ? data.alternativePlaceIds : existing.alternativePlaceIds,
+    coordinates: data.coordinates !== undefined ? data.coordinates : existing.coordinates, // For proximity matching
     active: data.active ?? existing.active,
     updatedAt: now,
   };
