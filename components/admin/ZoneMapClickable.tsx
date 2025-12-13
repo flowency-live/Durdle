@@ -345,6 +345,16 @@ export default function ZoneMapClickable({
     };
   }, [paintMode]);
 
+  // Disable map dragging when in paint mode
+  useEffect(() => {
+    if (!mapRef.current) return;
+    if (paintMode) {
+      mapRef.current.dragging.disable();
+    } else {
+      mapRef.current.dragging.enable();
+    }
+  }, [paintMode]);
+
   // Clear all selections
   const handleClearAll = () => {
     onCodesChange([]);
