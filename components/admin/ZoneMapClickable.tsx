@@ -60,6 +60,12 @@ export default function ZoneMapClickable({
   const [paintMode, setPaintMode] = useState(false);
   const [isPainting, setIsPainting] = useState(false);
 
+  // Move confirmation modal state
+  const [moveConfirm, setMoveConfirm] = useState<{
+    code: string;
+    fromZone: string;
+  } | null>(null);
+
   // Build zone color map
   const zoneColorMap = useRef<Map<string, string>>(new Map());
   useEffect(() => {
@@ -170,8 +176,12 @@ export default function ZoneMapClickable({
     const isSelected = selectedCodes.includes(districtCode);
     const assignment = zoneAssignments[districtCode];
 
-    // Prevent selecting districts assigned to other zones
+    // If assigned to another zone and not already selected, show confirmation modal
     if (assignment && assignment.zoneId !== currentZoneId && !isSelected) {
+      setMoveConfirm({
+        code: districtCode,
+        fromZone: assignment.zoneName,
+      });
       return;
     }
 
@@ -181,6 +191,14 @@ export default function ZoneMapClickable({
       onCodesChange([...selectedCodes, districtCode]);
     }
   }, [selectedCodes, onCodesChange, zoneAssignments, currentZoneId]);
+
+  // Handle move confirmation
+  const handleConfirmMove = useCallback(() => {
+    if (moveConfirm) {
+      onCodesChange([...selectedCodes, moveConfirm.code]);
+      setMoveConfirm(null);
+    }
+  }, [moveConfirm, selectedCodes, onCodesChange]);
 
   // Add district to selection (for paint mode)
   const addToSelection = useCallback((districtCode: string) => {
@@ -421,6 +439,40 @@ export default function ZoneMapClickable({
       <div className="mt-2 text-xs text-gray-500">
         <p>Click areas to select/deselect. Use Paint Mode to drag-select multiple areas.</p>
       </div>
+
+      {/* Move Confirmation Modal */}
+      {moveConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[2000]">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Move Postcode Area?
+            </h3>
+            <p className="text-gray-600 mb-4">
+              <strong>{moveConfirm.code}</strong> is currently assigned to{' '}
+              <strong>{moveConfirm.fromZone}</strong>.
+            </p>
+            <p className="text-gray-600 mb-6">
+              Do you want to move it to this zone? It will be removed from its current zone when you save.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setMoveConfirm(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmMove}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+              >
+                Move to This Zone
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

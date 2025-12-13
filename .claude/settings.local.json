@@ -195,7 +195,8 @@
       "Bash(MSYS_NO_PATHCONV=1 aws dynamodb put-item:*)",
       "Bash(git -C \"c:/VSProjects/_Websites/Durdle\" diff --stat)",
       "Bash(git -C \"c:/VSProjects/_Websites/Durdle\" commit -m \"Replace polygon drawing with clickable postcode areas map\")",
-      "Bash(git -C \"c:/VSProjects/_Websites/Durdle\" commit -m \"Fix map initialization timing issue\")"
+      "Bash(git -C \"c:/VSProjects/_Websites/Durdle\" commit -m \"Fix map initialization timing issue\")",
+      "Bash(git -C \"c:/VSProjects/_Websites/Durdle\" commit -m \"Add move confirmation when clicking district assigned to another zone\")"
     ],
     "deny": [],
     "ask": []
